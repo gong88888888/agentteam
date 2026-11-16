@@ -10,10 +10,76 @@
   },
   "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
   "backend": "local",
-  "latency_ms": 14495,
-  "tokens": 1918,
+  "latency_ms": 8984,
+  "tokens": 3371,
   "cost_usd": 0.0,
-  "files": [],
+  "files": [
+    {
+      "path": "docs/plan/project-plan.md",
+      "sha256": "c9f57407973b905b35d5ebc074acbc75110de33c2984842d9b3414b5251ae848",
+      "bytes": 2270,
+      "source": "role",
+      "promoted": true
+    }
+  ],
   "code_pass": false,
-  "finished_at": "2026-11-16 16:39:27"
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-pm",
+    "role": "pm",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:切片",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：依赖/顺序/门禁"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/plan/project-plan.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-173517",
+  "finished_at": "2026-11-16 17:35:43",
+  "quality": {
+    "score": 100,
+    "grade": "A",
+    "components": {
+      "completeness": 30,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": []
+  }
 }

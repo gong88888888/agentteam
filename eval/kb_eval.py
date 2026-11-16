@@ -59,25 +59,51 @@ def run(real: bool = False) -> dict:
         retriever = HybridRetriever(db, embedder=embedder)
     rows = []
     hits = 0
+    baseline_hits = 0
+    rerank_gain = 0
     filter_ok = 0
     filter_total = 0
+    rr: list[float] = []
+    baseline_rr: list[float] = []
     for case in cases:
         result = retriever.search(case["query"], top_k=5,
-                                  source_type=case.get("source_type"))
+                                  source_type=case.get("source_type"), rerank=True)
+        baseline = retriever.search(case["query"], top_k=5,
+                                    source_type=case.get("source_type"), rerank=False)
         citations = [h.get("citation", "") for h in result]
+        base_citations = [h.get("citation", "") for h in baseline]
         ok = any(any(exp in c for c in citations) for exp in case["expected"])
+        base_ok = any(any(exp in c for c in base_citations) for exp in case["expected"])
         if case.get("source_type"):
             filter_total += 1
             filter_ok += int(all(f"{case['source_type']}" in (h.get("source_type") or "")
                                  for h in result if "citation" in h))
         hits += int(ok)
+        baseline_hits += int(base_ok)
+        rerank_gain += int(ok and not base_ok)
+
+        def first_rank(cits: list[str]) -> float:
+            for i, c in enumerate(cits, 1):
+                if any(exp in c for exp in case["expected"]):
+                    return 1.0 / i
+            return 0.0
+
+        rr.append(first_rank(citations))
+        baseline_rr.append(first_rank(base_citations))
         rows.append({"id": case["id"], "query": case["query"],
                      "expected": case["expected"], "citations": citations[:5],
-                     "pass": ok})
+                     "baseline_citations": base_citations[:5],
+                     "pass": ok, "baseline_pass": base_ok,
+                     "rerank_gain": ok and not base_ok})
     total = len(cases)
     metrics = {"mode": "real" if real else "offline",
                "total": total, "hits": hits,
                "recall_at_5": round(hits / total, 3) if total else 0,
+               "baseline_hits": baseline_hits,
+               "baseline_recall_at_5": round(baseline_hits / total, 3) if total else 0,
+               "rerank_gain": rerank_gain,
+               "mrr": round(sum(rr) / total, 3) if total else 0,
+               "baseline_mrr": round(sum(baseline_rr) / total, 3) if total else 0,
                "filter_pass": f"{filter_ok}/{filter_total}",
                "stats": retriever.stats(), "rows": rows}
     OUT.mkdir(parents=True, exist_ok=True)
@@ -86,11 +112,15 @@ def run(real: bool = False) -> dict:
     lines = [
         "# Knowledge Retrieval Evaluation", "",
         f"- mode: **{metrics['mode']}**",
-        f"- recall@5: **{metrics['recall_at_5']}** ({hits}/{total})",
+        f"- recall@5 (rerank): **{metrics['recall_at_5']}** ({hits}/{total})",
+        f"- recall@5 (RRF baseline): **{metrics['baseline_recall_at_5']}** "
+        f"({baseline_hits}/{total})",
+        f"- rerank gain: {rerank_gain} · MRR {metrics['baseline_mrr']} → {metrics['mrr']}",
         f"- source_type filter: {metrics['filter_pass']}",
         f"- index: {json.dumps(metrics['stats'], ensure_ascii=False)}",
-        "", "| 用例 | 结果 | citations |", "|---|---|---|",
+        "", "| 用例 | rerank | baseline | citations |", "|---|---|---|---|",
         *[f"| {r['id']} | {'✅' if r['pass'] else '❌'} | "
+          f"{'✅' if r['baseline_pass'] else '❌'} | "
           f"{'<br>'.join(r['citations'][:3])} |" for r in rows],
         "",
     ]
@@ -108,7 +138,10 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     m = run(real=args.real)
     print(json.dumps({k: m[k] for k in ("mode", "total", "hits",
-                                        "recall_at_5", "filter_pass", "stats")},
+                                        "recall_at_5", "baseline_hits",
+                                        "baseline_recall_at_5", "rerank_gain",
+                                        "mrr", "baseline_mrr",
+                                        "filter_pass", "stats")},
                      ensure_ascii=False, indent=2))
     print(f"report -> {OUT / 'kb-eval.md'}")
     return 0 if m["hits"] == m["total"] else 1

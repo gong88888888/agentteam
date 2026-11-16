@@ -11,7 +11,7 @@ from .base import ChatResult, ModelTimeout
 
 
 ROLE_STUB = {
-    "pm": "决策包 选项 证据 风险 升级 裁决协调",
+    "pm": "决策包 选项 证据 风险 升级 裁决协调 切片 依赖 门禁",
     "product": "非目标 验收标准 用户场景 范围",
     "ui": "信息架构 交互状态 深色模式 可访问性 设计规范",
     "arch": "接口契约 不变量 状态机 错误码 架构",
@@ -21,7 +21,7 @@ ROLE_STUB = {
     "qa": "正常 异常 边界 权限 回归 证据 用例",
     "security": "威胁 缓解 高危 权限 依赖 合规",
     "ops": "回滚 演练 监控 灰度 发布 告警",
-    "kb": "来源 证据 适用条件 失效时间 信任等级 检索",
+    "kb": "来源 证据 适用条件 失效时间 信任等级 检索 知识 复用",
     "retro": "时间线 根因 行动项 owner deadline verification 验证 残余风险",
 }
 
@@ -65,6 +65,8 @@ class StubBackend:
                 "open_questions": [],
                 "summary": summary,
             }
+            if "项目运行器约束" in text and role in ("backend", "frontend"):
+                obj["files"] = [self._project_file(role)]
         if self.mode == "schema_error":
             content = '{"not": "a verdict"'
         else:
@@ -72,6 +74,28 @@ class StubBackend:
         return ChatResult(content=content, backend=self.name, model=model or "stub",
                           model_version="stub@1", latency_ms=int((time.time() - started) * 1000),
                           response_id="stub")
+
+    @staticmethod
+    def _project_file(role: str) -> dict[str, str]:
+        if role == "backend":
+            return {
+                "path": "src/backend/service.py",
+                "content": (
+                    '"""Stub backend service for offline pipeline verification."""\n'
+                    "from __future__ import annotations\n\n"
+                    "def summarize(rows: list[dict]) -> dict:\n"
+                    '    """Deterministic stub used to exercise compile/tests."""\n'
+                    "    return {\"count\": len(rows), \"rows\": rows}\n"
+                ),
+            }
+        return {
+            "path": "src/frontend/app.js",
+            "content": (
+                "export function exportState(status) {\n"
+                "  return { ready: status === 'ready', loading: status === 'loading' };\n"
+                "}\n"
+            ),
+        }
 
     @staticmethod
     def _role(text: str) -> str:

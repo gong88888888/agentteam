@@ -11,12 +11,78 @@
     },
     "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
     "backend": "local",
-    "latency_ms": 14495,
-    "tokens": 1918,
+    "latency_ms": 8984,
+    "tokens": 3371,
     "cost_usd": 0.0,
-    "files": [],
+    "files": [
+      {
+        "path": "docs/plan/project-plan.md",
+        "sha256": "c9f57407973b905b35d5ebc074acbc75110de33c2984842d9b3414b5251ae848",
+        "bytes": 2270,
+        "source": "role",
+        "promoted": true
+      }
+    ],
     "code_pass": false,
-    "finished_at": "2026-11-16 16:39:27"
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-pm",
+      "role": "pm",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:切片",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：依赖/顺序/门禁"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/plan/project-plan.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-173517",
+    "finished_at": "2026-11-16 17:35:43",
+    "quality": {
+      "score": 100,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": []
+    }
   },
   "product": {
     "role": "product",
@@ -30,12 +96,81 @@
     },
     "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
     "backend": "local",
-    "latency_ms": 4789,
-    "tokens": 1912,
+    "latency_ms": 17458,
+    "tokens": 2008,
     "cost_usd": 0.0,
-    "files": [],
+    "files": [
+      {
+        "path": "docs/product/product-baseline.md",
+        "sha256": "8cbcc686d3cc5ba7c71dada72fca039c38be10ea014dad706a142533399f4cdc",
+        "bytes": 841,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
     "code_pass": false,
-    "finished_at": "2026-11-16 16:39:32"
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-product",
+      "role": "product",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:验收",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：非目标/不做/范围"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/product/product-baseline.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-173517",
+    "finished_at": "2026-11-16 17:36:00",
+    "quality": {
+      "score": 94,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
   },
   "arch": {
     "role": "arch",
@@ -49,12 +184,81 @@
     },
     "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
     "backend": "local",
-    "latency_ms": 4218,
-    "tokens": 2860,
+    "latency_ms": 19407,
+    "tokens": 2449,
     "cost_usd": 0.0,
-    "files": [],
+    "files": [
+      {
+        "path": "docs/architecture/architecture.md",
+        "sha256": "6df9b5693fe3a776e6d72260d961025b32a9da2e3571a10a07c870061e95f380",
+        "bytes": 1157,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
     "code_pass": false,
-    "finished_at": "2026-11-16 16:39:42"
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-arch",
+      "role": "arch",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:契约",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：错误/不变量/接口"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/architecture/architecture.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-173517",
+    "finished_at": "2026-11-16 17:36:19",
+    "quality": {
+      "score": 94,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
   },
   "backend": {
     "role": "backend",
@@ -68,18 +272,117 @@
     },
     "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
     "backend": "local",
-    "latency_ms": 7258,
-    "tokens": 2486,
+    "latency_ms": 19655,
+    "tokens": 2718,
     "cost_usd": 0.0,
     "files": [
       {
-        "path": "src/backend/mini_ledger/services/export_service.py",
-        "sha256": "b556ef837416da0cdecca9e5dabec45ca3fbfb1b56857ce72a901740d8f757fe",
-        "bytes": 4634
+        "path": "src/backend/ledger/export.py",
+        "sha256": "72ce2939be44820471f162f2f2e0f5cd4f8658f19e2d40192637c3414c5e28c6",
+        "bytes": 4846,
+        "source": "role",
+        "promoted": true
       }
     ],
     "code_pass": true,
-    "finished_at": "2026-11-16 16:40:02"
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-backend",
+      "role": "backend",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "src/backend/"
+        },
+        {
+          "name": "files_written",
+          "ok": true,
+          "detail": "代码角色没有写出文件"
+        },
+        {
+          "name": "evidence:compile",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence:unit",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence_subject",
+          "ok": true,
+          "detail": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+        }
+      ],
+      "evidence_ids": [
+        "EV-000005",
+        "EV-000006"
+      ],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+    },
+    "tools": {
+      "profile": "basic",
+      "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32",
+      "ledger": "D:\\agentteam\\projects\\example-csv-export-real\\evidence\\tool-ledger.jsonl",
+      "passed": [
+        "compile",
+        "unit"
+      ],
+      "failed": [],
+      "missing": [],
+      "evidence": [
+        {
+          "evidence_id": "EV-000005",
+          "kind": "compile",
+          "result": "pass",
+          "tool": "python",
+          "tool_version": "3.13.15"
+        },
+        {
+          "evidence_id": "EV-000006",
+          "kind": "unit",
+          "result": "pass",
+          "tool": "unittest",
+          "tool_version": "3.13.15"
+        }
+      ]
+    },
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-173517",
+    "finished_at": "2026-11-16 17:37:04",
+    "quality": {
+      "score": 99,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": []
+    }
   },
   "frontend": {
     "role": "frontend",
@@ -93,17 +396,116 @@
     },
     "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
     "backend": "local",
-    "latency_ms": 6917,
-    "tokens": 2443,
+    "latency_ms": 20066,
+    "tokens": 2779,
     "cost_usd": 0.0,
     "files": [
       {
         "path": "src/frontend/hooks/useExport.ts",
-        "sha256": "e3f3e7c41626faec888b19f75a1ea0d096860620ebff44dc8c27b02b9a724938",
-        "bytes": 2469
+        "sha256": "f74b9e987a823d86fd670d884970bc08e60c74b8ca5ea71d234c9437b8b7f153",
+        "bytes": 4168,
+        "source": "role",
+        "promoted": true
       }
     ],
     "code_pass": true,
-    "finished_at": "2026-11-16 16:40:17"
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-frontend",
+      "role": "frontend",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "src/frontend/"
+        },
+        {
+          "name": "files_written",
+          "ok": true,
+          "detail": "代码角色没有写出文件"
+        },
+        {
+          "name": "evidence:compile",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence:unit",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence_subject",
+          "ok": true,
+          "detail": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+        }
+      ],
+      "evidence_ids": [
+        "EV-000007",
+        "EV-000008"
+      ],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+    },
+    "tools": {
+      "profile": "basic",
+      "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32",
+      "ledger": "D:\\agentteam\\projects\\example-csv-export-real\\evidence\\tool-ledger.jsonl",
+      "passed": [
+        "compile",
+        "unit"
+      ],
+      "failed": [],
+      "missing": [],
+      "evidence": [
+        {
+          "evidence_id": "EV-000007",
+          "kind": "compile",
+          "result": "pass",
+          "tool": "python",
+          "tool_version": "3.13.15"
+        },
+        {
+          "evidence_id": "EV-000008",
+          "kind": "unit",
+          "result": "pass",
+          "tool": "unittest",
+          "tool_version": "3.13.15"
+        }
+      ]
+    },
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-173517",
+    "finished_at": "2026-11-16 17:37:48",
+    "quality": {
+      "score": 99,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": []
+    }
   }
 }

@@ -7,6 +7,7 @@ Run from project root:
 """
 from __future__ import annotations
 
+import json
 import tempfile
 from pathlib import Path
 
@@ -25,10 +26,16 @@ from .models.router import ModelRouter
 from .decisions import DecisionStore
 from .knowledge import (HashingEmbedder, HybridRetriever, KnowledgeStore,
                         index_project)
+from .knowledge.rerank import rerank_hits
 from .prompts import load_prompt
 from .project_runner import ProjectRunner
+from .quality import append_history, role_trend, score_role
 from .requirements import select as select_requirement
+from .role_gates import evaluate_role
+from .sandbox import Sandbox
 from .skills import SkillRegistry
+from .templates import apply_template
+from .tool_evidence import collect
 
 
 def _packet(*, missing=None, checks=None, claims=None) -> dict:
@@ -182,6 +189,47 @@ def test_requirement_selection() -> None:
     print("  requirements OK")
 
 
+def test_tooling_and_gates() -> None:
+    import sys
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        proj = Path(td) / "project"
+        apply_template(proj, "minimal-api")
+        (proj / "src" / "backend" / "service.py").write_text(
+            '"""tooling selfcheck"""\n\ndef ok() -> bool:\n    return True\n',
+            encoding="utf-8")
+        sb = Sandbox(proj)
+        run = sb.run([sys.executable, "-m", "compileall", "-q", "src"])
+        assert run.ok, run.stderr
+        evidence = collect(proj, profile="basic")
+        assert set(evidence["passed"]) == {"compile", "unit"}, evidence
+        files = [{"path": "src/backend/service.py", "sha256": "x",
+                  "source": "role", "promoted": True}]
+        obj = {"task_id": "t", "role": "backend", "status": "done",
+               "artifacts": [], "claims": [{"claim": "接口已实现"}],
+               "evidence_refs": [], "open_questions": [],
+               "summary": "实现接口、参数校验与错误码，并通过编译与单元测试。"}
+        gate = evaluate_role("backend", obj, project_dir=proj, files=files,
+                             tool_result=evidence, profile="basic")
+        assert gate.status == "pass", gate.to_dict()
+        q = score_role("backend", obj, files=files, gate=gate,
+                       tool_result=evidence, latency_ms=1000, tokens=100)
+        assert q["score"] >= 70, q
+        append_history(proj, role="backend", quality=q, gate=gate, obj=obj,
+                       meta={"model": "stub", "backend": "stub",
+                             "latency_ms": 1, "tokens": 1, "files": files},
+                       run_id="selfcheck")
+        assert role_trend(proj, "backend")["latest"] == q["score"]
+        ranked = rerank_hits("compile unit", [
+            {"chunk_id": 1, "heading": "other", "text": "unrelated",
+             "path": "a.md", "score": 0.01},
+            {"chunk_id": 2, "heading": "unit", "text": "compile unit evidence",
+             "path": "b.md", "score": 0.01},
+        ], HashingEmbedder(), 2)
+        assert ranked[0]["chunk_id"] == 2
+    print("  tooling/gates/quality OK")
+
+
 def test_project_runner() -> None:
     import tempfile
     with tempfile.TemporaryDirectory() as td:
@@ -192,14 +240,22 @@ def test_project_runner() -> None:
 """, encoding="utf-8")
         proj = Path(td) / "project"
         runner = ProjectRunner(requirements=req, project_dir=proj, offline=True,
-                               roles=["pm", "product", "backend"])
+                               roles=["pm", "product", "backend"],
+                               template="minimal-api", gates=True, sandbox=True,
+                               decision_db=Path(td) / "decisions.db")
         result = runner.run()
         assert result["status"] == "completed", result
         for role in ("pm", "product", "backend"):
             for name in ("output.json", "summary.md", "meta.json", "prompt.md"):
                 assert (proj / "artifacts" / role / name).exists(), (role, name)
+            meta = json.loads(
+                (proj / "artifacts" / role / "meta.json").read_text(encoding="utf-8"))
+            assert meta["gate"]["status"] == "pass", (role, meta["gate"])
+            assert meta["quality"]["score"] >= 70, (role, meta["quality"])
         assert (proj / "README.md").exists()
         assert (proj / "logs" / "events.jsonl").exists()
+        assert (proj / "evidence" / "tool-ledger.jsonl").exists()
+        assert (proj / "quality" / "history.jsonl").exists()
     print("  project runner OK")
 
 
@@ -260,6 +316,7 @@ def main() -> None:
     test_decisions()
     test_knowledge()
     test_requirement_selection()
+    test_tooling_and_gates()
     test_project_runner()
     test_deepseek_adapter()
     test_skills_and_router()

@@ -6,6 +6,7 @@ from typing import Any
 
 from ..config import load_config
 from .embed import Embedder, embedder_from_name
+from .rerank import rerank_hits
 from .store import KnowledgeStore
 
 
@@ -16,19 +17,22 @@ class HybridRetriever:
         self.cfg = cfg or load_config()
         self.model = self.store.get_meta("embedding_model") or "hash:256"
         self.embedder = embedder or embedder_from_name(self.model, self.cfg)
+        self._embed_cache: dict[str, list[float]] = {}
 
     def search(self, query: str, top_k: int = 8, *,
                source_type: str | None = None,
                path_prefix: str | None = None,
-               rrf_k: int = 60) -> list[dict[str, Any]]:
-        lexical = self.store.lexical_search(query, top_k=30,
+               rrf_k: int = 60, rerank: bool = True,
+               candidate_k: int = 30) -> list[dict[str, Any]]:
+        lexical = self.store.lexical_search(query, top_k=candidate_k,
                                             source_type=source_type,
                                             path_prefix=path_prefix)
         vector: list[dict[str, Any]] = []
         warnings: list[str] = []
+        qvec: list[float] | None = None
         try:
             qvec = self.embedder.embed([query])[0]
-            vector = self.store.vector_search(qvec, top_k=30,
+            vector = self.store.vector_search(qvec, top_k=candidate_k,
                                               source_type=source_type,
                                               path_prefix=path_prefix,
                                               model=self.model)
@@ -54,14 +58,17 @@ class HybridRetriever:
         for item in fused.values():
             if q and q in (item.get("heading", "") + item.get("text", "")).lower():
                 item["score"] += 0.02
-        hits = sorted(fused.values(), key=lambda x: x["score"], reverse=True)[:top_k]
-        for h in hits:
-            h["citation"] = f"{h['path']}#{h['heading']}"
-            h["score"] = round(h["score"], 6)
+        candidates = sorted(fused.values(), key=lambda x: x["score"], reverse=True)
+        if rerank:
+            hits = rerank_hits(query, candidates, self.embedder, top_k,
+                               qvec=qvec, cache=self._embed_cache)
+        else:
+            hits = candidates[:top_k]
+            for h in hits:
+                h["citation"] = f"{h['path']}#{h['heading']}"
+                h["score"] = round(h["score"], 6)
         if warnings:
-            h0 = {"warnings": warnings}
-            if not hits:
-                hits = [h0]
+            hits = hits or [{"warnings": warnings}]
         return hits
 
     def stats(self) -> dict[str, Any]:

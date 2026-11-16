@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Serve the W3 dashboard and the W4 decision inbox (static + JSON API).
+"""Serve the W3 dashboard, W4 decision inbox and W5 role monitor.
 
   python dashboard/serve.py --port 8765
   open http://localhost:8765/
   open http://localhost:8765/decisions.html
+  open http://localhost:8765/projects.html
 """
 from __future__ import annotations
 
@@ -24,8 +25,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from orchestrator.decisions import DecisionStore  # noqa: E402
-from orchestrator.config import load_config  # noqa: E402
+from orchestrator.config import load_config, signing_key  # noqa: E402
+from orchestrator.evidence.store import EvidenceStore  # noqa: E402
 from orchestrator.project_runner import ProjectRunner, ROLE_MAP, ROLE_SPECS  # noqa: E402
+from orchestrator.quality import role_trend  # noqa: E402
 
 STORE = DecisionStore(ROOT / "data" / "decisions.db")
 STORE.seed_demo()
@@ -56,6 +59,9 @@ def _project_summary(p: Path) -> dict:
         meta = state.get(spec.role)
         if not meta:
             continue
+        gate = meta.get("gate") or {}
+        quality = meta.get("quality") or {}
+        tools = meta.get("tools") or {}
         roles.append({
             "role": spec.role, "title": spec.title,
             "status": meta.get("status", "—"),
@@ -66,10 +72,27 @@ def _project_summary(p: Path) -> dict:
             "files": meta.get("files", []),
             "code_pass": meta.get("code_pass", False),
             "adjustment": meta.get("adjustment", ""),
+            "gate": {"status": gate.get("status", "off"),
+                     "gate_id": gate.get("gate_id", ""),
+                     "decision_id": gate.get("decision_id")},
+            "quality": {"score": quality.get("score"),
+                        "grade": quality.get("grade")},
+            "tools": {"profile": tools.get("profile"),
+                      "passed": tools.get("passed", []),
+                      "failed": tools.get("failed", []),
+                      "missing": tools.get("missing", []),
+                      "subject_hash": tools.get("subject_hash", "")},
+            "sandbox": meta.get("sandbox", "direct"),
         })
     return {"name": p.name, "status": project.get("status", "unknown"),
             "requirement": project.get("requirement", "requirements/input.md"),
             "offline": project.get("offline"), "created_at": project.get("created_at"),
+            "template": project.get("template", "none"),
+            "template_hash": project.get("template_hash", ""),
+            "tool_profile": project.get("tool_profile", "basic"),
+            "gates": project.get("gates", {}),
+            "quality_avg": project.get("quality_avg"),
+            "run_id": project.get("run_id", ""),
             "roles": roles}
 
 
@@ -77,9 +100,11 @@ def _project_detail(p: Path) -> dict:
     data = _project_summary(p)
     req = p / "requirements" / "input.md"
     data["requirement_text"] = req.read_text(encoding="utf-8")[:5000] if req.exists() else ""
+    trends = {r["role"]: role_trend(p, r["role"]) for r in data["roles"]}
     for r in data["roles"]:
         summary = p / "artifacts" / r["role"] / "summary.md"
         r["summary_text"] = summary.read_text(encoding="utf-8")[:2500] if summary.exists() else ""
+        r["trend"] = trends.get(r["role"])
     return data
 
 
@@ -89,6 +114,7 @@ def _role_detail(p: Path, role: str) -> dict | None:
     base = p / "artifacts" / role
     if not base.exists():
         return None
+    meta = _read_json(base / "meta.json", {})
     return {
         "role": role, "title": ROLE_MAP[role].title,
         "prompt": (base / "prompt.md").read_text(encoding="utf-8")
@@ -97,8 +123,10 @@ def _role_detail(p: Path, role: str) -> dict | None:
         if (base / "request.md").exists() else "",
         "summary": (base / "summary.md").read_text(encoding="utf-8")
         if (base / "summary.md").exists() else "",
-        "meta": _read_json(base / "meta.json", {}),
+        "meta": meta,
         "output": _read_json(base / "output.json", {}),
+        "quality_history": role_trend(p, role),
+        "template": _read_json(p / ".agentteam" / "template.json", {}),
     }
 
 
@@ -166,12 +194,43 @@ class Handler(BaseHTTPRequestHandler):
             if not p:
                 return self._json(404, {"error": "project not found"})
             rel = (parse_qs(u.query).get("path") or [""])[0].replace("\\", "/").lstrip("/")
+            if not rel or ".." in Path(rel).parts:
+                return self._json(400, {"error": "invalid path"})
             target = (p / rel).resolve()
             root = str(p)
+            sandboxed = False
             if not (str(target) == root or str(target).startswith(root + os.sep))                     or not target.is_file():
+                for cand in sorted((p / "artifacts").glob(f"*/sandbox/{rel}")):
+                    c = cand.resolve()
+                    if str(c).startswith(str((p / "artifacts").resolve()) + os.sep)                             and c.is_file():
+                        target, sandboxed = c, True
+                        break
+            if not target.is_file():
                 return self._json(404, {"error": "file not found"})
             content = target.read_text(encoding="utf-8", errors="replace")
-            return self._json(200, {"path": rel, "content": content[:200000]})
+            return self._json(200, {"path": rel, "sandboxed": sandboxed,
+                                    "content": content[:200000]})
+        if len(parts) == 4 and parts[:2] == ["api", "projects"]                 and parts[3] == "evidence":
+            p = _project_dir(parts[2])
+            if not p:
+                return self._json(404, {"error": "project not found"})
+            ledger = p / "evidence" / "tool-ledger.jsonl"
+            if not ledger.exists():
+                return self._json(200, {"records": [], "chain_ok": True})
+            try:
+                store = EvidenceStore(ledger, signing_key())
+                rows = [{"evidence_id": r.get("evidence_id"), "kind": r.get("kind"),
+                         "tool": r.get("tool"), "tool_version": r.get("tool_version"),
+                         "result": r.get("result"), "signed_by": r.get("signed_by"),
+                         "subject_hash": r.get("subject_hash"),
+                         "created_at": r.get("created_at"),
+                         "expires_at": r.get("expires_at")}
+                        for r in store.all() if r.get("type") == "evidence"]
+                return self._json(200, {"records": rows[-200:],
+                                        "chain_ok": store.verify_chain()})
+            except Exception as exc:
+                return self._json(200, {"records": [], "chain_ok": False,
+                                        "error": str(exc)[:500]})
         return self._static(u.path)
 
     def do_POST(self) -> None:
@@ -213,12 +272,19 @@ class Handler(BaseHTTPRequestHandler):
                 req = p / "requirements" / "input.md"
                 if not req.exists():
                     return self._json(400, {"error": "requirements/input.md missing"})
+                project = _read_json(p / "project.json", {})
+                template = str(_read_json(p / ".agentteam" / "template.json", {})
+                               .get("template") or project.get("template") or "none")
+                profile = str(body.get("profile") or project.get("tool_profile") or "basic")
                 with PROJECT_LOCK:
                     runner = ProjectRunner(
                         requirements=req, project_dir=p, cfg=CFG,
                         offline=bool(body.get("offline", True)),
                         roles=[role], merge_state=True,
-                        extra_note=str(body.get("note", "")))
+                        extra_note=str(body.get("note", "")),
+                        template=template, tool_profile=profile,
+                        sandbox=bool(body.get("sandbox", False)),
+                        stop_on_gate=bool(body.get("stop_on_gate", False)))
                     result = runner.run()
                 return self._json(200, {"result": result,
                                         "project": _project_summary(p),

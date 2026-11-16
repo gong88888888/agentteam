@@ -226,6 +226,8 @@ function statusBadge(status) {
 }
 
 async function load() {
+  const wantId = new URLSearchParams(location.search).get("id");
+  if (wantId) state.filter = "all";
   try {
     const data = await api("/api/decisions");
     state.items = data.decisions || [];
@@ -236,7 +238,8 @@ async function load() {
     return;
   }
   renderList();
-  const first = state.items.find(x => state.filter === "pending" ? x.status === "pending" : true);
+  const first = (wantId && state.items.find(x => x.id === wantId))
+    || state.items.find(x => state.filter === "pending" ? x.status === "pending" : true);
   if (first) select(first.id);
   else $("detail").innerHTML = `<div class="empty">当前筛选下没有决策。</div>`;
 }

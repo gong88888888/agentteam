@@ -1,0 +1,25 @@
+rules:
+  - id: agentteam.no-shell-true
+    languages: [python]
+    message: Avoid shell=True; pass an argv list.
+    severity: ERROR
+    patterns:
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
+
+  - id: agentteam.no-eval
+    languages: [python]
+    message: Avoid eval/exec on untrusted input.
+    severity: ERROR
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+
+  - id: agentteam.no-hardcoded-secret
+    languages: [python]
+    message: Do not hardcode credentials.
+    severity: ERROR
+    patterns:
+      - pattern: $KEY = "..."
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(api_key|secret|password|token).*

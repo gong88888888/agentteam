@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import shutil
@@ -14,11 +15,18 @@ from typing import Any
 
 import jsonschema
 
-from .config import ROOT, data_dir, load_config, load_schema
+from .config import data_dir, load_config, load_schema
+from .decisions import DecisionStore
+from .evidence.signing import sha256_hex
 from .judge.backend import parse_json_object
 from .knowledge import HybridRetriever
 from .models.router import ModelRouter
 from .prompts import load_prompt
+from .quality import append_history, score_role
+from .role_gates import ARTIFACT_PATHS, GateResult, evaluate_role
+from .sandbox import IsolatedWorkspace
+from .templates import apply_template, get_template
+from .tool_evidence import PROFILES, collect
 
 
 @dataclass(frozen=True)
@@ -77,7 +85,11 @@ class ProjectRunner:
                  cfg: dict[str, Any] | None = None, offline: bool = True,
                  roles: list[str] | None = None, use_kb: bool = False,
                  stop_on_error: bool = False, extra_note: str = "",
-                 merge_state: bool = False) -> None:
+                 merge_state: bool = False, template: str = "none",
+                 tool_profile: str = "basic", gates: bool = True,
+                 sandbox: bool = False, decision_db: str | Path | None = None,
+                 stop_on_gate: bool = False, quality: bool = True,
+                 run_id: str = "") -> None:
         self.requirements_path = Path(requirements)
         if not self.requirements_path.exists():
             raise FileNotFoundError(f"需求文件不存在：{self.requirements_path}")
@@ -88,21 +100,49 @@ class ProjectRunner:
         unknown = [r for r in self.roles if r not in ROLE_MAP]
         if unknown:
             raise ValueError(f"未知角色：{unknown}")
+        if tool_profile not in PROFILES:
+            raise ValueError(f"未知工具证据 profile：{tool_profile}")
+        if template not in ("none", "") and not get_template(template):
+            raise ValueError(f"未知项目模板：{template}")
         self.use_kb = use_kb
         self.stop_on_error = stop_on_error
         self.extra_note = extra_note
         self.merge_state = merge_state
+        self.template = template or "none"
+        self.tool_profile = tool_profile
+        self.gates_enabled = gates
+        self.sandbox_enabled = sandbox
+        self.stop_on_gate = stop_on_gate
+        self.quality_enabled = quality
+        self.run_id = run_id or time.strftime("%Y%m%d-%H%M%S")
         self.router = ModelRouter(self.cfg, offline=offline)
         self.schema = load_schema("agent-output.schema.json")
         self.log_path = self.project_dir / "logs" / "events.jsonl"
         self.state_path = self.project_dir / "state" / "roles.json"
+        self.evidence_ledger = self.project_dir / "evidence" / "tool-ledger.jsonl"
+        self.decision_store = (DecisionStore(decision_db or (data_dir(self.cfg) / "decisions.db"))
+                               if gates else None)
+        self.template_record: dict[str, Any] = {}
+        self.baseline_fp = ""
         self.requirement_text = self.requirements_path.read_text(encoding="utf-8")
 
     # ---------- workspace ----------
     def prepare(self) -> None:
         for d in ("requirements", "artifacts", "logs", "state", "docs",
-                  "src", "tests", "contracts", "knowledge"):
+                  "src", "tests", "contracts", "knowledge", "evidence", "quality"):
             (self.project_dir / d).mkdir(parents=True, exist_ok=True)
+        if self.template != "none":
+            self.template_record = apply_template(self.project_dir, self.template)
+            self.log("template.applied", template=self.template_record.get("template"),
+                     hash=self.template_record.get("hash"),
+                     copied=len(self.template_record.get("copied", [])),
+                     skipped=len(self.template_record.get("skipped", [])))
+        self.baseline_fp = sha256_hex({
+            "requirement": self.requirement_text,
+            "template": self.template,
+            "template_hash": self.template_record.get("hash", ""),
+            "profile": self.tool_profile,
+        })
         target = self.project_dir / "requirements" / "input.md"
         if self.requirements_path.resolve() != target.resolve():
             shutil.copyfile(self.requirements_path, target)
@@ -156,12 +196,20 @@ class ProjectRunner:
 
     def user_message(self, spec: RoleSpec, prior: list[str], kb: str) -> str:
         scope = ", ".join(spec.scope)
+        expected = ARTIFACT_PATHS.get(spec.role, ())
+        template = (f"{self.template_record.get('template')} "
+                    f"(hash {self.template_record.get('hash')})"
+                    if self.template_record else "none")
         return f"""# 项目需求
 {self.requirement_text}
 
 # 当前角色
 {spec.role} · {spec.title}
 {spec.instruction}
+
+# 项目模板
+{template}
+脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：{', '.join(expected) or '按角色约定'}
 
 # 前置产物摘要
 {chr(10).join(prior) if prior else "（首个角色，无前置产物）"}
@@ -176,6 +224,7 @@ class ProjectRunner:
 只输出符合 `specs/agent-output.schema.json` 的 JSON 对象。
 如需写文件，增加 `"files":[{{"path":"{scope}...","content":"..."}}]`；
 只能写这些前缀：{scope}；不得写项目目录之外；不得写密钥。
+摘要必须包含本角色的关键决策与可验证内容，claims 不能当作证据。
 """
 
     def system_message(self, role: str) -> str:
@@ -262,16 +311,44 @@ class ProjectRunner:
                     code_pass = True
                 else:
                     self.log("code.no_files", role=role)
-            files = self.write_files(role, obj.get("files") or [])
+
+            raw_files = obj.get("files") or []
+            files: list[dict[str, Any]] = []
+            tool_result: dict[str, Any] | None = None
+            gate: GateResult | None = None
+            if self.sandbox_enabled and role in CODE_ROLES and raw_files:
+                with IsolatedWorkspace(self.project_dir, role) as ws:
+                    files = self.write_files(role, raw_files, root=ws.path)
+                    tool_result = self.run_tools(ws.path, role)
+                    gate = self.run_gate(role, obj, files, tool_result)
+                    if gate is not None and gate.status == "pass":
+                        promoted = ws.promote([f["path"] for f in files])
+                        for f in files:
+                            f["promoted"] = f["path"] in promoted
+                    else:
+                        self.stash_files(role, files, ws.path, role_dir)
+                        for f in files:
+                            f["promoted"] = False
+            else:
+                files = self.write_files(role, raw_files)
+                if role in CODE_ROLES:
+                    tool_result = self.run_tools(self.project_dir, role)
+                files += self.synthesize_docs(role, spec, obj, files)
+                gate = self.run_gate(role, obj, files, tool_result)
+                for f in files:
+                    f["promoted"] = True
             (role_dir / "output.json").write_text(
                 json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             summary = obj.get("summary") or "; ".join(
                 c.get("claim", "") for c in obj.get("claims", []))
             (role_dir / "summary.md").write_text(
-                self.summary_md(role, spec, obj, files), encoding="utf-8")
+                self.summary_md(role, spec, obj, files, gate), encoding="utf-8")
+            role_status = obj.get("status", "done")
+            if gate is not None and gate.status != "pass":
+                role_status = "blocked"
             meta = {
                 "role": role, "title": spec.title,
-                "status": obj.get("status", "done"),
+                "status": role_status,
                 "prompt": prompt.metadata(),
                 "model": result.model if result else "",
                 "backend": result.backend if result else "",
@@ -281,28 +358,168 @@ class ProjectRunner:
                 "files": files,
                 "code_pass": code_pass,
                 "adjustment": self.extra_note or "",
+                "gate": gate.to_dict() if gate else None,
+                "tools": self.tools_summary(tool_result),
+                "sandbox": ("isolated" if self.sandbox_enabled and role in CODE_ROLES
+                            else "direct"),
+                "template": self.template,
+                "run_id": self.run_id,
                 "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
+            if self.quality_enabled and gate is not None:
+                quality = score_role(role, obj, files=files, gate=gate,
+                                     tool_result=tool_result,
+                                     latency_ms=meta["latency_ms"],
+                                     tokens=meta["tokens"])
+                meta["quality"] = quality
+                append_history(self.project_dir, role=role, quality=quality,
+                               gate=gate, obj=obj, meta=meta, run_id=self.run_id)
+                self.log("quality.scored", role=role, score=quality["score"],
+                         grade=quality["grade"])
             (role_dir / "meta.json").write_text(
                 json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            statuses[role] = obj.get("status", "done")
+            statuses[role] = role_status
             state[role] = meta
-            prior.append(f"- {role}: {summary[:700]}")
-            self.log("role.finished", role=role, status=meta["status"],
+            prior.append(f"- {role}: {summary[:700]}"
+                         f" | gate={gate.status if gate else 'off'}")
+            if tool_result is not None:
+                self.log("tool.evidence", role=role,
+                         profile=tool_result.get("profile"),
+                         passed=tool_result.get("passed", []),
+                         failed=tool_result.get("failed", []),
+                         missing=[m.get("kind") for m in tool_result.get("missing", [])],
+                         subject_hash=tool_result.get("subject_hash", ""))
+            if gate is not None:
+                self.log(f"gate.{gate.status}", role=role, gate_id=gate.gate_id,
+                         failed=[c.name for c in gate.checks if not c.ok],
+                         evidence_ids=gate.evidence_ids,
+                         decision_id=gate.decision_id)
+            self.log("role.finished", role=role, status=role_status,
                      model=meta["model"], backend=meta["backend"],
                      prompt=prompt.metadata(), latency_ms=meta["latency_ms"],
-                     files=[f["path"] for f in files])
+                     files=[f["path"] for f in files],
+                     gate=gate.status if gate else "off")
+            if gate is not None and gate.status != "pass" and self.stop_on_gate:
+                self.log("project.gate_blocked", role=role, gate_id=gate.gate_id)
+                break
+
         elapsed = int(time.time() - started_all)
         errors = [r for r, s in statuses.items() if s == "error"]
-        all_errors = [r for r, v in state.items() if v.get("status") == "error"]
-        status = "failed" if all_errors and len(all_errors) == len(state) else (
-            "partial" if all_errors else "completed")
+        blocked = [r for r, s in statuses.items() if s == "blocked"]
+        all_statuses = [v.get("status") for v in state.values() if isinstance(v, dict)]
+        if all_statuses and all(s in ("error", "blocked") for s in all_statuses):
+            status = "failed"
+        elif errors or blocked:
+            status = "partial"
+        else:
+            status = "completed"
         self.write_state(state, status, elapsed)
         self.write_readme(state, status)
-        self.log("project.finished", status=status, elapsed_s=elapsed, errors=errors)
+        self.log("project.finished", status=status, elapsed_s=elapsed,
+                 errors=errors, blocked=blocked)
         return {"project_dir": str(self.project_dir), "status": status,
-                "roles": statuses, "errors": errors,
-                "elapsed_s": elapsed, "model": self.router.summary()}
+                "roles": statuses, "errors": errors, "blocked": blocked,
+                "elapsed_s": elapsed, "model": self.router.summary(),
+                "template": self.template, "tool_profile": self.tool_profile}
+
+    @staticmethod
+    def tools_summary(tool_result: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not tool_result:
+            return None
+        evidence = tool_result.get("evidence", [])
+        return {
+            "profile": tool_result.get("profile"),
+            "subject_hash": tool_result.get("subject_hash", ""),
+            "ledger": tool_result.get("ledger", ""),
+            "passed": tool_result.get("passed", []),
+            "failed": tool_result.get("failed", []),
+            "missing": [m.get("kind") for m in tool_result.get("missing", [])],
+            "evidence": [{"evidence_id": e.get("evidence_id"), "kind": e.get("kind"),
+                          "result": e.get("result"), "tool": e.get("tool"),
+                          "tool_version": e.get("tool_version")}
+                         for e in evidence],
+        }
+
+    def run_tools(self, code_root: Path, role: str) -> dict[str, Any]:
+        try:
+            result = collect(self.project_dir, profile=self.tool_profile,
+                             code_root=code_root, ledger_path=self.evidence_ledger,
+                             baseline_fp=self.baseline_fp)
+            return result
+        except Exception as exc:
+            self.log("tool.error", role=role, error=str(exc)[:500])
+            return {"profile": self.tool_profile, "subject_hash": "", "evidence": [],
+                    "passed": [], "failed": [], "error": str(exc)[:500],
+                    "missing": [{"kind": "tooling", "reason": str(exc)[:300],
+                                 "required": True}]}
+
+    def run_gate(self, role: str, obj: dict[str, Any], files: list[dict[str, Any]],
+                 tool_result: dict[str, Any] | None) -> GateResult | None:
+        if not self.gates_enabled:
+            return None
+        gate = evaluate_role(
+            role, obj, project_dir=self.project_dir, files=files,
+            tool_result=tool_result, profile=self.tool_profile,
+            decision_store=self.decision_store,
+            project_name=self.project_dir.name, baseline_fp=self.baseline_fp)
+        return gate
+
+    def stash_files(self, role: str, files: list[dict[str, Any]],
+                    workspace: Path, role_dir: Path) -> None:
+        """Keep rejected sandbox outputs for review, outside the project tree."""
+        for f in files:
+            rel = str(f.get("path", "")).replace("\\", "/")
+            if not rel or ".." in Path(rel).parts:
+                continue
+            src = (workspace / rel).resolve()
+            if not src.is_file() or not str(src).startswith(str(workspace)):
+                continue
+            dst = role_dir / "sandbox" / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            f["sandbox_copy"] = f"artifacts/{role}/sandbox/{rel}"
+            self.log("file.sandboxed", role=role, path=rel,
+                     copy=f["sandbox_copy"])
+
+    def synthesize_docs(self, role: str, spec: RoleSpec, obj: dict[str, Any],
+                        files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Write a clearly marked summary doc when a role skipped its artifact.
+
+        This is not model-authored content and never counts as tool evidence.
+        """
+        expected = ARTIFACT_PATHS.get(role, ())
+        if not expected or role in CODE_ROLES:
+            return []
+        authored = {str(f.get("path", "")).replace("\\", "/") for f in files}
+        target_rel = next((p for p in expected if not p.endswith("/")), None)
+        if not target_rel or target_rel in authored:
+            return []
+        target = self.project_dir / target_rel
+        content = self._summary_doc(role, spec, obj)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        rec = {"path": target_rel, "sha256": sha,
+               "bytes": len(content.encode("utf-8")),
+               "source": "runner-summary", "promoted": True}
+        self.log("file.synthesized", role=role, path=target_rel)
+        return [rec]
+
+    def _summary_doc(self, role: str, spec: RoleSpec, obj: dict[str, Any]) -> str:
+        claims = obj.get("claims") or []
+        questions = obj.get("open_questions") or []
+        lines = [
+            f"# {role} · {spec.title}", "",
+            "> 运行器根据角色结构化输出生成；不是模型直接写入的文件，也不作为工具证据。",
+            "",
+            f"- 状态：{obj.get('status', 'done')}",
+            f"- 摘要：{obj.get('summary', '')}", "",
+            "## Claims（不参与门禁）", "",
+            *([f"- {c.get('claim', '')}" for c in claims] or ["- 无"]), "",
+            "## 未决问题", "",
+            *([f"- {q}" for q in questions] or ["- 无"]), "",
+        ]
+        return "\n".join(lines)
 
     @staticmethod
     def parse_file_blocks(text: str) -> list[dict[str, str]]:
@@ -375,24 +592,36 @@ class ProjectRunner:
         return None
 
     def summary_md(self, role: str, spec: RoleSpec, obj: dict[str, Any],
-                   files: list[dict[str, Any]]) -> str:
+                   files: list[dict[str, Any]],
+                   gate: GateResult | None = None) -> str:
         claims = obj.get("claims") or []
         questions = obj.get("open_questions") or []
         lines = [f"# {role} · {spec.title}", "",
                  f"- 状态：{obj.get('status', 'done')}",
                  f"- 摘要：{obj.get('summary', '')}", "",
                  *([f"- 调整要求：{self.extra_note}", ""] if self.extra_note else []),
+                 *([f"- 门禁：{gate.status} · {gate.gate_id}"
+                    + (f" · 决策 {gate.decision_id}" if gate.decision_id else ""), ""]
+                   if gate else []),
                  "## Claims（不参与门禁）", "",
                  *[f"- {c.get('claim', '')}" for c in claims], "",
                  "## 写入文件", "",
-                 *([f"- `{f['path']}` · {f['sha256'][:12]}" for f in files] or ["- 无"]), "",
+                 *([f"- `{f['path']}` · {f['sha256'][:12]} · {f.get('source', 'role')}"
+                    + ("" if f.get("promoted", True) else " · 沙箱未提升")
+                    for f in files] or ["- 无"]), "",
                  "## 未决问题", "",
                  *([f"- {q}" for q in questions] or ["- 无"]), ""]
+        if gate:
+            failed = [c for c in gate.checks if not c.ok]
+            lines += ["## 门禁检查", "",
+                      *([f"- ❌ {c.name}：{c.detail}" for c in failed] or ["- 全部通过"]), ""]
         return "\n".join(lines)
 
     # ---------- files ----------
-    def write_files(self, role: str, files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def write_files(self, role: str, files: list[dict[str, Any]],
+                    *, root: Path | None = None) -> list[dict[str, Any]]:
         scope = ROLE_MAP[role].scope
+        base = (root or self.project_dir).resolve()
         written: list[dict[str, Any]] = []
         for f in files:
             path = str(f.get("path", "")).replace("\\", "/").lstrip("/")
@@ -403,16 +632,17 @@ class ProjectRunner:
             if not any(path.startswith(prefix) for prefix in scope):
                 self.log("file.rejected", role=role, path=path, reason="out of scope")
                 continue
-            target = (self.project_dir / path).resolve()
-            root = str(self.project_dir)
-            if not (str(target) == root or str(target).startswith(root + os.sep)):
+            target = (base / path).resolve()
+            root_s = str(base)
+            if not (str(target) == root_s or str(target).startswith(root_s + os.sep)):
                 self.log("file.rejected", role=role, path=path, reason="outside project")
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
-            import hashlib
             sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
-            written.append({"path": path, "sha256": sha, "bytes": len(content.encode("utf-8"))})
+            written.append({"path": path, "sha256": sha,
+                            "bytes": len(content.encode("utf-8")),
+                            "source": "role"})
             self.log("file.written", role=role, path=path, sha256=sha)
         return written
 
@@ -421,15 +651,30 @@ class ProjectRunner:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         (self.state_path).write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n",
                                      encoding="utf-8")
+        gates = {"pass": 0, "fail": 0, "need_evidence": 0, "off": 0}
+        scores = []
+        for meta in state.values():
+            if not isinstance(meta, dict):
+                continue
+            gate = meta.get("gate") or {}
+            gates[gate.get("status", "off")] = gates.get(gate.get("status", "off"), 0) + 1
+            if meta.get("quality"):
+                scores.append(meta["quality"]["score"])
         project = json.loads((self.project_dir / "project.json").read_text(encoding="utf-8"))
         project.update({"status": status, "elapsed_s": elapsed,
-                        "model": self.router.summary()})
+                        "model": self.router.summary(),
+                        "template": self.template,
+                        "template_hash": self.template_record.get("hash", ""),
+                        "tool_profile": self.tool_profile,
+                        "gates": gates,
+                        "quality_avg": round(sum(scores) / len(scores), 1) if scores else None,
+                        "run_id": self.run_id})
         (self.project_dir / "project.json").write_text(
             json.dumps(project, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     def write_readme(self, state: dict[str, Any], status: str) -> None:
-        rows = ["| 角色 | 标题 | 状态 | 模型 | Prompt | 文件 |",
-                "|---|---|---|---|---|---|"]
+        rows = ["| 角色 | 标题 | 状态 | 门禁 | 质量 | 模型 | Prompt | 文件 |",
+                "|---|---|---|---|---|---|---|---|"]
         for spec in ROLE_SPECS:
             role = spec.role
             if role not in state:
@@ -437,14 +682,21 @@ class ProjectRunner:
             s = state.get(role, {})
             prompt = s.get("prompt", {})
             files = s.get("files", [])
+            gate = (s.get("gate") or {}).get("status", "—")
+            quality = (s.get("quality") or {}).get("score", "—")
             rows.append(f"| {role} | {spec.title} | {s.get('status', '—')} | "
-                        f"{s.get('model', '—')} | {prompt.get('version', '—')} / "
-                        f"{prompt.get('hash', '—')} | {', '.join(f['path'] for f in files) or '—'} |")
+                        f"{gate} | {quality} | {s.get('model', '—')} | "
+                        f"{prompt.get('version', '—')} / "
+                        f"{prompt.get('hash', '—')} | "
+                        f"{', '.join(f['path'] for f in files) or '—'} |")
         lines = [
             f"# {self.project_dir.name}", "",
             f"- 状态：**{status}**",
             f"- 需求：`requirements/input.md`",
-            f"- 角色记录：`artifacts/<role>/{{output.json,summary.md,meta.json,prompt.md}}`",
+            f"- 模板：`{self.template}` · 工具证据 profile：`{self.tool_profile}`",
+            f"- 角色记录：`artifacts/<role>/{{output.json,summary.md,meta.json,prompt.md,request.md}}`",
+            f"- 工具证据账本：`evidence/tool-ledger.jsonl`",
+            f"- 质量历史：`quality/history.jsonl`",
             f"- 事件账本：`logs/events.jsonl`",
             f"- 状态：`state/roles.json`",
             "", "## 角色执行记录", "", *rows, "",

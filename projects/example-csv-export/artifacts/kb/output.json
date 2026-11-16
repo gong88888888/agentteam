@@ -5,11 +5,11 @@
   "artifacts": [],
   "claims": [
     {
-      "claim": "stub kb: 来源 证据 适用条件 失效时间 信任等级 检索",
+      "claim": "stub kb: 来源 证据 适用条件 失效时间 信任等级 检索 知识 复用",
       "counts_as_evidence": false
     }
   ],
   "evidence_refs": [],
   "open_questions": [],
-  "summary": "stub kb: 来源 证据 适用条件 失效时间 信任等级 检索"
+  "summary": "stub kb: 来源 证据 适用条件 失效时间 信任等级 检索 知识 复用"
 }

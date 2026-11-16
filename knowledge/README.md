@@ -14,7 +14,7 @@ Markdown-aware chunker          # 标题、段落、代码块；CJK 友好 token
         └── bge-m3 (Ollama)       # 1024 维向量；不可用时 hash:256 回退
         │
         ▼
-RRF 融合 + 短语/标题加权        # hybrid top-k
+RRF 融合 + 独立 rerank            # dense + 查询词覆盖 + 标题/短语 + 去冗余
         │
         ▼
 citation: path#heading
@@ -28,7 +28,7 @@ citation: path#heading
 | Chunking | 按 H1-H4 分节；长节按段落切分，保留 heading |
 | Embedding | `bge-m3:latest` via Ollama `/api/embed`；离线回退 `hash:256` |
 | 混合检索 | SQLite FTS5 BM25 + 向量 cosine，RRF 融合 |
-| Rerank | RRF + 标题/正文短语加权；预留独立 rerank 接口 |
+| Rerank | `orchestrator/knowledge/rerank.py`：RRF + dense + 查询词覆盖 + 标题命中 + 去冗余；保留 base_score |
 | Citation | `path#heading`，返回 `chunk_id`、`source_type`、`score` |
 | Metadata filter | `source_type`、`path_prefix` |
 | 增量索引 | 文件内容哈希 + 每文档 embedding 模型检查 |
@@ -50,7 +50,7 @@ python -m orchestrator.cli kb-query "回滚 演练" --json
 
 ## 评测
 
-`eval/kb_eval.py` 使用临时库 + hash embedding，不依赖网络：
+`eval/kb_eval.py` 使用临时库 + hash embedding，不依赖网络；22 个用例同时跑 rerank 与 RRF baseline，报告 recall@5、MRR、rerank gain 与 source filter：
 
 ```bash
 python eval/kb_eval.py

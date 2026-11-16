@@ -42,20 +42,39 @@ def main() -> int:
     p.add_argument("--stop-on-error", action="store_true")
     p.add_argument("--force", action="store_true",
                    help="允许写入已存在的非空项目目录")
+    p.add_argument("--template", default=None,
+                   help="项目模板 ID（默认新目录用 minimal-api，已有目录用 none）")
+    p.add_argument("--tool-profile", default="basic", choices=("basic", "standard", "full"),
+                   help="工具证据 profile；standard/full 需要 semgrep/trivy")
+    p.add_argument("--no-gates", action="store_true", help="关闭角色门禁（不推荐）")
+    p.add_argument("--sandbox", action="store_true",
+                   help="代码角色在隔离工作区写入，门禁通过后才提升")
+    p.add_argument("--stop-on-gate", action="store_true",
+                   help="任一门禁未通过即停止后续角色")
+    p.add_argument("--no-quality", action="store_true", help="不计算角色质量分")
+    p.add_argument("--decision-db", default=None,
+                   help="门禁升级写入的决策库（默认 data/decisions.db）")
     p.add_argument("--config", default=None)
     args = p.parse_args()
 
     project_dir = Path(args.project_dir).resolve()
-    if project_dir.exists() and any(project_dir.iterdir()) and not args.force:
+    exists_nonempty = project_dir.exists() and any(project_dir.iterdir())
+    if exists_nonempty and not args.force:
         print(json.dumps({"error": f"项目目录非空：{project_dir}；加 --force 覆盖写入"},
                          ensure_ascii=False, indent=2))
         return 2
+    template = args.template
+    if template is None:
+        template = "none" if exists_nonempty else "minimal-api"
     roles = [r.strip() for r in args.roles.split(",")] if args.roles else None
     cfg = load_config(args.config)
     runner = ProjectRunner(
         requirements=args.requirements, project_dir=project_dir, cfg=cfg,
         offline=not args.real, roles=roles, use_kb=args.kb,
-        stop_on_error=args.stop_on_error)
+        stop_on_error=args.stop_on_error, template=template,
+        tool_profile=args.tool_profile, gates=not args.no_gates,
+        sandbox=args.sandbox, decision_db=args.decision_db,
+        stop_on_gate=args.stop_on_gate, quality=not args.no_quality)
     result = runner.run()
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] != "failed" else 1

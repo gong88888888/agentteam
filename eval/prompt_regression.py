@@ -33,6 +33,7 @@ def _rates(m: dict[str, Any]) -> dict[str, float]:
         "keyword": round(m["keyword_pass"] / total, 3),
         "latency_ms": m["latency_ms"],
         "tokens": m["tokens"],
+        "cost_usd": m.get("cost_usd", 0.0),
     }
 
 
@@ -70,6 +71,7 @@ def run_regression(*, offline: bool, baseline: str, candidate: str,
                                            "keyword_pass", "errors")},
         "candidate_raw": {k: c[k] for k in ("total", "schema_pass", "required_pass",
                                             "keyword_pass", "errors")},
+        "full_coverage": bool(b.get("full_coverage") and c.get("full_coverage")),
         "models": c.get("models", {}),
     }
     OUT.mkdir(parents=True, exist_ok=True)
@@ -88,7 +90,9 @@ def run_regression(*, offline: bool, baseline: str, candidate: str,
         "",
         f"- regressed: **{regressed}** · improved: **{improved}**",
         f"- latency: {br['latency_ms']} → {cr['latency_ms']} ms；"
-        f"tokens: {br['tokens']} → {cr['tokens']}",
+        f"tokens: {br['tokens']} → {cr['tokens']}；"
+        f"cost: ${br['cost_usd']} → ${cr['cost_usd']}",
+        f"- full coverage: {result['full_coverage']}",
         "", "## 角色提示词哈希", "",
         "| 角色 | baseline | candidate |",
         "|---|---|---|",

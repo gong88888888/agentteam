@@ -80,30 +80,50 @@ def run_cases(*, offline: bool, prompt_dir: str | None = None,
         required = [k for k in ("status", "role", "claims", "artifacts", "summary")
                     if k not in obj]
         text = json.dumps(obj, ensure_ascii=False).lower()
-        found = [k for k in case.get("keywords", []) if k.lower() in text]
-        need = int(case.get("min_keywords", 1))
-        keyword_ok = len(found) >= need
+        groups = case.get("keyword_groups")
+        if groups:
+            group_hits = [any(str(alt).lower() in text for alt in group)
+                          for group in groups]
+            keyword_ok = all(group_hits)
+            found = [next((alt for alt in group if str(alt).lower() in text), None)
+                     for group in groups]
+            missing = [group for group, ok in zip(groups, group_hits) if not ok]
+        else:
+            found = [k for k in case.get("keywords", []) if k.lower() in text]
+            need = int(case.get("min_keywords", 1))
+            keyword_ok = len(found) >= need
+            missing = [k for k in case.get("keywords", []) if k not in found]
         rows.append({
             "id": case["id"], "role": case["role"],
             "schema": True, "required": not required and bool(obj.get("claims"))
             and obj.get("role") == case["role"],
             "keywords": keyword_ok, "found": found,
-            "missing_keywords": [k for k in case.get("keywords", []) if k not in found],
+            "missing_keywords": missing,
+            "summary": str(obj.get("summary", ""))[:400],
             "prompt": prompt.metadata(),
             "model": result.model if result else "",
             "backend": result.backend if result else "",
             "latency_ms": result.latency_ms if result else 0,
             "tokens": (result.prompt_tokens + result.completion_tokens) if result else 0,
+            "cost_usd": result.cost_usd if result else 0.0,
         })
     total = len(cases)
-    by_role: dict[str, dict[str, int]] = {}
+    by_role: dict[str, dict[str, Any]] = {}
     for r in rows:
         stats = by_role.setdefault(r["role"], {"total": 0, "schema": 0,
-                                               "required": 0, "keywords": 0})
+                                               "required": 0, "keywords": 0,
+                                               "latency_ms": 0, "tokens": 0,
+                                               "cost_usd": 0.0})
         stats["total"] += 1
         stats["schema"] += int(r["schema"])
         stats["required"] += int(r["required"])
         stats["keywords"] += int(r["keywords"])
+        stats["latency_ms"] += int(r.get("latency_ms", 0))
+        stats["tokens"] += int(r.get("tokens", 0))
+        stats["cost_usd"] = round(stats.get("cost_usd", 0.0)
+                                  + float(r.get("cost_usd", 0.0)), 6)
+    full_coverage = (len(by_role) == 12
+                     and all(s["total"] >= 2 for s in by_role.values()))
     return {
         "mode": "offline" if offline else "real",
         "prompt_dir": str(prompt_dir or "prompts/roles"),
@@ -114,6 +134,9 @@ def run_cases(*, offline: bool, prompt_dir: str | None = None,
         "errors": sum(1 for r in rows if r.get("error")),
         "latency_ms": sum(int(r.get("latency_ms", 0)) for r in rows),
         "tokens": sum(int(r.get("tokens", 0)) for r in rows),
+        "cost_usd": round(sum(float(r.get("cost_usd", 0.0)) for r in rows), 6),
+        "full_coverage": full_coverage,
+        "roles_covered": len(by_role),
         "by_role": by_role,
         "rows": rows,
         "models": router.summary(),
@@ -130,13 +153,17 @@ def write_report(metrics: dict[str, Any], path: Path) -> None:
         f"- total: {metrics['total']} · schema {metrics['schema_pass']} · "
         f"required {metrics['required_pass']} · keywords {metrics['keyword_pass']} · "
         f"errors {metrics['errors']}",
-        f"- latency {metrics['latency_ms']}ms · tokens {metrics['tokens']}",
-        "", "| 角色 | 用例 | schema | required | keywords |",
-        "|---|---|---|---|---|",
+        f"- latency {metrics['latency_ms']}ms · tokens {metrics['tokens']} · "
+        f"cost ${metrics.get('cost_usd', 0)}",
+        f"- coverage: {metrics['roles_covered']}/12 roles · "
+        f"full={metrics['full_coverage']}",
+        "", "| 角色 | 用例 | schema | required | keywords | latency | tokens | cost |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for role, s in sorted(metrics["by_role"].items()):
         lines.append(f"| {role} | {s['total']} | {s['schema']} | "
-                     f"{s['required']} | {s['keywords']} |")
+                     f"{s['required']} | {s['keywords']} | {s.get('latency_ms', 0)}ms | "
+                     f"{s.get('tokens', 0)} | ${s.get('cost_usd', 0)} |")
     lines += ["", "## Rows", ""]
     for r in metrics["rows"]:
         lines.append(f"- {r['id']} ({r['role']}): schema={r['schema']} "
@@ -155,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--prompt-dir", default=None)
     p.add_argument("--roles", default=None, help="comma-separated roles")
     p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--full", action="store_true",
+                   help="要求 12 个角色各至少 2 个用例（全量回归）")
     p.add_argument("--config", default=None)
     args = p.parse_args(argv)
     roles = [r.strip() for r in args.roles.split(",")] if args.roles else None
@@ -163,8 +192,12 @@ def main(argv: list[str] | None = None) -> int:
     write_report(metrics, OUT / "role-eval.json")
     print(json.dumps({k: metrics[k] for k in (
         "mode", "total", "schema_pass", "required_pass", "keyword_pass",
-        "errors", "latency_ms", "tokens", "models")}, ensure_ascii=False, indent=2))
+        "errors", "latency_ms", "tokens", "cost_usd", "roles_covered",
+        "full_coverage", "models")}, ensure_ascii=False, indent=2))
     print(f"report -> {OUT / 'role-eval.md'}")
+    if args.full and not metrics["full_coverage"]:
+        print("全量回归失败：角色或用例数不足 12 × 2")
+        return 1
     if metrics["mode"] == "offline":
         return 0 if (metrics["schema_pass"] == metrics["total"]
                      and metrics["required_pass"] == metrics["total"]

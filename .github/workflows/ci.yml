@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Unit tests (sandbox, evidence, gates, quality, rerank)
+        run: python -m unittest discover -s tests -v
+      - name: Orchestrator selfcheck
+        run: python -m orchestrator.selfcheck
+      - name: Judge / agent / canary / revalidation eval
+        run: python eval/run_eval.py --offline
+      - name: Full role golden set (12 roles x 2)
+        run: python eval/role_eval.py --offline --full
+      - name: Prompt regression
+        run: python eval/prompt_regression.py --offline
+      - name: Knowledge retrieval (22 cases, rerank vs baseline)
+        run: python eval/kb_eval.py
+      - name: Simulator selfchecks
+        run: |
+          python -I sim/selfcheck.py
+          python -I sim/w3_selfcheck.py
+      - name: Spec validation
+        run: python -I specs/validate_specs.py
+
+  tool-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies and scanners
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          semgrep --version && trivy --version
+      - name: Generate project with template and run gates
+        run: |
+          python start_project.py \
+            --requirements requirements/examples/csv-export/selected.md \
+            --project-dir /tmp/agentteam-ci \
+            --offline --template minimal-api --roles backend \
+            --tool-profile standard --decision-db /tmp/agentteam-ci-decisions.db
+      - name: Start template service for API tests
+        run: |
+          (cd /tmp/agentteam-ci && python src/backend/app.py >/tmp/template-server.log 2>&1 &)
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/health && break || sleep 1
+          done
+      - name: Verify signed evidence chain and full profile
+        env:
+          AGENTTEAM_API_BASE_URL: http://127.0.0.1:8080
+        run: |
+          python -m orchestrator.tool_evidence --project /tmp/agentteam-ci \
+            --profile standard
+          python -m orchestrator.tool_evidence --project /tmp/agentteam-ci \
+            --profile full
+          python -c "from orchestrator.evidence.store import EvidenceStore; from orchestrator.config import signing_key; s=EvidenceStore('/tmp/agentteam-ci/evidence/tool-ledger.jsonl', signing_key()); assert s.verify_chain(); print('evidence chain OK', len(s.all()))"

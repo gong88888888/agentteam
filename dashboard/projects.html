@@ -62,6 +62,28 @@
   .status-completed { color:var(--good); border-color:rgba(12,163,12,.35); }
   .status-partial { color:var(--warning); border-color:rgba(250,178,25,.4); }
   .status-failed { color:var(--critical); border-color:rgba(208,59,59,.35); }
+  .gate-pass { color:var(--good); border-color:rgba(12,163,12,.35); }
+  .gate-fail { color:var(--critical); border-color:rgba(208,59,59,.35); }
+  .gate-need_evidence { color:var(--warning); border-color:rgba(250,178,25,.45); }
+  .gate-off { color:var(--muted); }
+  .quality-A { color:var(--good); border-color:rgba(12,163,12,.3); }
+  .quality-B { color:var(--s1); border-color:rgba(42,120,214,.3); }
+  .quality-C { color:var(--warning); border-color:rgba(250,178,25,.4); }
+  .quality-D { color:var(--critical); border-color:rgba(208,59,59,.35); }
+  .quality-hero { display:flex; align-items:baseline; gap:10px; margin:6px 0 12px; }
+  .quality-hero .num { font-size:42px; font-weight:650; letter-spacing:-.03em; }
+  .quality-hero .grade { font-size:18px; font-weight:600; }
+  .component { display:grid; grid-template-columns:110px 1fr 46px; gap:8px; align-items:center;
+               font-size:12px; color:var(--ink-2); margin:6px 0; }
+  .component .bar { height:8px; border-radius:4px; background:var(--surface-2); overflow:hidden; }
+  .component .bar span { display:block; height:100%; background:var(--s1); border-radius:4px; }
+  .spark-wrap { margin-top:12px; }
+  .spark { width:100%; max-width:520px; height:110px; display:block; }
+  .gate-check { display:grid; grid-template-columns:22px 1fr; gap:8px; padding:7px 0;
+                border-bottom:1px solid var(--grid); font-size:12px; }
+  .gate-check .ok { color:var(--good); }
+  .gate-check .bad { color:var(--critical); }
+  .gate-check .detail { color:var(--muted); font-size:11px; word-break:break-word; }
   .role-card { border:1px solid var(--border); border-radius:11px; padding:10px 11px; margin-bottom:7px; cursor:pointer; }
   .role-card:hover { background:var(--surface-2); }
   .role-card.active { border-color:var(--s1); box-shadow:0 0 0 2px rgba(42,120,214,.12); }
@@ -118,6 +140,7 @@
 
     <section class="card panel">
       <div class="panel-head"><h2 id="project-title">项目角色</h2><span id="project-status"></span></div>
+      <div class="meta-line" id="project-meta" style="margin:-4px 0 10px"></div>
       <div id="roles"></div>
       <details style="margin-top:10px"><summary style="color:var(--muted);cursor:pointer;font-size:12px">需求文件</summary>
         <pre id="requirement" style="margin-top:8px"></pre>
@@ -143,6 +166,8 @@ const state = { projects: [], project: null, role: null, tab: "summary", file: n
 const params = new URLSearchParams(location.search);
 const wantProject = params.get("project");
 const wantRole = params.get("role");
+const wantTab = params.get("tab");
+if (wantTab) state.tab = wantTab;
 const statusLabel = {completed:"completed", partial:"partial", failed:"failed", done:"done", error:"error"};
 
 function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem("agentteam-theme", t); } catch(_){} }
@@ -186,14 +211,29 @@ async function loadProject(name, preferredRole = null) {
     state.projectData = p;
     $("project-title").textContent = p.name;
     $("project-status").innerHTML = statusBadge(p.status);
+    const gates = p.gates || {};
+    $("project-meta").innerHTML = [
+      `模板 ${esc(p.template || "none")}`,
+      `证据 ${esc(p.tool_profile || "basic")}`,
+      p.quality_avg != null ? `质量均值 ${esc(p.quality_avg)}` : "质量 —",
+      `门禁 通过 ${gates.pass || 0} / 待补证 ${gates.need_evidence || 0} / 失败 ${gates.fail || 0}`,
+    ].join(" · ");
     $("requirement").textContent = p.requirement_text || "（无）";
-    $("roles").innerHTML = (p.roles || []).map(r => `
+    $("roles").innerHTML = (p.roles || []).map(r => {
+      const g = r.gate?.status || "off";
+      const q = r.quality?.score;
+      const grade = r.quality?.grade || "";
+      return `
       <div class="role-card ${state.role===r.role?"active":""}" data-role="${esc(r.role)}">
-        <div class="row">${statusBadge(r.status)} <span class="badge">${esc(r.role)}</span></div>
+        <div class="row">${statusBadge(r.status)}
+          <span class="badge gate-${esc(g)}">gate ${esc(g)}</span>
+          <span class="badge quality-${esc(grade)}">${q != null ? esc(q) : "—"} ${esc(grade)}</span>
+          <span class="badge">${esc(r.role)}</span></div>
         <div class="title">${esc(r.title)}</div>
         <div class="meta"><span>${esc(r.model)}</span><span>${r.latency_ms||0}ms · ${r.tokens||0} tok</span></div>
-        <div class="files">${r.files?.length ? esc(r.files.map(f=>f.path).join(", ")) : "无文件"}${r.adjustment ? " · 已按调整要求重跑" : ""}</div>
-      </div>`).join("") || `<div class="empty">该项目还没有角色记录。</div>`;
+        <div class="files">${r.files?.length ? esc(r.files.map(f=>f.path).join(", ")) : "无文件"}${r.sandbox==="isolated" ? " · sandbox" : ""}${r.adjustment ? " · 已按调整要求重跑" : ""}</div>
+      </div>`;
+    }).join("") || `<div class="empty">该项目还没有角色记录。</div>`;
     document.querySelectorAll(".role-card").forEach(el => el.addEventListener("click", () => loadRole(el.dataset.role)));
     if (p.roles && p.roles.length) loadRole(preferredRole || p.roles[0].role);
     else $("detail").innerHTML = `<div class="empty">没有可展示的角色。</div>`;
@@ -209,25 +249,104 @@ async function loadRole(role) {
   } catch (err) { $("detail").innerHTML = `<div class="empty">加载角色失败：${esc(err.message)}</div>`; }
 }
 
+function sparkline(points) {
+  if (!points || !points.length) return `<div class="empty">暂无质量历史；重跑后会记录趋势。</div>`;
+  const w = 520, h = 110, pad = 12;
+  const scores = points.map(p => Number(p.score) || 0);
+  let lo = Math.min(...scores), hi = Math.max(...scores);
+  if (lo === hi) { lo = Math.max(0, lo - 5); hi = Math.min(100, hi + 5); }
+  const x = (i) => pad + (points.length === 1 ? (w - pad * 2) / 2 : i * (w - pad * 2) / (points.length - 1));
+  const y = (v) => pad + (hi - v) * (h - pad * 2) / (hi - lo);
+  const path = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(scores[i]).toFixed(1)}`).join(" ");
+  const dots = points.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(scores[i]).toFixed(1)}" r="4"
+      fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>${esc(p.at || "")} · ${esc(p.score)} 分 · gate ${esc(p.gate || "")}</title></circle>`).join("");
+  return `<div class="spark-wrap">
+    <svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="角色质量趋势">
+      <line x1="${pad}" y1="${(h-pad).toFixed(1)}" x2="${w-pad}" y2="${(h-pad).toFixed(1)}" stroke="var(--grid)"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--grid)"/>
+      <path d="${path}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      <text x="${pad}" y="${h-2}" fill="var(--muted)" font-size="10">${esc(lo)}</text>
+      <text x="${w-pad}" y="${h-2}" fill="var(--muted)" font-size="10" text-anchor="end">最近 ${points.length} 次</text>
+    </svg>
+    <details><summary style="color:var(--muted);cursor:pointer;font-size:11px">数据表</summary>
+      <div class="meta-grid" style="margin-top:6px">
+        ${points.map(p => `<span class="k">${esc(p.at || "")}</span><span>${esc(p.score)} 分 · gate ${esc(p.gate || "—")}</span>`).join("")}
+      </div>
+    </details></div>`;
+}
+
+function renderGate(gate, role) {
+  if (!gate) return `<div class="empty">该记录没有门禁结果（旧记录或门禁关闭）。</div>`;
+  const checks = (gate.checks || []).map(c => `
+    <div class="gate-check"><span class="${c.ok ? "ok" : "bad"}">${c.ok ? "✓" : "✗"}</span>
+      <div><b>${esc(c.name)}</b>${!c.ok && c.detail ? `<div class="detail">${esc(c.detail)}</div>` : ""}</div></div>`).join("");
+  const evidence = (gate.evidence_ids || []).map(e => `<span class="badge">${esc(e)}</span>`).join(" ") || "无";
+  const decision = gate.decision_id
+    ? `<a class="badge" href="decisions.html?id=${encodeURIComponent(gate.decision_id)}">${esc(gate.decision_id)} →</a>` : "未升级";
+  return `<div class="row">${gateBadge(gate.status)} <span class="badge">${esc(gate.gate_id)}</span></div>
+    <h3 style="font-size:15px;margin:12px 0 4px">检查项</h3>${checks}
+    <div class="meta-grid" style="margin-top:12px">
+      <span class="k">证据</span><span>${evidence}</span>
+      <span class="k">缺失</span><span>${esc((gate.missing || []).join(", ") || "无")}</span>
+      <span class="k">decision</span><span>${decision}</span>
+      <span class="k">subject</span><span>${esc(gate.subject_hash || "—")}</span>
+    </div>`;
+}
+
+function renderQuality(quality, history) {
+  if (!quality) return `<div class="empty">该记录没有质量分（门禁关闭或旧记录）。</div>`;
+  const comps = quality.components || {};
+  const max = {completeness:30, gate:30, evidence:20, efficiency:10, clarity:10};
+  const bars = Object.entries(max).map(([k, mx]) => {
+    const v = Number(comps[k] || 0);
+    return `<div class="component"><span>${esc(k)}</span>
+      <div class="bar"><span style="width:${Math.min(100, v / mx * 100)}%"></span></div>
+      <span>${v}/${mx}</span></div>`;
+  }).join("");
+  const issues = (quality.issues || []).map(x => `<li>${esc(x)}</li>`).join("") || "<li>无</li>";
+  return `<div class="quality-hero"><span class="num">${esc(quality.score)}</span>
+      <span class="grade quality-${esc(quality.grade)}">${esc(quality.grade)}</span>
+      <span class="badge">gate ${esc(history?.latest ?? "—")} latest</span></div>
+    ${bars}
+    <h3 style="font-size:14px;margin:14px 0 4px">问题</h3><ul style="margin:0;padding-left:18px;color:var(--ink-2);font-size:12px">${issues}</ul>
+    ${sparkline(history?.points)}`;
+}
+
+function gateBadge(status) {
+  return `<span class="badge gate-${esc(status || "off")}">gate ${esc(status || "off")}</span>`;
+}
+
 function renderDetail() {
   const d = state.roleData;
   if (!d) return;
   const meta = d.meta || {};
   const files = meta.files || [];
-  const tabs = [["summary","摘要"],["output","输出 JSON"],["prompt","System Prompt"],["request","实际请求"],["meta","Meta"],["files","文件"]];
+  const gate = meta.gate;
+  const quality = meta.quality;
+  const tools = meta.tools || {};
+  const tabs = [["summary","摘要"],["gate","门禁"],["quality","质量"],["output","输出 JSON"],["prompt","System Prompt"],["request","实际请求"],["meta","Meta"],["files","文件"]];
   let body = "";
   if (state.tab === "summary") body = `<div class="summary-text">${esc(d.summary || "（无 summary）")}</div>`;
+  else if (state.tab === "gate") body = renderGate(gate, d.role);
+  else if (state.tab === "quality") body = renderQuality(quality, d.quality_history);
   else if (state.tab === "output") body = `<pre>${esc(JSON.stringify(d.output, null, 2))}</pre>`;
   else if (state.tab === "prompt") body = `<pre>${esc(d.prompt || "")}</pre>`;
   else if (state.tab === "request") body = `<pre>${esc(d.request || "（旧记录没有 request.md；重跑后会生成）")}</pre>`;
   else if (state.tab === "meta") body = `<div class="meta-grid">
       <span class="k">role</span><span>${esc(meta.role)}</span>
       <span class="k">status</span><span>${esc(meta.status)}</span>
+      <span class="k">gate</span><span>${esc(gate?.status || "off")} · ${esc(gate?.gate_id || "—")}</span>
+      <span class="k">quality</span><span>${esc(quality?.score ?? "—")} ${esc(quality?.grade || "")}</span>
       <span class="k">model</span><span>${esc(meta.model)}</span>
       <span class="k">backend</span><span>${esc(meta.backend)}</span>
       <span class="k">prompt</span><span>${esc(meta.prompt?.version)} / ${esc(meta.prompt?.hash)}</span>
       <span class="k">latency</span><span>${esc(meta.latency_ms)} ms</span>
       <span class="k">tokens</span><span>${esc(meta.tokens)}</span>
+      <span class="k">evidence</span><span>${esc(tools.profile || "—")} · ${esc((tools.passed || []).join(", ") || "无")}${tools.missing?.length ? " · 缺失 " + esc(tools.missing.join(", ")) : ""}</span>
+      <span class="k">subject</span><span>${esc(tools.subject_hash || "—")}</span>
+      <span class="k">sandbox</span><span>${esc(meta.sandbox || "direct")}</span>
+      <span class="k">template</span><span>${esc(meta.template || "none")}</span>
       <span class="k">code_pass</span><span>${esc(meta.code_pass)}</span>
       <span class="k">adjustment</span><span>${esc(meta.adjustment || "（无）")}</span>
       <span class="k">files</span><span>${esc(files.map(f=>f.path).join(", ") || "无")}</span>
@@ -235,12 +354,17 @@ function renderDetail() {
     </div>`;
   else if (state.tab === "files") {
     body = files.length ? files.map(f => `
-      <div class="file-item" data-file="${esc(f.path)}"><span>${esc(f.path)}</span><span class="badge">${esc((f.bytes||0))} B</span></div>
-    `).join("") + (state.file ? `<pre style="margin-top:10px"><span class="meta">${esc(state.file.path)}</span>\n\n${esc(state.file.content)}</pre>` : "")
+      <div class="file-item" data-file="${esc(f.path)}"><span>${esc(f.path)}
+        ${f.source === "runner-summary" ? `<span class="badge">runner-summary</span>` : ""}
+        ${f.promoted === false ? `<span class="badge gate-need_evidence">sandbox</span>` : ""}</span>
+        <span class="badge">${esc((f.bytes||0))} B</span></div>
+    `).join("") + (state.file ? `<pre style="margin-top:10px"><span class="meta">${esc(state.file.path)}${state.file.sandboxed ? " · sandbox" : ""}</span>\n\n${esc(state.file.content)}</pre>` : "")
       : `<div class="empty">该角色没有写出文件。</div>`;
   }
   $("detail").innerHTML = `
-    <div class="row">${statusBadge(meta.status)} <span class="badge">${esc(d.role)}</span>
+    <div class="row">${statusBadge(meta.status)} ${gateBadge(gate?.status)}
+      <span class="badge quality-${esc(quality?.grade || "")}">${esc(quality?.score ?? "—")} ${esc(quality?.grade || "")}</span>
+      <span class="badge">${esc(d.role)}</span>
       <span class="badge">${esc(meta.model || "—")}</span></div>
     <h2>${esc(d.title)}</h2>
     <div class="meta-line">prompt v${esc(meta.prompt?.version)} · ${esc(meta.prompt?.hash)} · ${esc(meta.latency_ms)}ms · ${esc(meta.tokens)} tok</div>
@@ -249,10 +373,17 @@ function renderDetail() {
     <div class="rerun">
       <div class="row"><b style="font-size:12px">调整并重跑该角色</b>
         <label class="meta" style="font-size:11.5px;color:var(--muted)"><input type="checkbox" id="rerun-offline" checked> 使用 stub（取消则调用本地 Qwen/DeepSeek）</label>
+        <label class="meta" style="font-size:11.5px;color:var(--muted)"><input type="checkbox" id="rerun-sandbox" ${meta.sandbox === "isolated" ? "checked" : ""}> 隔离沙箱</label>
+      </div>
+      <div class="row"><label class="meta" style="font-size:11.5px;color:var(--muted)">证据 profile
+        <select id="rerun-profile" class="btn" style="padding:5px 8px">
+          ${["basic","standard","full"].map(p => `<option value="${p}" ${ (tools.profile || "basic") === p ? "selected" : ""}>${p}</option>`).join("")}
+        </select></label>
+        <span class="meta" style="font-size:11px;color:var(--muted)">standard/full 需要 semgrep/trivy；缺失会升级决策</span>
       </div>
       <textarea id="rerun-note" placeholder="可选：补充调整要求，例如“非目标不足，补 2 条；验收标准必须可量化；代码必须给出 files”。"></textarea>
       <div class="row"><button class="btn primary" id="rerun-btn" ${state.running?"disabled":""}>${state.running?"重跑中…":"重跑该角色"}</button>
-        <span class="meta" style="font-size:11px;color:var(--muted)">重跑会覆盖该角色 artifacts，并追加 logs/events.jsonl</span></div>
+        <span class="meta" style="font-size:11px;color:var(--muted)">重跑会覆盖该角色 artifacts、追加门禁/质量记录与事件账本</span></div>
     </div>`;
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { state.tab=b.dataset.tab; state.file=null; renderDetail(); }));
   document.querySelectorAll(".file-item").forEach(el => el.addEventListener("click", () => openFile(el.dataset.file)));
@@ -270,11 +401,13 @@ async function rerunRole() {
   if (!state.project || !state.role || state.running) return;
   const note = $("rerun-note").value.trim();
   const offline = $("rerun-offline").checked;
+  const sandbox = $("rerun-sandbox").checked;
+  const profile = $("rerun-profile").value;
   state.running = true; renderDetail();
   try {
     await api(`/api/projects/${encodeURIComponent(state.project)}/roles/${encodeURIComponent(state.role)}/rerun`, {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({note, offline})
+      body: JSON.stringify({note, offline, sandbox, profile})
     });
     toast("角色已重跑，记录已更新");
     const role = state.role;

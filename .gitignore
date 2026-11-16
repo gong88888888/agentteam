@@ -28,3 +28,6 @@ Thumbs.db
 
 # generated dashboard data (index.html embeds it)
 dashboard/data.json
+
+# local smoke projects from tests/verification
+/projects/_*/

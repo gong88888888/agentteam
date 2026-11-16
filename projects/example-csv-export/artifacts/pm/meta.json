@@ -13,6 +13,76 @@
   "latency_ms": 0,
   "tokens": 0,
   "cost_usd": 0.0,
-  "files": [],
-  "finished_at": "2026-11-16 16:31:08"
+  "files": [
+    {
+      "path": "docs/plan/project-plan.md",
+      "sha256": "f300ac8157271ab800e0391edce276b8570a1a0f437b4c95920e6362aacdb827",
+      "bytes": 391,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-EXAMPLE-CSV-EXPORT-pm",
+    "role": "pm",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:切片",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：依赖/顺序/门禁"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/plan/project-plan.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-173514",
+  "finished_at": "2026-11-16 17:35:14",
+  "quality": {
+    "score": 91,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 6,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
 }

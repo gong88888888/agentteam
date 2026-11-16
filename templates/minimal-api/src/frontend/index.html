@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimal Export UI</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; color: #111; }
+  button { padding: .5rem .9rem; }
+  [data-state] { margin-top: 1rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
+  [data-state="error"] { border-color: #d03b3b; color: #d03b3b; }
+</style>
+</head>
+<body>
+<h1>Export</h1>
+<label>Month <input id="month" type="month" value="2026-02"></label>
+<button id="export">Export CSV</button>
+<div id="output" data-state="empty">No export yet.</div>
+<script>
+const out = document.getElementById("output");
+document.getElementById("export").addEventListener("click", async () => {
+  out.dataset.state = "loading";
+  out.textContent = "Loading…";
+  try {
+    const month = document.getElementById("month").value;
+    const res = await fetch(`/api/v1/exports/csv?month=${encodeURIComponent(month)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    out.dataset.state = text.trim() ? "ready" : "empty";
+    out.textContent = text || "No records for this month.";
+  } catch (err) {
+    out.dataset.state = "error";
+    out.textContent = `Export failed: ${err.message}`;
+  }
+});
+</script>
+</body>
+</html>

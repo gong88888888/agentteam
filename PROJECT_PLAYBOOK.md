@@ -51,55 +51,97 @@ python -m orchestrator.requirements select \
 ## 2. 启动项目
 
 ```bash
-# 离线：确定性 stub 走通 12 角色流水线，不调用模型
+# 离线：确定性 stub + minimal-api 模板，走通 12 角色、门禁、工具证据与质量分
 python start_project.py \
   --requirements requirements/examples/csv-export/selected.md \
   --project-dir projects/example-csv-export \
-  --offline
+  --offline --template minimal-api
 
 # 真实：本地 Qwen 3.6；DeepSeek 作为 fallback；--kb 注入知识库
 python start_project.py \
   --requirements requirements/examples/csv-export/selected.md \
   --project-dir projects/example-csv-export-real \
-  --real --roles pm,product,arch,backend,frontend --kb
+  --real --roles pm,product,arch,backend,frontend --kb --template minimal-api
+
+# 高保证：代码角色在隔离工作区执行，门禁通过后才提升文件
+python start_project.py \
+  --requirements requirements/examples/csv-export/selected.md \
+  --project-dir projects/secure-run \
+  --offline --template minimal-api --sandbox --tool-profile standard --stop-on-gate
 ```
 
 参数：
 
-- `--requirements`：需求文件（建议 `selected.md`）
-- `--project-dir`：开发文件夹；非空目录需 `--force`
-- `--offline` / `--real`：stub 或真实模型
-- `--roles`：逗号分隔，默认 12 角色全跑
-- `--kb`：检索 `data/knowledge.db` 注入上下文
-- `--stop-on-error`：首个角色失败即停止
-- `--force`：允许写入已有目录
+| 参数 | 默认 | 作用 |
+|---|---|---|
+| `--requirements` | 必填 | 需求文件（建议 `selected.md`） |
+| `--project-dir` | 必填 | 开发文件夹；非空目录需 `--force` |
+| `--offline` / `--real` | offline | stub 或真实模型 |
+| `--roles` | 12 角色 | 逗号分隔角色子集 |
+| `--kb` | 关 | 检索 `data/knowledge.db` 注入上下文 |
+| `--template` | 新目录 `minimal-api`，已有目录 `none` | 项目脚手架；`none` 关闭 |
+| `--tool-profile` | `basic` | `basic`=编译+单测；`standard`=+SAST+契约；`full`=+密钥扫描 |
+| `--sandbox` | 关 | 代码角色在临时副本/worktree 写入，门禁通过才提升 |
+| `--stop-on-gate` | 关 | 任一门禁未通过即停止后续角色 |
+| `--no-gates` / `--no-quality` | 开 | 关闭门禁或质量分（不推荐） |
+| `--decision-db` | `data/decisions.db` | 门禁升级写入的决策库 |
+| `--stop-on-error` / `--force` | 关 | 角色失败即停 / 允许写非空目录 |
 
 ## 3. 查看角色工作记录
-
-每个角色都有独立目录：
 
 ```
 projects/<project>/
 ├── requirements/input.md
+├── .agentteam/template.json      # 模板 ID/hash/复制文件
 ├── artifacts/<role>/
-│   ├── prompt.md          # 本次实际使用的系统提示词
-│   ├── request.md         # 实际发送的 system + user（含调整要求、前置摘要、KB 引用）
-│   ├── output.json        # 结构化输出（schema 校验）
-│   ├── summary.md         # 人读摘要、claims、写入文件、未决问题
-│   ├── meta.json          # 模型/后端/耗时/Token/成本/prompt hash/文件/adjustment
-│   └── code_pass_attempt*.txt  # 代码角色的文件块原始输出（调试）
-├── src/backend/**         # 后端角色实际写出的代码
-├── src/frontend/**        # 前端角色实际写出的代码
-├── logs/events.jsonl      # role.started / role.finished / file.written / project.*
-├── state/roles.json       # 每个角色状态与 meta
+│   ├── prompt.md                 # 系统提示词
+│   ├── request.md                # 实际 system+user（含调整要求、前置摘要、KB 引用）
+│   ├── output.json               # 结构化输出（schema 校验）
+│   ├── summary.md                # 摘要、claims、写入文件、门禁检查
+│   ├── meta.json                 # 模型/耗时/Token/门禁/质量/证据/文件
+│   ├── error.json                # 失败时
+│   ├── sandbox/<path>            # 沙箱未提升的代码（审阅用）
+│   └── code_pass_attempt*.txt    # 代码角色原始文件块
+├── src/backend/**、src/frontend/**
+├── tests/**、contracts/**、docs/**
+├── evidence/tool-ledger.jsonl    # HMAC 签名工具证据（哈希链）
+├── quality/history.jsonl         # 每次运行的质量分历史
+├── logs/events.jsonl             # role/tool/gate/quality 事件
+├── state/roles.json
 ├── project.json
-└── README.md              # 角色执行记录表
+└── README.md                     # 角色/门禁/质量执行记录表
 ```
 
-示例：
+### 角色门禁
 
-- `projects/example-csv-export/README.md`：12 角色离线结构跑通
-- `projects/example-csv-export-real/README.md`：pm/product/arch/backend/frontend 真实 Qwen 跑通，backend/frontend 已写出代码文件
+每个角色输出后立即执行确定性检查，结果写入 `meta.json.gate` 与 `summary.md`：
+
+| 范围 | 检查 |
+|---|---|
+| 所有角色 | role 匹配、status 非 blocked、summary 非空、期望交付物存在且不是 TODO 脚手架 |
+| 产品/UI/架构/评审/QA/安全/运维/知识/复盘/PM | 关键词组（同义词任一命中）+ 对应文档 |
+| 后端/前端 | 至少一个角色写出文件；`compile` 与 `unit` 证据都必须 pass |
+| 标准/完整 profile | 追加 `sast`、`contract_test`、`secret_scan`；缺工具则 fail-closed |
+| 未通过 | 角色标记 `blocked`；自动写入决策收件箱（除非门禁关闭） |
+
+门禁只读签名工具证据，不把 claims 当证据。`need_evidence` 会列出缺失证据类型，便于只补该检查而不是整包返工。
+
+### 工具证据
+
+`evidence/tool-ledger.jsonl` 每条记录包含 `subject_hash`、命令、工具版本、退出码、输出哈希、签名和哈希链。支持：
+
+- `compile`：`python -m compileall`
+- `unit`：有 pytest 用 pytest，否则 stdlib unittest；零用例视为失败
+- `sast`：本地 `tools/semgrep.yml`（standard/full）
+- `contract_test`：OpenAPI 3.x 结构检查（standard/full）
+- `secret_scan`：trivy（full；CI 环境安装）
+- `api_test`：schemathesis 对运行中的服务跑契约测试（full + `AGENTTEAM_API_BASE_URL`）
+
+校验命令：
+
+```bash
+python -m orchestrator.tool_evidence --project projects/example-csv-export --profile basic
+```
 
 ### 在监控页检查与调整角色
 
@@ -108,34 +150,41 @@ python dashboard/serve.py --port 8765
 # http://localhost:8765/projects.html
 ```
 
-- 左栏选项目，中栏选角色；右侧可看摘要、输出 JSON、System Prompt、实际请求、Meta、文件内容。
-- 发现角色工作不合格时，在“调整并重跑该角色”里写清缺什么（例如“非目标不足，补 2 条；验收标准必须可量化”），再重跑。
-- 重跑只影响该角色；调整要求写入 `request.md`、`meta.json.adjustment` 与 `logs/events.jsonl` 的 `role.started`，可追溯。
-- 默认勾选 stub 便于快速验证流程；取消勾选才调用本地 Qwen/DeepSeek，耗时和成本会明显上升。
+- 左栏项目、中栏角色（状态/gate/质量分）、右侧页签：摘要、门禁、质量、输出、System Prompt、实际请求、Meta、文件。
+- 门禁页签显示每条检查、证据 ID、缺失项和升级后的决策链接。
+- 质量页签显示分项得分、问题与历史趋势（数据表可访问）。
+- 重跑时可选 stub/真实模型、basic/standard/full 证据 profile、是否使用隔离沙箱；调整要求写入 `request.md`、`meta.json`、`summary.md` 和事件账本。
+- 门禁升级自动进入 `decisions.html`，可按 ID 深链：`decisions.html?id=DEC-...`。
 
-注意：**角色产出是草稿，不是生产验收**。代码角色输出仍需测试、契约证据、评审、裁判与门禁；当前 runner 只负责“按角色工作 + 留痕”，不替代 W1/W2 的门禁。
+注意：**角色产出是草稿，不是生产验收**；模板只提供可运行脚手架，不等于完成了角色工作。
 
-## 4. 项目优化工作（按优先级）
+## 4. P0–P2 升级状态
 
-| 优先级 | 工作 | 为什么现在做 | 交付标准 |
+| 优先级 | 能力 | 交付 | 状态 |
 |---|---|---|---|
-| P0 | 真实工具证据 + CI | 当前角色输出是文本/代码草稿，门禁仍缺 pytest/schemathesis/semgrep/trivy 签名证据 | 每个代码切片有可复现工具证据；门禁只查证据 |
-| P0 | 执行沙箱 + worktree | runner 能写文件，但没有隔离执行/租约，无法安全跑生成代码 | 每角色/任务独立 worktree；命令白名单；测试在沙箱执行 |
-| P1 | 角色间门禁 | runner 现在是串行角色流水线，没有产品/架构/代码/验收门禁 | 每个阶段产出进入决策包 + J1/J2/J3 或硬约束 |
-| P1 | 全量真实 prompt 回归 | 当前 role eval 离线全量、真实只跑子集 | 12 角色 × 2 用例真实跑完，记录 schema/keyword/latency/cost |
-| P1 | 知识库 rerank 与质量 | RRF + bge-m3 已可用，但缺独立 rerank 与检索评测扩容 | recall@5 保持 7/7 以上，新增 20+ 检索用例 |
-| P2 | 决策收件箱接门禁 | UI/API 已可用，但示例决策是 seed 数据 | 门禁升级/超时/分歧自动生成决策包并进入收件箱 |
-| P2 | ~~项目监控页~~（已完成） | W5 已提供项目列表、角色记录、请求/输出/文件查看与单角色重跑 | `dashboard/projects.html`；后续补角色质量分与成本趋势 |
-| P2 | 角色质量分与趋势 | 目前能看记录和重跑，但缺跨版本质量/成本对比 | 每次重跑记录 schema/keyword/latency/cost，生成角色趋势图 |
-| P2 | 模板化项目 | 每次从零生成角色上下文 | 产品/架构/后端/前端模板与可复用资产库 |
+| P0 | 真实工具证据 + CI | `orchestrator/tool_evidence.py`、签名账本、`.github/workflows/ci.yml`、`tests/` | 完成 |
+| P0 | 执行沙箱 + 隔离工作区 | `orchestrator/sandbox.py`：allowlist、argv-only、脱敏环境、超时、copy/git-worktree、门禁后提升 | 完成（进程级） |
+| P1 | 角色间门禁 | `orchestrator/role_gates.py`：内容/交付物/证据检查，失败即 blocked | 完成 |
+| P1 | 全量真实 prompt 回归 | `eval/role_eval.py --real --full`、`eval/prompt_regression.py --real`，记录 schema/keyword/latency/token/cost | 完成 |
+| P1 | 知识库 rerank 与扩容 | `orchestrator/knowledge/rerank.py`；22 个检索用例；MRR 与 RRF baseline 对比 | 完成 |
+| P2 | 决策收件箱接门禁 | 门禁失败自动创建 `DEC-<project>-<role>`，可深链审批 | 完成 |
+| P2 | 角色质量分与趋势 | `orchestrator/quality.py`、`quality/history.jsonl`、监控页质量页签 | 完成 |
+| P2 | 模板化项目 | `templates/minimal-api`、`orchestrator/templates.py`、`--template` | 完成 |
+
+环境与边界：
+
+- 沙箱是进程级隔离（allowlist、脱敏环境、超时、隔离副本/worktree），**不是内核容器**；生产需要容器/seccomp/网络命名空间。
+- 本地未安装 semgrep/trivy 时，standard/full 的对应证据显式为 missing，门禁失败关闭；CI job 会安装并跑 full。
+- `minimal-api` 是 stdlib 脚手架，用来验证证据/门禁链路；真实项目需替换依赖、测试与契约。
+- 模板脚手架中的 TODO 不算交付物；角色未写文档时，runner 会生成明确标注的 `runner-summary` 文档，便于审阅但不冒充模型产物。
 
 ## 5. 建议的第一个真实闭环
 
 1. 选 `REQ-CSV`。
-2. `start_project.py --real --roles pm,product,arch,backend,frontend --kb` 生成草稿。
-3. 对 `src/backend/**` 跑 pytest + 契约测试，对 `src/frontend/**` 跑 lint/加载态检查。
-4. 用真实证据替换 `claims`，进入代码门禁/裁判。
-5. 把结果写入决策收件箱（升级项）与知识库。
-6. 跑 `sim/w3.py`/评估，确认没有破坏既有流程。
+2. `start_project.py --real --roles pm,product,arch,backend,frontend --kb --template minimal-api --sandbox` 生成草稿。
+3. 对 `src/backend/**` 跑 pytest/契约检查，对 `src/frontend/**` 跑 lint/加载态检查；standard/full profile 追加 SAST/密钥扫描。
+4. 检查 `meta.json.gate` 与 `summary.md`；未通过项进入决策收件箱或补充调整要求重跑该角色。
+5. 对通过门禁的切片进入 J1/J2/J3 裁判与发布门禁；把决策和复盘写入知识库。
+6. 跑 `python -m unittest discover -s tests`、`sim/w3_selfcheck.py`、`eval/*`，确认没有破坏既有流程。
 
-这条闭环跑通后，再扩 12 角色全量、共享文件冲突、契约变更影响图和更复杂的项目类型。
+这条闭环跑通后，再扩共享文件冲突、契约变更影响图和更复杂的项目类型。

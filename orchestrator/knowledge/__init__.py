@@ -2,9 +2,10 @@
 from .chunker import Chunk, chunk_markdown, tokenize
 from .embed import HashingEmbedder, OllamaEmbedder, get_embedder
 from .indexer import default_paths, index_project
+from .rerank import rerank_hits
 from .retriever import HybridRetriever
 from .store import KnowledgeStore
 
 __all__ = ["Chunk", "chunk_markdown", "tokenize", "HashingEmbedder",
            "OllamaEmbedder", "get_embedder", "default_paths", "index_project",
-           "HybridRetriever", "KnowledgeStore"]
+           "HybridRetriever", "KnowledgeStore", "rerank_hits"]

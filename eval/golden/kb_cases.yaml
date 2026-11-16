@@ -1,24 +1,111 @@
-# Knowledge retrieval golden set. expected: any citation containing one of these.
 - id: kb-shared-lock
   query: 共享文件冲突 锁 租约
-  expected: [sim/README.md, README.md, 修复实施记录.md]
+  expected:
+  - sim/README.md
+  - README.md
+  - 修复实施记录.md
 - id: kb-judge
   query: 外部模型裁判 J1 J2 J3 证据
-  expected: [agentteam-v4-外部模型裁判.md]
+  expected:
+  - agentteam-v4-外部模型裁判.md
 - id: kb-frontend-rules
-  query: 前端十大黄金法则 可访问性
-  expected: [agentteam2.md]
+  query: 前端黄金法则 可访问性 响应式
+  expected:
+  - agentteam2.md
 - id: kb-release
-  query: 回滚 演练 发布 门禁
-  expected: [rubrics/release-gate.yaml, agentteam-v4-外部模型裁判.md]
+  query: 回滚 演练 发布 门禁 特性开关
+  expected:
+  - rubrics/release-gate.yaml
+  - agentteam-v4-外部模型裁判.md
 - id: kb-postmortem
   query: postmortem 根因 回归测试
-  expected: [postmortem-to-tests, skills/registry.yaml]
+  expected:
+  - postmortem-to-tests
+  - skills/registry.yaml
   source_type: skill
 - id: kb-ragflow
   query: 混合检索 RAGFlow FTS5 向量
-  expected: [knowledge/README.md]
+  expected:
+  - knowledge/README.md
 - id: kb-skill-filter
   query: 可访问性 配色 字体
-  expected: [skills/]
+  expected:
+  - skills/
+  source_type: skill
+- id: kb-six-verdicts
+  query: 六态裁决 approve_with_conditions need_evidence abstain defer
+  expected:
+  - agentteam-v4-外部模型裁判.md
+- id: kb-fail-closed
+  query: 失败关闭 超时 格式错误 无证据引用 不批准
+  expected:
+  - agentteam-v4-外部模型裁判.md
+- id: kb-invalidation
+  query: 证据失效 哈希 依赖图 TTL 工具版本 基准版本
+  expected:
+  - agentteam-v4-外部模型裁判.md
+  - 修复实施记录.md
+- id: kb-canary
+  query: 金丝雀 橡皮章 同家族 family collision 抽查
+  expected:
+  - agentteam-v4-外部模型裁判.md
+  - README.md
+- id: kb-verdict-binding
+  query: 裁决绑定 输入哈希 baseline rubric 模型版本 失效
+  expected:
+  - agentteam-v4-外部模型裁判.md
+  - 修复实施记录.md
+- id: kb-hard-block
+  query: 机械硬约束 缺证据 未签名 越界写 高危漏洞 无回滚
+  expected:
+  - README.md
+  - agentteam-v4-外部模型裁判.md
+  - 修复实施记录.md
+- id: kb-local-model
+  query: 本地 Qwen think=false JSON Ollama 路由
+  expected:
+  - README.md
+  - 修复实施记录.md
+- id: kb-serial-baseline
+  query: 并行加速比 串行 baseline 任务泳道 工期
+  expected:
+  - README.md
+  - sim/README.md
+- id: kb-contract-impact
+  query: 契约变更影响图 门禁复评 切片失效
+  expected:
+  - sim/README.md
+  - README.md
+- id: kb-role-prompts
+  query: 12 名 Agent 系统提示词 角色 职责 铁则
+  expected:
+  - agentteam2.md
+- id: kb-decision-inbox
+  query: 决策收件箱 L3 策略变更 审计 升级
+  expected:
+  - README.md
+  - 修复实施记录.md
+  - agentteam-v4-外部模型裁判.md
+  - agentteam1.md
+- id: kb-prompt-regression
+  query: prompt 回归 golden set schema keyword tokens
+  expected:
+  - 修复实施记录.md
+  - README.md
+  - eval/golden/
+  - eval/out/role-eval.md
+- id: kb-hash-chain
+  query: append-only HMAC 签名 哈希链 prev_hash 账本
+  expected:
+  - 修复实施记录.md
+  - README.md
+- id: kb-sast-reject
+  query: SAST high 漏洞 自动拒绝 发布
+  expected:
+  - rubrics/release-gate.yaml
+  - agentteam-v4-外部模型裁判.md
+- id: kb-skill-triggers
+  query: frontend-design ui-ux-pro-max 技能 triggers dashboard
+  expected:
+  - skills/registry.yaml
   source_type: skill

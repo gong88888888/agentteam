@@ -1,86 +1,124 @@
 import { useState, useCallback } from 'react';
-import { exportMonthlyRecords } from '@/utils/csvExport';
-import { useAuth } from '@/hooks/useAuth'; // 假设已有认证 Hook
 
-interface UseExportOptions {
-  year: number;
-  month: number;
+// Types for the export hook state and API response handling
+export type ExportStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export interface ExportError {
+  message: string;
+  code?: string;
 }
 
-interface UseExportReturn {
-  isExporting: boolean;
-  error: string | null;
-  exportRecords: () => Promise<void>;
+interface UseExportOptions {
+  onProgress?: (status: ExportStatus, message?: string) => void;
 }
 
 /**
- * useExport Hook
- * 处理月度 CSV 导出的业务逻辑：
- * 1. 校验参数范围 (year, month)
- * 2. 调用后端 API 获取 Blob
- * 3. 触发浏览器下载
- * 4. 处理加载与错误状态
+ * Hook to handle CSV export logic for MiniLedger.
+ * 
+ * Responsibilities:
+ * 1. Construct the API request with authentication headers.
+ * 2. Fetch the CSV blob from the backend.
+ * 3. Handle UTF-8 BOM and file download in the browser.
+ * 4. Manage loading, success, and error states.
+ * 
+ * Constraints:
+ * - Does not handle owner_id logic (backend handles via auth middleware).
+ * - Handles >100k row errors if returned by backend.
  */
-export function useExport(): UseExportReturn {
-  const [isExporting, setIsExporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // 假设通过上下文或独立 hook 获取当前用户 ID，用于前端初步校验或日志
-  const { user } = useAuth(); 
+export function useExport(options: UseExportOptions = {}) {
+  const [status, setStatus] = useState<ExportStatus>('idle');
+  const [error, setError] = useState<ExportError | null>(null);
 
-  const exportRecords = useCallback(async (options: UseExportOptions) => {
-    const { year, month } = options;
-
-    // 1. 前置校验
-    if (!user) {
-      setError('用户未登录，无法导出记录');
-      return;
-    }
-    
-    if (year < 2000 || year > 2100) {
-      setError('不支持的年份范围');
-      return;
-    }
-    if (month < 1 || month > 12) {
-      setError('无效的月份');
+  const triggerExport = useCallback(async (month: string) => {
+    // Validate month format YYYY-MM
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      const err: ExportError = { message: 'Invalid month format. Expected YYYY-MM.', code: 'INVALID_INPUT' };
+      setError(err);
+      options.onProgress?.('error', err.message);
       return;
     }
 
-    // 重置状态
-    setIsExporting(true);
+    setStatus('loading');
     setError(null);
+    options.onProgress?.('loading', `Exporting records for ${month}...`);
 
     try {
-      // 2. 调用导出工具函数
-      // csvExport 内部会处理：
-      // - 构建 URL: /api/exports/csv?year=YYYY&month=MM
-      // - 添加认证 Header (Bearer Token)
-      // - 校验响应状态码
-      // - 检查 Content-Disposition 文件名
-      // - 触发 Blob 下载
-      await exportMonthlyRecords(year, month);
+      // Use relative path to respect proxy/base URL configurations
+      const url = `/api/v1/ledger/export?month=${encodeURIComponent(month)}`;
       
-    } catch (err: any) {
-      // 3. 错误处理
-      if (err.name === 'AbortError') {
-        setError('导出已取消');
-      } else if (err.response?.status === 403) {
-        setError('权限不足，无法导出该月份记录');
-      } else if (err.response?.status === 413 || err.message?.includes('too large')) {
-        setError('数据量过大（超过 10 万行），请缩小时间范围或联系管理员');
-      } else if (err.response?.status === 500) {
-        setError('服务器内部错误，请稍后重试');
-      } else {
-        setError(`导出失败: ${err.message || '未知错误'}`);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/csv,application/octet-stream',
+          // Auth token is typically injected via a global interceptor or context.
+          // If using cookies for auth, credentials: 'include' handles it automatically.
+          // If using Bearer tokens, ensure they are attached here or via fetch wrapper.
+        },
+        credentials: 'include', // Ensure cookies/session are sent if applicable
+      });
+
+      if (!response.ok) {
+        let errorMsg = `Export failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMsg = errorData.message;
+          }
+        } catch {
+          // Ignore JSON parse errors for non-JSON responses
+        }
+        
+        throw new Error(errorMsg);
       }
-    } finally {
-      setIsExporting(false);
+
+      const contentType = response.headers.get('content-type') || '';
+      
+      // Backend should return application/csv or application/octet-stream with UTF-8 BOM.
+      // We assume the backend handles the BOM injection as per contract.
+      
+      const blob = await response.blob();
+      
+      // Create a download link and trigger it
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `ledger_export_${month}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setStatus('success');
+      options.onProgress?.('success', 'Export completed successfully.');
+      
+      // Reset status after a short delay to allow user to see success message if needed
+      setTimeout(() => {
+        setStatus('idle');
+      }, 3000);
+
+    } catch (err) {
+      const exportError: ExportError = {
+        message: err instanceof Error ? err.message : 'An unknown error occurred during export.',
+        code: 'EXPORT_FAILED',
+      };
+      
+      // Check for specific backend constraints like row limits if present in message
+      if (exportError.message.includes('100000') || exportError.message.includes('limit')) {
+        exportError.code = 'ROW_LIMIT_EXCEEDED';
+      }
+
+      setError(exportError);
+      setStatus('error');
+      options.onProgress?.('error', exportError.message);
     }
-  }, [user]);
+  }, [options]);
 
   return {
-    isExporting,
+    status,
     error,
-    exportRecords,
+    triggerExport,
+    resetStatus: () => setStatus('idle'),
   };
 }

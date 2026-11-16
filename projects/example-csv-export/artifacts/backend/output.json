@@ -11,5 +11,11 @@
   ],
   "evidence_refs": [],
   "open_questions": [],
-  "summary": "stub backend: 参数校验 状态机 日志 错误码 单元测试 接口"
+  "summary": "stub backend: 参数校验 状态机 日志 错误码 单元测试 接口",
+  "files": [
+    {
+      "path": "src/backend/service.py",
+      "content": "\"\"\"Stub backend service for offline pipeline verification.\"\"\"\nfrom __future__ import annotations\n\ndef summarize(rows: list[dict]) -> dict:\n    \"\"\"Deterministic stub used to exercise compile/tests.\"\"\"\n    return {\"count\": len(rows), \"rows\": rows}\n"
+    }
+  ]
 }

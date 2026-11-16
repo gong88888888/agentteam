@@ -1,0 +1,14 @@
+templates:
+  - id: minimal-api
+    title: Minimal stdlib API
+    description: >-
+      Python stdlib service, runnable tests, OpenAPI contract and a minimal UI.
+      Used to verify tool evidence and code gates end to end without
+      third-party runtime dependencies.
+    roles: [pm, product, ui, arch, backend, frontend, review, qa, security, ops]
+    evidence_profile: standard
+  - id: none
+    title: No scaffold
+    description: Start from an empty project directory.
+    roles: []
+    evidence_profile: basic

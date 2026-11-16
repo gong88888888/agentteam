@@ -11,5 +11,11 @@
   ],
   "evidence_refs": [],
   "open_questions": [],
-  "summary": "stub frontend: 加载 错误 空状态 可访问性 深色模式 组件"
+  "summary": "stub frontend: 加载 错误 空状态 可访问性 深色模式 组件",
+  "files": [
+    {
+      "path": "src/frontend/app.js",
+      "content": "export function exportState(status) {\n  return { ready: status === 'ready', loading: status === 'loading' };\n}\n"
+    }
+  ]
 }

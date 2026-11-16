@@ -10,16 +10,115 @@
   },
   "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
   "backend": "local",
-  "latency_ms": 7258,
-  "tokens": 2486,
+  "latency_ms": 19655,
+  "tokens": 2718,
   "cost_usd": 0.0,
   "files": [
     {
-      "path": "src/backend/mini_ledger/services/export_service.py",
-      "sha256": "b556ef837416da0cdecca9e5dabec45ca3fbfb1b56857ce72a901740d8f757fe",
-      "bytes": 4634
+      "path": "src/backend/ledger/export.py",
+      "sha256": "72ce2939be44820471f162f2f2e0f5cd4f8658f19e2d40192637c3414c5e28c6",
+      "bytes": 4846,
+      "source": "role",
+      "promoted": true
     }
   ],
   "code_pass": true,
-  "finished_at": "2026-11-16 16:40:02"
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-backend",
+    "role": "backend",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "src/backend/"
+      },
+      {
+        "name": "files_written",
+        "ok": true,
+        "detail": "代码角色没有写出文件"
+      },
+      {
+        "name": "evidence:compile",
+        "ok": true,
+        "detail": "pass"
+      },
+      {
+        "name": "evidence:unit",
+        "ok": true,
+        "detail": "pass"
+      },
+      {
+        "name": "evidence_subject",
+        "ok": true,
+        "detail": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+      }
+    ],
+    "evidence_ids": [
+      "EV-000005",
+      "EV-000006"
+    ],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32"
+  },
+  "tools": {
+    "profile": "basic",
+    "subject_hash": "b563dc7870108d5e349e25d2636dd1c4e604fc1b8da0e376b32d8f04c5d41b32",
+    "ledger": "D:\\agentteam\\projects\\example-csv-export-real\\evidence\\tool-ledger.jsonl",
+    "passed": [
+      "compile",
+      "unit"
+    ],
+    "failed": [],
+    "missing": [],
+    "evidence": [
+      {
+        "evidence_id": "EV-000005",
+        "kind": "compile",
+        "result": "pass",
+        "tool": "python",
+        "tool_version": "3.13.15"
+      },
+      {
+        "evidence_id": "EV-000006",
+        "kind": "unit",
+        "result": "pass",
+        "tool": "unittest",
+        "tool_version": "3.13.15"
+      }
+    ]
+  },
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-173517",
+  "finished_at": "2026-11-16 17:37:04",
+  "quality": {
+    "score": 99,
+    "grade": "A",
+    "components": {
+      "completeness": 30,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 9,
+      "clarity": 10
+    },
+    "issues": []
+  }
 }

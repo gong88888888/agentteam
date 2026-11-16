@@ -48,20 +48,25 @@ python eval/run_eval.py --real
 > `family_collisions` 表示裁判是否因 DeepSeek 不可用降级到本地 Qwen。生产环境使用 `deepseek-key1`/`DEEPSEEK_API_KEY` 时 J1/J3 是 DeepSeek、J2 是本地 Qwen，不同家族；`--allow-local-judge` 仅用于无 Key 预演。
 
 
-## W4：角色 golden set / prompt 回归 / 知识库召回
+## W4/W5：角色 golden set / prompt 回归 / 知识库检索
 
 ```bash
 python prompts/build_prompts.py
-python eval/role_eval.py --offline
-python eval/role_eval.py --real --roles product,review --limit 2
+python eval/role_eval.py --offline --full
+python eval/role_eval.py --real --full
 python eval/prompt_regression.py --offline
-python eval/prompt_regression.py --real --roles product --limit 1
+python eval/prompt_regression.py --real
 python eval/kb_eval.py
 python eval/kb_eval.py --real   # 使用 data/knowledge.db (bge-m3)
 ```
 
-- `role-eval.md/json`：12 角色 × 2 用例；schema/required/keyword 通过率。
-- `prompt-regression.md/json`：baseline `prompts/roles` vs candidate `prompts/candidates/strict-json`，delta、regressed/improved、prompt hash。
-- `kb-eval.md/json`：recall@5 与 source_type filter。
+- `role-eval.md/json`：12 角色 × 2 用例；schema/required/keyword、每个角色的 latency/token/cost、`roles_covered` 与 `full_coverage`；`--full` 要求 12 × 2。
+- `prompt-regression.md/json`：baseline `prompts/roles` vs candidate `prompts/candidates/strict-json`，delta、regressed/improved、prompt hash、成本与全量覆盖。
+- `kb-eval.md/json`：22 个检索用例；rerank 与 RRF baseline 的 recall@5、MRR、rerank gain、source_type filter。
+- 新增检索用例可用 `keyword_groups` 表达同义词组（每组任一命中），避免因措辞不同误判。
 
-当前结果：离线 role 24/24；真实 product 子集 1/1；prompt 回归无退化；知识库 recall@5 7/7（hash 与 bge-m3 均通过）。
+当前结果：
+
+- 离线 role 24/24 schema/required/keyword；全量真实 12 角色 × 2 用例 schema/required/keyword **24/24**（79.6s / 25.0K Token）。
+- prompt 回归离线 delta 0；真实全量 schema/required/keyword 均 1.0，tokens 25,011 → 28,158，latency 80.1s → 86.7s，`regressed=false`。
+- 知识库离线 recall@5 22/22，MRR 0.92（RRF baseline 0.895），filter 3/3；真实 bge-m3 22/22，MRR 0.879（baseline 0.864），filter 3/3。

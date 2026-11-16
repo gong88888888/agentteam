@@ -10,10 +10,79 @@
   },
   "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
   "backend": "local",
-  "latency_ms": 4218,
-  "tokens": 2860,
+  "latency_ms": 19407,
+  "tokens": 2449,
   "cost_usd": 0.0,
-  "files": [],
+  "files": [
+    {
+      "path": "docs/architecture/architecture.md",
+      "sha256": "6df9b5693fe3a776e6d72260d961025b32a9da2e3571a10a07c870061e95f380",
+      "bytes": 1157,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
   "code_pass": false,
-  "finished_at": "2026-11-16 16:39:42"
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-EXAMPLE-CSV-EXPORT-REAL-arch",
+    "role": "arch",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:契约",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：错误/不变量/接口"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/architecture/architecture.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-173517",
+  "finished_at": "2026-11-16 17:36:19",
+  "quality": {
+    "score": 94,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 9,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
 }
