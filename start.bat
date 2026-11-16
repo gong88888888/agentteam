@@ -31,6 +31,7 @@ set "PYTHONIOENCODING=utf-8"
 if not "%~2"=="" set "PORT=%~2"
 
 if "%~1"=="" goto :menu
+if /i "%~1"=="project" goto :project
 if /i "%~1"=="check" goto :check
 if /i "%~1"=="sim" goto :sim
 if /i "%~1"=="w3" goto :w3
@@ -55,32 +56,117 @@ echo.
 echo ============================================================
 echo   AgentTeam Launcher
 echo ============================================================
-echo   1. Environment check and selfcheck
-echo   2. v4.1 orchestration simulation
-echo   3. W3 parallel/serial and dashboard build
-echo   4. Start dashboard on http://localhost:%PORT%
-echo   5. Unit tests and selfchecks
-echo   6. Offline evaluation suite
-echo   7. Start sample project (offline)
-echo   8. Start sample project (real local Qwen)
-echo   9. Build knowledge index
+echo   1. Start a project from a design/requirement document
+echo   2. Start built-in sample project (offline)
+echo   3. Start built-in sample project (real local Qwen)
+echo   4. Environment check and selfcheck
+echo   5. v4.1 orchestration simulation
+echo   6. W3 parallel/serial and dashboard build
+echo   7. Start dashboard on http://localhost:%PORT%
+echo   8. Unit tests and selfchecks
+echo   9. Offline evaluation suite
 echo   0. Exit
 echo.
 set "CHOICE="
 set /p "CHOICE=Select [0-9]: "
 if not defined CHOICE goto :menu
 if "%CHOICE%"=="0" goto :done
-if "%CHOICE%"=="1" goto :check
-if "%CHOICE%"=="2" goto :sim
-if "%CHOICE%"=="3" goto :w3
-if "%CHOICE%"=="4" goto :dashboard
-if "%CHOICE%"=="5" goto :test
-if "%CHOICE%"=="6" goto :eval
-if "%CHOICE%"=="7" goto :demo
-if "%CHOICE%"=="8" goto :real
-if "%CHOICE%"=="9" goto :kb
+if "%CHOICE%"=="1" goto :project
+if "%CHOICE%"=="2" goto :demo
+if "%CHOICE%"=="3" goto :real
+if "%CHOICE%"=="4" goto :check
+if "%CHOICE%"=="5" goto :sim
+if "%CHOICE%"=="6" goto :w3
+if "%CHOICE%"=="7" goto :dashboard
+if "%CHOICE%"=="8" goto :test
+if "%CHOICE%"=="9" goto :eval
 echo Invalid choice.
 goto :menu
+
+:project
+echo.
+echo [project] Start a project from a design or requirement document.
+echo [project] Supported files: .md, .yaml, .yml, .txt
+echo [project] Tip: drag the file into this window, or type its full path.
+echo [project] Example: requirements\examples\csv-export\selected.md
+set "DESIGN=%~2"
+if defined DESIGN goto :project_design_ready
+echo.
+echo [project] Requirement files found under requirements\:
+dir /b /s requirements\*.md 2>nul
+dir /b /s requirements\*.yaml 2>nul
+dir /b /s requirements\*.yml 2>nul
+:project_prompt
+set "DESIGN="
+set /p "DESIGN=Design document: "
+:project_design_ready
+if not defined DESIGN goto :menu
+set "DESIGN=%DESIGN:"=%"
+if exist "%DESIGN%" goto :project_design_exists
+echo [ERROR] File not found: %DESIGN%
+set "PROJECT_RETRY="
+set /p "PROJECT_RETRY=Try another file? [y/N]: "
+if /i "%PROJECT_RETRY%"=="y" goto :project_prompt
+goto :menu
+
+:project_design_exists
+set "PNAME=%~3"
+if defined PNAME goto :project_name_ready
+set "PNAME="
+set /p "PNAME=Project name (blank = auto): "
+:project_name_ready
+if not defined PNAME set "PNAME=project-%RANDOM%"
+set "PROJECT=projects\%PNAME%"
+set "FORCE="
+if not exist "%PROJECT%" goto :project_name_ok
+echo [WARN] Project directory already exists: %PROJECT%
+set "OVERWRITE="
+set /p "OVERWRITE=Overwrite existing project files? [y/N]: "
+if /i not "%OVERWRITE%"=="y" goto :menu
+set "FORCE=--force"
+
+:project_name_ok
+
+set "MODE=%~4"
+if defined MODE goto :project_mode_ready
+set "MODE="
+echo.
+echo   1. Offline (stub, fast, no model calls)
+echo   2. Real (local Qwen, DeepSeek fallback)
+set /p "MODE=Select [1/2] (default 1): "
+:project_mode_ready
+set "RUNMODE=--offline"
+if "%MODE%"=="2" set "RUNMODE=--real"
+if /i "%MODE%"=="real" set "RUNMODE=--real"
+if /i "%MODE%"=="offline" set "RUNMODE=--offline"
+
+set "ROLES=pm,product,ui,arch,backend,frontend,review,qa,security,ops,kb,retro"
+if not "%RUNMODE%"=="--real" goto :project_kb
+echo.
+echo   1. Core roles: pm,product,arch,backend,frontend
+echo   2. All 12 roles (slower and more expensive)
+set "ROLECHOICE="
+set /p "ROLECHOICE=Select [1/2] (default 1): "
+if "%ROLECHOICE%"=="2" goto :project_kb
+set "ROLES=pm,product,arch,backend,frontend"
+
+:project_kb
+set "KBFLAG="
+if exist "data\knowledge.db" set "KBFLAG=--kb"
+
+echo.
+echo [project] Design:  %DESIGN%
+echo [project] Project: %PROJECT%
+echo [project] Mode:    %RUNMODE%
+echo [project] Roles:   %ROLES%
+echo [project] KB:      %KBFLAG%
+echo.
+%PY% start_project.py --requirements "%DESIGN%" --project-dir "%PROJECT%" %RUNMODE% --roles %ROLES% %KBFLAG% --tool-profile basic %FORCE%
+if errorlevel 1 goto :fail
+echo.
+echo [project] Completed. Records: %PROJECT%\artifacts
+echo [project] Dashboard: start.bat dashboard  (then open projects.html)
+goto :done
 
 :check
 echo.
@@ -235,9 +321,11 @@ goto :done
 
 :help
 echo.
-echo Usage: start.bat [command] [port]
+echo Usage: start.bat [command] [args]
 echo.
 echo Commands:
+echo   project     Start a project from a design/requirement document
+echo               Usage: start.bat project [file] [name] [offline^|real]
 echo   check       Environment check and orchestrator selfcheck
 echo   sim         v4.1 orchestration simulation and selfcheck
 echo   w3          W3 parallel/serial, selfcheck and dashboard build
@@ -252,7 +340,10 @@ echo   all         Run the local validation pipeline
 echo   help        Show this help
 echo.
 echo   (no command) Interactive menu
-echo   Example: start.bat dashboard 9000
+echo   Examples:
+echo     start.bat project requirements\examples\csv-export\selected.md my-app offline
+echo     start.bat project "C:\designs\ledger.md" ledger-app real
+echo     start.bat dashboard 9000
 goto :done
 
 :fail

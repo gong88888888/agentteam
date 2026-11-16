@@ -421,7 +421,10 @@ eval/golden/{judge,agent,revalidation,role,kb}_cases.yaml
 仓库根目录的 `start.bat` 是 ASCII-only 启动器：
 
 ```bat
-start.bat              :: interactive menu
+start.bat              :: interactive menu; option 1 starts a project from a design document
+start.bat project      :: choose/drag a design or requirement file, then start a project
+start.bat project requirements\examples\csv-export\selected.md my-app offline
+start.bat project "C:\designs\ledger.md" ledger-app real
 start.bat check        :: environment + selfcheck
 start.bat sim          :: v4.1 simulation + selfcheck
 start.bat w3           :: W3 parallel/serial + dashboard build
@@ -434,6 +437,15 @@ start.bat kb           :: build/query knowledge index
 start.bat setup        :: create local config/.env + install deps
 start.bat all          :: check + sim + W3 + dashboard build
 ```
+
+`project` 的交互流程：
+
+1. 拖入或输入设计/需求文档路径（`.md/.yaml/.yml/.txt`），支持任意位置。
+2. 输入项目名（留空自动生成）。
+3. 选择离线 stub 或真实本地 Qwen。
+4. 真实模式再选核心 5 角色或全部 12 角色。
+5. 若 `data/knowledge.db` 存在，自动加 `--kb`。
+6. 调用 `start_project.py`，产物写入 `projects/<name>/`，随后可在 `projects.html` 查看角色记录。
 
 ### 10.2 直接命令
 
@@ -500,6 +512,7 @@ python -I specs/validate_specs.py
 | 看板构建 | `python dashboard/build.py` | 生成 index.html；573/550 事件 |
 | 离线项目 | `python start_project.py ... --offline` | pm/product/arch completed；stub 3 次调用 |
 | Windows 启动器 | `start.bat check/sim/test/eval/demo` | 全部 exit 0；菜单/参数模式可用 |
+| 设计文档开工 | `start.bat project requirements\examples\csv-export\selected.md _launcher-project-smoke offline` | 12 角色 completed；产物写入指定项目目录 |
 | 知识库 | `start.bat kb hash` / bge-m3 reindex | hash 快速索引 790 chunks；bge-m3 重建完成 |
 | 单测 | `python -m unittest discover -s tests -v` | 20 tests OK；sandbox/evidence/gates/quality/rerank |
 | Schema | `python -I specs/validate_specs.py` | OK |

@@ -17,7 +17,10 @@
 ## Windows 启动
 
 ```bat
-start.bat                 :: 交互菜单
+start.bat                 :: 交互菜单（第 1 项：选设计文档开工）
+start.bat project         :: 选择/拖入设计文档，创建并启动项目
+start.bat project requirements\examples\csv-export\selected.md my-app offline
+start.bat project "C:\designs\ledger.md" ledger-app real
 start.bat check           :: 环境检查 + 自检
 start.bat sim             :: v4.1 编排预演
 start.bat w3              :: W3 并行/串行 + 看板构建
