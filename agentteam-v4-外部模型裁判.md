@@ -573,6 +573,8 @@ v4.1 把「门禁首次通过」定义为：**最终生效的凭证来自该门�
 
 ## 8. 实现计划
 
+> **实现状态（2026-11-16）**：W1/W2 已落地到 `orchestrator/` 与 `eval/`。本地 Qwen 3.6 通过 Ollama 执行，DeepSeek/deepseekharness 作为裁判与补充；未配置 `DEEPSEEK_API_KEY` 时裁判默认失败关闭，可用 `--allow-local-judge` 做本地预演。见 `README.md`、`eval/README.md`、`修复实施记录.md`。
+
 ### 8.1 新增/修改模块
 
 ```

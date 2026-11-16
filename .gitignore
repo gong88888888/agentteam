@@ -1,4 +1,5 @@
 # secrets
+.agentteam/
 .env
 .env.*
 !.env.example
@@ -7,6 +8,7 @@ config/config.yaml
 # runtime (repo-root only; keep nested reference assets like
 # RAG-Agent-Toolkit/**/data/ tracked)
 sim/out/
+eval/out/
 __pycache__/
 *.pyc
 *.pyo

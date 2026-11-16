@@ -1,0 +1,43 @@
+# Golden execution-agent cases. Offline mode uses the stub backend; real mode
+# calls local Qwen 3.6 and falls back to DeepSeek if configured.
+- id: product_baseline
+  role: product
+  task: >-
+    为个人记账应用 MiniLedger 写产品基准：核心功能、3 条以上非目标、
+    可量化验收标准、用户场景。只输出 JSON。
+  required: [status, claims, summary]
+
+- id: arch_contract
+  role: arch
+  task: >-
+    为 MiniLedger 定义 X1 认证、X2 记账 CRUD、X3 月度报表的接口契约、
+    不变量和错误码。只输出 JSON。
+  required: [status, claims, summary]
+
+- id: backend_slice
+  role: backend
+  task: >-
+    实现 S2 记账接口的 4 个 endpoint，要求 owner 校验、参数校验、错误码、
+    单元测试和日志。只输出 JSON。
+  required: [status, claims, summary]
+
+- id: review_findings
+  role: review
+  task: >-
+    评审一个新增 token_expires_at 字段但契约未定义的 PR，
+    输出 findings、证据引用和整改方向；不得判定门禁通过。只输出 JSON。
+  required: [status, claims, summary]
+
+- id: qa_regression
+  role: qa
+  task: >-
+    为“生产环境水平越权：用户 A 能读用户 B 的记录”写复盘转回归测试，
+    输出根因、回归用例和验证方式。只输出 JSON。
+  required: [status, claims, summary]
+
+- id: retro_incident
+  role: retro
+  task: >-
+    复盘一次发布后错误率升高的故障，输出时间线、触发因素、根因、
+    行动项（owner/deadline/verification）和残余风险。只输出 JSON。
+  required: [status, claims, summary]

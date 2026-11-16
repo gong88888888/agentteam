@@ -1,0 +1,35 @@
+id: rubric/release-gate
+version: "4.1"
+description: 发布门禁：回滚、特性开关、安全扫描、关键 E2E；发布前强制重跑
+mandatory:
+  - id: rollback
+    type: deterministic
+    pass: rollback_plan exists
+  - id: feature_flag
+    type: deterministic
+    pass: feature flag exists
+  - id: sast
+    type: deterministic
+    pass: sast.high == 0 and sast is fresh
+  - id: e2e
+    type: deterministic
+    pass: e2e.result == pass and e2e is fresh
+  - id: evidence_signed
+    type: deterministic
+    pass: all evidence signed by tool/judge
+scored:
+  - id: rollback_rehearsal
+    anchors:
+      0: 未演练
+      1: 演练但未记录 RTO
+      2: 演练有证据且 RTO 达标
+  - id: observability
+    anchors:
+      0: 无监控/告警
+      1: 有基础监控
+      2: 错误率/P95/告警齐全
+auto_reject:
+  - no rollback plan
+  - no feature flag
+  - sast.high > 0
+  - e2e failed

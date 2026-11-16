@@ -21,8 +21,12 @@
     "signature"
   ],
   "properties": {
-    "verdict_id": { "type": "string" },
-    "packet_hash": { "type": "string" },
+    "verdict_id": {
+      "type": "string"
+    },
+    "packet_hash": {
+      "type": "string"
+    },
     "decision": {
       "type": "string",
       "enum": [
@@ -34,22 +38,43 @@
         "abstain"
       ]
     },
-    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-    "rubric_version": { "type": "string" },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rubric_version": {
+      "type": "string"
+    },
     "criteria": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "score", "evidence_ids", "note"],
+        "required": [
+          "id",
+          "score",
+          "evidence_ids",
+          "note"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "score": { "type": "integer", "minimum": 0, "maximum": 2 },
+          "id": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
           "evidence_ids": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
-          "note": { "type": "string" }
+          "note": {
+            "type": "string"
+          }
         }
       }
     },
@@ -58,19 +83,38 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["severity", "file", "evidence_ids", "remediation"],
+        "required": [
+          "severity",
+          "file",
+          "evidence_ids",
+          "remediation"
+        ],
         "properties": {
           "severity": {
             "type": "string",
-            "enum": ["fatal", "major", "minor", "suggestion"]
+            "enum": [
+              "fatal",
+              "major",
+              "minor",
+              "suggestion"
+            ]
           },
-          "file": { "type": "string" },
-          "line": { "type": "integer", "minimum": 1 },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
           "evidence_ids": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
-          "remediation": { "type": "string" }
+          "remediation": {
+            "type": "string"
+          }
         }
       }
     },
@@ -79,35 +123,86 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "subject", "command", "why"],
+        "required": [
+          "kind",
+          "subject",
+          "command",
+          "why"
+        ],
         "properties": {
-          "kind": { "type": "string" },
-          "subject": { "type": "string" },
-          "command": { "type": "string" },
-          "why": { "type": "string" }
+          "kind": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
         }
       }
     },
     "conditions": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "expires_at": { "type": "integer", "minimum": 0 },
-    "input_hash": { "type": "string" },
+    "expires_at": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "input_hash": {
+      "type": "string"
+    },
     "judge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["backend", "model", "version", "prompt_hash", "temperature", "seed"],
+      "required": [
+        "backend",
+        "model",
+        "version",
+        "prompt_hash",
+        "temperature",
+        "seed"
+      ],
       "properties": {
-        "backend": { "type": "string" },
-        "model": { "type": "string" },
-        "version": { "type": "string" },
-        "prompt_hash": { "type": "string" },
-        "temperature": { "type": "number" },
-        "seed": { "type": "integer" },
-        "response_id": { "type": "string" }
+        "backend": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "prompt_hash": {
+          "type": "string"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "response_id": {
+          "type": "string"
+        }
       }
     },
-    "signature": { "type": "string", "minLength": 8 }
+    "signature": {
+      "type": "string",
+      "minLength": 8
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "schema_repairs": {
+      "type": "integer",
+      "minimum": 0
+    }
   }
 }

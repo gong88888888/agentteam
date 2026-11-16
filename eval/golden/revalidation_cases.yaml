@@ -1,0 +1,32 @@
+# Revalidation plan cases: the judge may add checks but never remove mandatory ones.
+- id: only_add
+  base: [unit, lint, acceptance:AC-2]
+  mandatory: [unit, lint]
+  added:
+    - {id: X1-auth-contract, why: owner 校验触及认证边界, input: contract:X1}
+    - {id: migration-sanity, why: 查询条件变化可能影响迁移, input: migration:S2}
+  removed: []
+  expected: pass
+
+- id: remove_mandatory
+  base: [unit, lint, acceptance:AC-2]
+  mandatory: [unit, lint]
+  added: []
+  removed: [unit]
+  expected: fail
+
+- id: base_mismatch
+  base: [unit, lint]
+  mandatory: [unit, lint]
+  added: []
+  removed: []
+  mismatch: true
+  expected: fail
+
+- id: add_without_why
+  base: [unit, lint]
+  mandatory: [unit, lint]
+  added:
+    - {id: mystery-check, why: "", input: "?"}
+  removed: []
+  expected: fail

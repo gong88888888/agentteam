@@ -1,0 +1,35 @@
+id: rubric/code-gate
+version: "4.1"
+description: 代码门禁：测试、契约、越界、安全、证据签名
+mandatory:
+  - id: tests
+    type: deterministic
+    pass: unit.result == pass and lint.result == pass and typecheck.result == pass
+  - id: contract
+    type: deterministic
+    pass: contract_test.result == pass and contract drift == 0
+  - id: scope
+    type: deterministic
+    pass: out_of_scope_writes == 0
+  - id: security
+    type: deterministic
+    pass: sast.high == 0 (when sast is required)
+  - id: evidence_signed
+    type: deterministic
+    pass: all deterministic evidence is signed by tool/judge
+scored:
+  - id: risk_coverage
+    anchors:
+      0: 高风险路径无测试或无缓解
+      1: 有测试但缺边界/权限覆盖
+      2: 高风险路径有回归与缓解证据
+  - id: maintainability
+    anchors:
+      0: 不可维护/严重重复
+      1: 可维护性一般
+      2: 符合分层与复用规范
+auto_reject:
+  - any mandatory deterministic check fails
+  - any unsigned deterministic evidence
+  - out_of_scope_writes > 0
+  - sast.high > 0

@@ -4,6 +4,49 @@ runtime:
   workspace: workspace
   log_level: info
 
+models:
+  local:
+    backend: ollama
+    base_url: http://localhost:11434
+    model: qwen3.6:35b-a3b-mtp-q4_K_M
+    fallback_models: [qwen3.5:9b-q4_K_M]
+    timeout_s: 120
+    think: false   # Qwen 3.x 推理模型：关闭 thinking，直接输出 JSON
+  deepseek:
+    backend: deepseekharness
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY
+    chat_path: /chat/completions
+    model: deepseek-chat
+    reasoner: deepseek-reasoner
+    timeout_s: 120
+    price_in_per_m: 0.5
+    price_out_per_m: 1.5
+  routing:
+    # 执行 Agent：本地 Qwen 3.6 为主，DeepSeek 为补充/降级
+    pm: {primary: local, fallback: deepseek}
+    product: {primary: local, fallback: deepseek}
+    ui: {primary: local, fallback: deepseek}
+    arch: {primary: local, fallback: deepseek}
+    frontend: {primary: local, fallback: deepseek}
+    backend: {primary: local, fallback: deepseek}
+    review: {primary: local, fallback: deepseek}
+    qa: {primary: local, fallback: deepseek}
+    security: {primary: local, fallback: deepseek}
+    ops: {primary: local, fallback: deepseek}
+    kb: {primary: local, fallback: deepseek}
+    retro: {primary: local, fallback: deepseek}
+    # 裁判：J1/J3 用 DeepSeek；J2 用本地 Qwen（不同家族，避免同族盲点）
+    judge_j1: {primary: deepseek, fallback: local}
+    judge_j2: {primary: local, fallback: deepseek}
+    judge_j3: {primary: deepseek, fallback: local}
+
+skills:
+  registry: skills/registry.yaml
+  root: RAG-Agent-Toolkit/agent-toolkit/skills
+  inject_into_prompt: true
+
+
 approval:
   mode: external_model_judge
   fail_closed: true

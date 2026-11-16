@@ -1,0 +1,30 @@
+id: rubric/arch-gate
+version: "4.1"
+description: 架构基准门禁：契约、不变量、错误码、安全风险
+mandatory:
+  - id: contracts
+    type: deterministic
+    pass: X1, X2, X3 contracts frozen
+  - id: invariants
+    type: deterministic
+    pass: invariants >= 4
+  - id: errors
+    type: deterministic
+    pass: error codes defined
+  - id: evidence_signed
+    type: deterministic
+    pass: all required evidence signed by tool/judge
+scored:
+  - id: threat_coverage
+    anchors:
+      0: 高风险路径无威胁建模
+      1: 有威胁模型但缺 auth/data 边界
+      2: 高风险路径有威胁模型与缓解
+  - id: maintainability
+    anchors:
+      0: 架构不可维护
+      1: 分层一般
+      2: 分层、契约、ADR 清晰
+auto_reject:
+  - any mandatory deterministic check fails
+  - any unsigned deterministic evidence

@@ -1,0 +1,23 @@
+id: rubric/revalidation
+version: "4.1"
+description: 证据失效后的复核计划裁定：只允许追加，不允许删除强制项
+mandatory:
+  - id: no_removal
+    type: deterministic
+    pass: removed_checks is empty
+  - id: base_matches
+    type: deterministic
+    pass: base_plan_hash matches current plan
+  - id: added_checks_are_concrete
+    type: deterministic
+    pass: every added check has id, why and input/command
+scored:
+  - id: semantic_coupling
+    anchors:
+      0: 未识别跨模块耦合
+      1: 识别了部分耦合
+      2: 追加了必要的语义耦合检查
+auto_reject:
+  - removed_checks is not empty
+  - base_plan_hash mismatch
+  - added check lacks concrete input/command

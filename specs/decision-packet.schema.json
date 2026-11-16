@@ -26,38 +26,73 @@
     "packet_hash"
   ],
   "properties": {
-    "packet_id": { "type": "string" },
-    "gate_id": { "type": "string" },
+    "packet_id": {
+      "type": "string"
+    },
+    "gate_id": {
+      "type": "string"
+    },
     "decision_type": {
       "type": "string",
-      "enum": ["gate", "project_close", "option_selection"]
+      "enum": [
+        "gate",
+        "project_close",
+        "option_selection",
+        "release"
+      ]
     },
     "scope": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["project", "slice", "risk"],
+      "required": [
+        "project",
+        "slice",
+        "risk"
+      ],
       "properties": {
-        "project": { "type": "string" },
-        "slice": { "type": "string" },
-        "risk": { "type": "string" }
+        "project": {
+          "type": "string"
+        },
+        "slice": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "string"
+        }
       }
     },
     "baseline_versions": {
       "type": "object",
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "type": "string"
+      }
     },
-    "baseline_fp": { "type": "string" },
-    "subject_hash": { "type": "string" },
+    "baseline_fp": {
+      "type": "string"
+    },
+    "subject_hash": {
+      "type": "string"
+    },
     "inputs": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "sha256", "signed_by"],
+        "required": [
+          "path",
+          "sha256",
+          "signed_by"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "sha256": { "type": "string" },
-          "signed_by": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "signed_by": {
+            "type": "string"
+          }
         }
       }
     },
@@ -66,33 +101,76 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["evidence_id", "kind", "result", "tool", "tool_version", "signed_by"],
+        "required": [
+          "evidence_id",
+          "kind",
+          "result",
+          "tool",
+          "tool_version",
+          "signed_by"
+        ],
         "properties": {
-          "evidence_id": { "type": "string" },
-          "kind": { "type": "string" },
-          "result": { "type": "string", "enum": ["pass", "fail"] },
-          "tool": { "type": "string" },
-          "tool_version": { "type": "string" },
-          "signed_by": { "type": "string", "pattern": "^tool:" }
+          "evidence_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ]
+          },
+          "tool": {
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "signed_by": {
+            "type": "string",
+            "pattern": "^(tool|judge|agent):"
+          },
+          "payload": {
+            "type": "object"
+          }
         }
       }
     },
     "missing_evidence": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "acceptance": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "diff": { "type": "object" },
+    "diff": {
+      "type": "object"
+    },
     "risk": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["level", "factors"],
+      "required": [
+        "level",
+        "factors"
+      ],
       "properties": {
-        "level": { "type": "string" },
-        "factors": { "type": "array", "items": { "type": "string" } }
+        "level": {
+          "type": "string"
+        },
+        "factors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "worker_claims": {
@@ -100,26 +178,48 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["claim", "signed_by", "counts_as_evidence"],
+        "required": [
+          "claim",
+          "signed_by",
+          "counts_as_evidence"
+        ],
         "properties": {
-          "claim": { "type": "string" },
-          "signed_by": { "type": "string" },
-          "counts_as_evidence": { "const": false }
+          "claim": {
+            "type": "string"
+          },
+          "signed_by": {
+            "type": "string"
+          },
+          "counts_as_evidence": {
+            "const": false
+          }
         }
       }
     },
     "policy_refs": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "budget": { "type": "object" },
+    "budget": {
+      "type": "object"
+    },
     "content_isolation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sanitized", "instruction_like_blocks"],
+      "required": [
+        "sanitized",
+        "instruction_like_blocks"
+      ],
       "properties": {
-        "sanitized": { "type": "boolean" },
-        "instruction_like_blocks": { "type": "integer", "minimum": 0 }
+        "sanitized": {
+          "type": "boolean"
+        },
+        "instruction_like_blocks": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "options": {
@@ -127,16 +227,34 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "summary", "cost", "risk", "reversible"],
+        "required": [
+          "id",
+          "summary",
+          "cost",
+          "risk",
+          "reversible"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "summary": { "type": "string" },
-          "cost": { "type": "string" },
-          "risk": { "type": "string" },
-          "reversible": { "type": "boolean" }
+          "id": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "reversible": {
+            "type": "boolean"
+          }
         }
       }
     },
-    "packet_hash": { "type": "string" }
+    "packet_hash": {
+      "type": "string"
+    }
   }
 }

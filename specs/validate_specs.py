@@ -14,6 +14,9 @@ import sys
 import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 REQUIRED = ["id", "role", "tools", "scope", "input_contract", "output_contract",
             "examples", "failure_policy", "budget", "prohibitions"]
 ROLES = {"pm", "product", "ui", "arch", "frontend", "backend",
@@ -38,6 +41,11 @@ def main() -> None:
     with open(os.path.join(HERE, "agent-specs.yaml"), encoding="utf-8") as f:
         doc = yaml.safe_load(f)
     specs = doc["specs"]
+    from orchestrator.skills import SkillRegistry
+    skill_registry = SkillRegistry.load(os.path.join(ROOT, "skills", "registry.yaml"))
+    if skill_registry.errors:
+        raise ValueError("技能注册表错误：" + "; ".join(skill_registry.errors))
+    skill_names = skill_registry.names()
     ids = [s["id"] for s in specs]
     if len(specs) != 12:
         raise ValueError(f"需要 12 份规格书，实际 {len(specs)}")
@@ -66,6 +74,9 @@ def main() -> None:
                 raise ValueError(f"{s['id']} budget.{key} 缺失")
         if not s["prohibitions"]:
             raise ValueError(f"{s['id']} prohibitions 为空")
+        for skill in s.get("skills", []):
+            if skill not in skill_names:
+                raise ValueError(f"{s['id']} 引用了未注册技能：{skill}")
     print(f"OK: {len(specs)} 份 Agent 规格书，6 个 Schema 可解析")
 
 

@@ -1,0 +1,31 @@
+id: rubric/acceptance-gate
+version: "4.1"
+description: 验收门禁：验收项证据、缺陷闭环、子门禁裁决有效性
+mandatory:
+  - id: acceptance_coverage
+    type: deterministic
+    pass: every acceptance id has pass evidence
+  - id: defects_closed
+    type: deterministic
+    pass: no open fatal/major defects
+  - id: child_verdicts
+    type: deterministic
+    pass: s1/s2/s3 verdicts valid and not expired
+  - id: evidence_signed
+    type: deterministic
+    pass: all evidence signed by tool/judge
+scored:
+  - id: e2e
+    anchors:
+      0: 无跨片端到端
+      1: 有 e2e 但缺异常路径
+      2: 关键用户路径 e2e 覆盖
+  - id: rollback
+    anchors:
+      0: 无回滚演练
+      1: 有回滚方案但未演练
+      2: 回滚演练有证据
+auto_reject:
+  - any mandatory deterministic check fails
+  - any unsigned deterministic evidence
+  - fatal/major defect still open

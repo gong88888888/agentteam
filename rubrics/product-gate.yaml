@@ -1,0 +1,31 @@
+id: rubric/product-gate
+version: "4.1"
+description: 产品基准门禁：范围、非目标、可量化验收标准
+mandatory:
+  - id: non_goals
+    type: deterministic
+    pass: non_goals >= 3
+  - id: acceptance_ids
+    type: deterministic
+    pass: acceptance_ids is not empty
+  - id: measurable
+    type: deterministic
+    pass: measurable_ratio >= 0.9
+  - id: evidence_signed
+    type: deterministic
+    pass: all required evidence signed by tool/judge
+scored:
+  - id: scope_clarity
+    anchors:
+      0: 非目标缺失或范围模糊
+      1: 有非目标但仍有歧义
+      2: 非目标与验收标准清晰、可测试
+  - id: user_value
+    anchors:
+      0: 功能无明确用户价值
+      1: 价值一般
+      2: 每项功能对应可验证的用户场景
+auto_reject:
+  - any mandatory deterministic check fails
+  - any unsigned deterministic evidence
+  - acceptance standard is not measurable

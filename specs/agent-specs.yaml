@@ -90,6 +90,7 @@ specs:
       read: ["docs/product/**", "docs/architecture/**", "design_assets/**"]
       write: ["workspace/ui/**", "docs/design/**"]
       deny: ["src/**", "docs/product/**", "docs/architecture/**"]
+    skills: [frontend-design, ui-ux-pro-max]
     input_contract: task-card.schema.json
     output_contract: agent-output.schema.json
     examples:
@@ -156,6 +157,7 @@ specs:
       read: ["src/frontend/**", "contracts/**", "design_assets/**", "docs/architecture/**"]
       write: ["src/frontend/{{slice}}/**", "reports/frontend/**"]
       deny: ["src/backend/**", "contracts/**", "docs/product/**", "migrations/**"]
+    skills: [adaptive-frontend-optimization]
     input_contract: task-card.schema.json
     output_contract: agent-output.schema.json
     examples:
@@ -218,6 +220,7 @@ specs:
       read: ["src/**", "contracts/**", "docs/**", "reports/**"]
       write: ["reports/review/**"]
       deny: ["src/**", "contracts/**", "docs/**"]
+    skills: [postmortem-to-tests]
     input_contract: task-card.schema.json
     output_contract: agent-output.schema.json
     examples:
@@ -248,6 +251,7 @@ specs:
       read: ["docs/product/**", "src/**", "contracts/**", "tests/**"]
       write: ["tests/**", "reports/qa/**"]
       deny: ["src/**", "docs/**", "migrations/**"]
+    skills: [postmortem-to-tests]
     input_contract: task-card.schema.json
     output_contract: agent-output.schema.json
     examples:
@@ -370,6 +374,7 @@ specs:
       read: ["events/**", "evidence/**", "reports/**", "knowledge/**"]
       write: ["reports/retro/**"]
       deny: ["src/**", "docs/**", "judge/**"]
+    skills: [postmortem-to-tests]
     input_contract: task-card.schema.json
     output_contract: agent-output.schema.json
     examples:

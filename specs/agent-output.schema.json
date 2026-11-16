@@ -16,27 +16,68 @@
     "summary"
   ],
   "properties": {
-    "task_id": { "type": "string" },
+    "task_id": {
+      "type": "string"
+    },
     "role": {
       "type": "string",
       "enum": [
-        "pm", "product", "ui", "arch", "frontend", "backend",
-        "review", "qa", "security", "ops", "kb", "retro"
+        "pm",
+        "product",
+        "ui",
+        "arch",
+        "frontend",
+        "backend",
+        "review",
+        "qa",
+        "security",
+        "ops",
+        "kb",
+        "retro"
       ]
     },
     "status": {
       "type": "string",
-      "enum": ["done", "need_evidence", "blocked"]
+      "enum": [
+        "done",
+        "need_evidence",
+        "blocked"
+      ]
     },
     "artifacts": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "sha256"],
+        "required": [
+          "path",
+          "sha256"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "sha256": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
         }
       }
     },
@@ -45,25 +86,40 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["claim", "counts_as_evidence"],
+        "required": [
+          "claim",
+          "counts_as_evidence"
+        ],
         "properties": {
-          "claim": { "type": "string" },
-          "counts_as_evidence": { "const": false },
+          "claim": {
+            "type": "string"
+          },
+          "counts_as_evidence": {
+            "const": false
+          },
           "evidence_refs": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
     },
     "evidence_refs": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "open_questions": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "summary": { "type": "string" }
+    "summary": {
+      "type": "string"
+    }
   }
 }

@@ -1,0 +1,25 @@
+# 本地技能注册表：优先使用 RAG-Agent-Toolkit 中已有的技能，不额外从 GitHub 拉取。
+# 技能是“参考文档”，不是可执行代码；Agent 在使用前应读取对应 SKILL.md。
+version: 1
+root: RAG-Agent-Toolkit/agent-toolkit/skills
+skills:
+  frontend-design:
+    path: frontend-design/SKILL.md
+    agents: [ui, frontend]
+    triggers: [new_ui, visual_design, landing_page, dashboard]
+    description: 视觉方向、排版、配色与避免模板化设计。
+  ui-ux-pro-max:
+    path: ui-ux-pro-max/SKILL.md
+    agents: [ui]
+    triggers: [ui_ux, accessibility, design_system, component, chart]
+    description: 67 种风格、96 套配色、57 组字体、13 种技术栈的 UI/UX 知识库。
+  adaptive-frontend-optimization:
+    path: adaptive-frontend-optimization/SKILL.md
+    agents: [frontend, qa]
+    triggers: [frontend_optimization, responsive, async_state, accessibility, regression]
+    description: 审计并增量优化现有前端工作流、响应式布局、异步状态与可访问性。
+  postmortem-to-tests:
+    path: postmortem-to-tests/SKILL.md
+    agents: [qa, retro, review]
+    triggers: [incident, postmortem, regression_test, root_cause, production_bug]
+    description: 把事故复盘转成结构化根因分析与可执行回归测试。
