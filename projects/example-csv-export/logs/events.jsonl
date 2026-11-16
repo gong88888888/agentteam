@@ -157,3 +157,43 @@
 {"ts": 1794821714.8265464, "clock": "17:35:14", "event": "gate.pass", "role": "retro", "gate_id": "G-EXAMPLE-CSV-EXPORT-retro", "failed": [], "evidence_ids": [], "decision_id": null}
 {"ts": 1794821714.8266208, "clock": "17:35:14", "event": "role.finished", "role": "retro", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "retro", "version": 1, "hash": "d50198e7c91b58fd", "path": "prompts\\roles\\retro.md"}, "latency_ms": 0, "files": ["docs/retro/retro.md"], "gate": "pass"}
 {"ts": 1794821714.8271918, "clock": "17:35:14", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}
+{"ts": 1794828107.9807243, "clock": "19:21:47", "event": "template.applied", "template": "minimal-api", "hash": "0a227e36d8eb8929", "copied": 0, "skipped": 10}
+{"ts": 1794828107.9819055, "clock": "19:21:47", "event": "project.started", "offline": true, "roles": ["review"]}
+{"ts": 1794828107.9829326, "clock": "19:21:47", "event": "role.started", "role": "review", "adjustment": null, "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}}
+{"ts": 1794828107.9902418, "clock": "19:21:47", "event": "file.synthesized", "role": "review", "path": "docs/reviews/review.md"}
+{"ts": 1794828107.99087, "clock": "19:21:47", "event": "quality.scored", "role": "review", "score": 91, "grade": "A"}
+{"ts": 1794828107.9911127, "clock": "19:21:47", "event": "gate.pass", "role": "review", "gate_id": "G-EXAMPLE-CSV-EXPORT-review", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794828107.9912276, "clock": "19:21:47", "event": "role.finished", "role": "review", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}, "latency_ms": 0, "files": ["docs/reviews/review.md"], "gate": "pass"}
+{"ts": 1794828107.9921055, "clock": "19:21:47", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}
+{"ts": 1794828110.3104415, "clock": "19:21:50", "event": "template.applied", "template": "minimal-api", "hash": "0a227e36d8eb8929", "copied": 0, "skipped": 10}
+{"ts": 1794828110.3130858, "clock": "19:21:50", "event": "project.started", "offline": true, "roles": ["review"]}
+{"ts": 1794828110.3147411, "clock": "19:21:50", "event": "role.started", "role": "review", "adjustment": null, "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}}
+{"ts": 1794828110.3261364, "clock": "19:21:50", "event": "file.synthesized", "role": "review", "path": "docs/reviews/review.md"}
+{"ts": 1794828110.3271098, "clock": "19:21:50", "event": "quality.scored", "role": "review", "score": 91, "grade": "A"}
+{"ts": 1794828110.3274593, "clock": "19:21:50", "event": "gate.pass", "role": "review", "gate_id": "G-EXAMPLE-CSV-EXPORT-review", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794828110.3276432, "clock": "19:21:50", "event": "role.finished", "role": "review", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}, "latency_ms": 0, "files": ["docs/reviews/review.md"], "gate": "pass"}
+{"ts": 1794828110.3287725, "clock": "19:21:50", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}
+{"ts": 1794828111.230402, "clock": "19:21:51", "event": "template.applied", "template": "minimal-api", "hash": "0a227e36d8eb8929", "copied": 0, "skipped": 10}
+{"ts": 1794828111.2332957, "clock": "19:21:51", "event": "project.started", "offline": true, "roles": ["review"]}
+{"ts": 1794828111.2350209, "clock": "19:21:51", "event": "role.started", "role": "review", "adjustment": null, "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}}
+{"ts": 1794828111.2437263, "clock": "19:21:51", "event": "file.synthesized", "role": "review", "path": "docs/reviews/review.md"}
+{"ts": 1794828111.244168, "clock": "19:21:51", "event": "quality.scored", "role": "review", "score": 91, "grade": "A"}
+{"ts": 1794828111.2443206, "clock": "19:21:51", "event": "gate.pass", "role": "review", "gate_id": "G-EXAMPLE-CSV-EXPORT-review", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794828111.2443948, "clock": "19:21:51", "event": "role.finished", "role": "review", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}, "latency_ms": 0, "files": ["docs/reviews/review.md"], "gate": "pass"}
+{"ts": 1794828111.2449448, "clock": "19:21:51", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}
+{"ts": 1794828112.112931, "clock": "19:21:52", "event": "template.applied", "template": "minimal-api", "hash": "0a227e36d8eb8929", "copied": 0, "skipped": 10}
+{"ts": 1794828112.115414, "clock": "19:21:52", "event": "project.started", "offline": true, "roles": ["review"]}
+{"ts": 1794828112.1169944, "clock": "19:21:52", "event": "role.started", "role": "review", "adjustment": null, "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}}
+{"ts": 1794828112.1284122, "clock": "19:21:52", "event": "file.synthesized", "role": "review", "path": "docs/reviews/review.md"}
+{"ts": 1794828112.1293309, "clock": "19:21:52", "event": "quality.scored", "role": "review", "score": 91, "grade": "A"}
+{"ts": 1794828112.1296747, "clock": "19:21:52", "event": "gate.pass", "role": "review", "gate_id": "G-EXAMPLE-CSV-EXPORT-review", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794828112.1298578, "clock": "19:21:52", "event": "role.finished", "role": "review", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "review", "version": 1, "hash": "14bb816c171b120c", "path": "prompts\\roles\\review.md"}, "latency_ms": 0, "files": ["docs/reviews/review.md"], "gate": "pass"}
+{"ts": 1794828112.1309783, "clock": "19:21:52", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}
+{"ts": 1794828117.9827778, "clock": "19:21:57", "event": "template.applied", "template": "minimal-api", "hash": "0a227e36d8eb8929", "copied": 0, "skipped": 10}
+{"ts": 1794828117.9844785, "clock": "19:21:57", "event": "project.started", "offline": true, "roles": ["kb"]}
+{"ts": 1794828117.9854615, "clock": "19:21:57", "event": "role.started", "role": "kb", "adjustment": null, "prompt": {"role": "kb", "version": 1, "hash": "62e7cccb3983d9f3", "path": "prompts\\roles\\kb.md"}}
+{"ts": 1794828117.9908557, "clock": "19:21:57", "event": "file.synthesized", "role": "kb", "path": "knowledge/project-notes.md"}
+{"ts": 1794828117.9913962, "clock": "19:21:57", "event": "quality.scored", "role": "kb", "score": 91, "grade": "A"}
+{"ts": 1794828117.9915648, "clock": "19:21:57", "event": "gate.pass", "role": "kb", "gate_id": "G-EXAMPLE-CSV-EXPORT-kb", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794828117.9916487, "clock": "19:21:57", "event": "role.finished", "role": "kb", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "kb", "version": 1, "hash": "62e7cccb3983d9f3", "path": "prompts\\roles\\kb.md"}, "latency_ms": 0, "files": ["knowledge/project-notes.md"], "gate": "pass"}
+{"ts": 1794828117.992325, "clock": "19:21:57", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}

@@ -133,12 +133,259 @@ minimal-api (hash 0a227e36d8eb8929)
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：docs/reviews/review.md
 
 # 前置产物摘要
-- pm: stub pm: 决策包 选项 证据 风险 升级 裁决协调 切片 依赖 门禁 | gate=pass
-- product: stub product: 非目标 验收标准 用户场景 范围 | gate=pass
-- ui: stub ui: 信息架构 交互状态 深色模式 可访问性 设计规范 | gate=pass
-- arch: stub arch: 接口契约 不变量 状态机 错误码 架构 | gate=pass
-- backend: stub backend: 参数校验 状态机 日志 错误码 单元测试 接口 | gate=pass
-- frontend: stub frontend: 加载 错误 空状态 可访问性 深色模式 组件 | gate=pass
+- pm: # pm · 项目计划与切片
+
+- 状态：done
+- 摘要：stub pm: 决策包 选项 证据 风险 升级 裁决协调 切片 依赖 门禁
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-pm
+
+## Claims（不参与门禁）
+
+- stub pm: 决策包 选项 证据 风险 升级 裁决协调 切片 依赖 门禁
+
+## 写入文件
+
+- `docs/plan/project-plan.md` · f300ac815727 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- product: # product · 产品基准
+
+- 状态：done
+- 摘要：stub product: 非目标 验收标准 用户场景 范围
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-product
+
+## Claims（不参与门禁）
+
+- stub product: 非目标 验收标准 用户场景 范围
+
+## 写入文件
+
+- `docs/product/product-baseline.md` · 5124562668b7 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- ui: # ui · UI/UX 设计规范
+
+- 状态：done
+- 摘要：stub ui: 信息架构 交互状态 深色模式 可访问性 设计规范
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-ui
+
+## Claims（不参与门禁）
+
+- stub ui: 信息架构 交互状态 深色模式 可访问性 设计规范
+
+## 写入文件
+
+- `docs/design/ui-spec.md` · bcf6faf8334a · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- arch: # arch · 架构与契约
+
+- 状态：done
+- 摘要：stub arch: 接口契约 不变量 状态机 错误码 架构
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-arch
+
+## Claims（不参与门禁）
+
+- stub arch: 接口契约 不变量 状态机 错误码 架构
+
+## 写入文件
+
+- `docs/architecture/architecture.md` · ef8275d5bae4 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- backend: # backend · 后端实现
+
+- 状态：done
+- 摘要：stub backend: 参数校验 状态机 日志 错误码 单元测试 接口
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-backend
+
+## Claims（不参与门禁）
+
+- stub backend: 参数校验 状态机 日志 错误码 单元测试 接口
+
+## 写入文件
+
+- `src/backend/service.py` · 5ba5df067fbc · role
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- frontend: # frontend · 前端实现
+
+- 状态：done
+- 摘要：stub frontend: 加载 错误 空状态 可访问性 深色模式 组件
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-frontend
+
+## Claims（不参与门禁）
+
+- stub frontend: 加载 错误 空状态 可访问性 深色模式 组件
+
+## 写入文件
+
+- `src/frontend/app.js` · 7996d33b4576 · role
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- qa: # qa · 测试计划与用例
+
+- 状态：done
+- 摘要：stub qa: 正常 异常 边界 权限 回归 证据 用例
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-qa
+
+## Claims（不参与门禁）
+
+- stub qa: 正常 异常 边界 权限 回归 证据 用例
+
+## 写入文件
+
+- `tests/test-plan.md` · 4e419d915b1c · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- security: # security · 安全与合规
+
+- 状态：done
+- 摘要：stub security: 威胁 缓解 高危 权限 依赖 合规
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-security
+
+## Claims（不参与门禁）
+
+- stub security: 威胁 缓解 高危 权限 依赖 合规
+
+## 写入文件
+
+- `docs/security/threat-model.md` · e90bf048a2b5 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- ops: # ops · 发布与回滚
+
+- 状态：done
+- 摘要：stub ops: 回滚 演练 监控 灰度 发布 告警
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-ops
+
+## Claims（不参与门禁）
+
+- stub ops: 回滚 演练 监控 灰度 发布 告警
+
+## 写入文件
+
+- `docs/ops/release-plan.md` · 10e88ffdaaeb · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- kb: # kb · 知识沉淀
+
+- 状态：done
+- 摘要：stub kb: 来源 证据 适用条件 失效时间 信任等级 检索 知识 复用
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-kb
+
+## Claims（不参与门禁）
+
+- stub kb: 来源 证据 适用条件 失效时间 信任等级 检索 知识 复用
+
+## 写入文件
+
+- `knowledge/project-notes.md` · 30d17d7ff958 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
+- retro: # retro · 复盘与改进
+
+- 状态：done
+- 摘要：stub retro: 时间线 根因 行动项 owner deadline verification 验证 残余风险
+
+- 门禁：pass · G-EXAMPLE-CSV-EXPORT-retro
+
+## Claims（不参与门禁）
+
+- stub retro: 时间线 根因 行动项 owner deadline verification 验证 残余风险
+
+## 写入文件
+
+- `docs/retro/retro.md` · 4c8cc23e2754 · runner-summary
+
+## 未决问题
+
+- 无
+
+## 门禁检查
+
+- 全部通过
+
 
 # 知识库引用
 （未启用或无命中）
