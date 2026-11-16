@@ -1,0 +1,4 @@
+Week 1：用一条真实需求打通 walking skeleton（产品基准 → 1 个契约 → 1 个接口 + 1 个页面 → 真实测试 → 门禁 → 人审批），任务卡/事件日志/产物哈希全部真实。
+Week 2：接入 pytest/schemathesis/semgrep 等工具证据，补凭证失效、重试上限、预算熔断、租约与幂等。
+Week 3：3 个切片并行，测共享文件冲突与契约变更影响图，加 serial baseline 做指标对比。
+Week 4：角色 golden set + prompt 回归，知识库混合检索，决策包/审批 UX。
