@@ -84,6 +84,7 @@ python start_project.py \
 | `--sandbox` | 关 | 代码角色在临时副本/worktree 写入，门禁通过才提升 |
 | `--stop-on-gate` | 关 | 任一门禁未通过即停止后续角色 |
 | `--no-gates` / `--no-quality` | 开 | 关闭门禁或质量分（不推荐） |
+| `--merge` | 关 | 保留未运行角色的记录，用于单角色重跑 |
 | `--decision-db` | `data/decisions.db` | 门禁升级写入的决策库 |
 | `--stop-on-error` / `--force` | 关 | 角色失败即停 / 允许写非空目录 |
 
@@ -108,9 +109,17 @@ projects/<project>/
 ├── quality/history.jsonl         # 每次运行的质量分历史
 ├── logs/events.jsonl             # role/tool/gate/quality 事件
 ├── state/roles.json
+├── state/progress.json          # 实时当前角色/序号/心跳；运行中每 3 秒更新
 ├── project.json
 └── README.md                     # 角色/门禁/质量执行记录表
 ```
+
+### 实时进度
+
+- 角色开始时立即写入 `state/roles.json`（status=`running`）和 `artifacts/<role>/meta.json` 占位。
+- `state/progress.json` 记录 current_role、current_index、total_roles、elapsed_s、clock；运行器心跳每 3 秒刷新。
+- 监控页每 2 秒轮询项目列表和当前项目：显示 pulse、运行时长、当前角色/序号；角色完成或失败后自动刷新摘要、门禁和质量。
+- 模型调用本身是同步阻塞的，无法显示 token 级进度；能看到“正在调用哪个角色 + 已运行多久 + 前序角色结果”。
 
 ### 角色门禁
 

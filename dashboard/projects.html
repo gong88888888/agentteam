@@ -62,6 +62,11 @@
   .status-completed { color:var(--good); border-color:rgba(12,163,12,.35); }
   .status-partial { color:var(--warning); border-color:rgba(250,178,25,.4); }
   .status-failed { color:var(--critical); border-color:rgba(208,59,59,.35); }
+  .status-running { color:var(--s1); border-color:rgba(42,120,214,.4); }
+  .role-card.running { border-color:var(--s1); background:rgba(42,120,214,.045); }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--s1);
+           display:inline-block; animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:.25; } 50% { opacity:1; } }
   .gate-pass { color:var(--good); border-color:rgba(12,163,12,.35); }
   .gate-fail { color:var(--critical); border-color:rgba(208,59,59,.35); }
   .gate-need_evidence { color:var(--warning); border-color:rgba(250,178,25,.45); }
@@ -123,7 +128,7 @@
     <div>
       <div class="eyebrow">AgentTeam · Project Role Monitor</div>
       <h1>项目角色监控</h1>
-      <p class="sub">查看每个角色的 prompt、产出、模型、Token、文件与状态；发现不合格可直接补充调整要求并重跑该角色。</p>
+      <p class="sub">查看每个角色的 prompt、产出、模型、Token、文件与状态；运行中每 2 秒自动刷新当前角色与耗时，发现不合格可直接补充调整要求并重跑该角色。</p>
     </div>
     <div class="controls">
       <a class="btn" href="index.html">← 监控工作台</a>
@@ -153,7 +158,7 @@
   </div>
 
   <div class="footer">
-    <span>角色记录来自 projects/*/artifacts；重跑会写入新 meta 与 logs/events.jsonl。</span>
+    <span>角色记录来自 projects/*/artifacts；运行中读取 state/progress.json 并每 2 秒刷新。</span>
     <span id="generated"></span>
   </div>
 </div>
@@ -162,13 +167,14 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state = { projects: [], project: null, role: null, tab: "summary", file: null, running: false };
+const state = { projects: [], project: null, role: null, tab: "summary", file: null, running: false,
+                poll: null, refreshing: false, roleSig: "", note: "" };
 const params = new URLSearchParams(location.search);
 const wantProject = params.get("project");
 const wantRole = params.get("role");
 const wantTab = params.get("tab");
 if (wantTab) state.tab = wantTab;
-const statusLabel = {completed:"completed", partial:"partial", failed:"failed", done:"done", error:"error"};
+const statusLabel = {completed:"completed", partial:"partial", failed:"failed", running:"running", done:"done", error:"error", blocked:"blocked"};
 
 function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem("agentteam-theme", t); } catch(_){} }
 function initTheme() {
@@ -183,17 +189,29 @@ async function api(path, opts) {
 }
 function statusBadge(s) { return `<span class="badge status-${esc(s)}">${esc(statusLabel[s]||s)}</span>`; }
 
+function renderProjectsList() {
+  $("project-count").textContent = `${state.projects.length} 个`;
+  $("projects").innerHTML = state.projects.map(p => {
+    const running = p.status === "running";
+    const prog = p.progress || {};
+    const detail = running
+      ? `进行中 ${prog.current_role || "准备下一角色"} · ${p.roles.length}/${p.total_roles || p.roles.length} roles`
+      : `${p.status} · ${p.roles.length} roles`;
+    return `
+      <div class="project-item ${state.project===p.name?"active":""}" data-name="${esc(p.name)}">
+        <div class="name">${running ? `<span class="pulse"></span> ` : ""}${esc(p.name)}</div>
+        <div class="meta">${esc(detail)}</div>
+      </div>`;
+  }).join("") || `<div class="empty">projects/ 下没有项目。</div>`;
+  document.querySelectorAll(".project-item").forEach(el =>
+    el.addEventListener("click", () => loadProject(el.dataset.name)));
+}
+
 async function loadProjects() {
   try {
     const d = await api("/api/projects");
     state.projects = d.projects || [];
-    $("project-count").textContent = `${state.projects.length} 个`;
-    $("projects").innerHTML = state.projects.map(p => `
-      <div class="project-item ${state.project===p.name?"active":""}" data-name="${esc(p.name)}">
-        <div class="name">${esc(p.name)}</div>
-        <div class="meta">${esc(p.status)} · ${p.roles.length} roles</div>
-      </div>`).join("") || `<div class="empty">projects/ 下没有项目。</div>`;
-    document.querySelectorAll(".project-item").forEach(el => el.addEventListener("click", () => loadProject(el.dataset.name)));
+    renderProjectsList();
     if (!state.project && state.projects.length) {
       const initial = state.projects.find(p => p.name === wantProject)?.name || state.projects[0].name;
       loadProject(initial, wantRole);
@@ -203,41 +221,100 @@ async function loadProjects() {
   }
 }
 
+function elapsedOf(r) {
+  if (!r || r.status !== "running" || !r.started_at) return 0;
+  return Math.max(0, Math.round(Date.now() / 1000 - Number(r.started_at)));
+}
+
+function renderProject(p, preferredRole = null, selectRole = true) {
+  state.projectData = p;
+  $("project-title").textContent = p.name;
+  $("project-status").innerHTML = statusBadge(p.status);
+  const gates = p.gates || {};
+  const prog = p.progress || {};
+  const meta = [
+    `模板 ${esc(p.template || "none")}`,
+    `证据 ${esc(p.tool_profile || "basic")}`,
+    p.quality_avg != null ? `质量均值 ${esc(p.quality_avg)}` : "质量 —",
+    `门禁 通过 ${gates.pass || 0} / 待补证 ${gates.need_evidence || 0} / 失败 ${gates.fail || 0}`,
+  ];
+  if (p.status === "running") {
+    meta.push(`进行中 ${esc(prog.current_role || "准备下一角色")} (${esc(prog.current_index || 0)}/${esc(prog.total_roles || p.roles.length)})`);
+    meta.push(`已更新 ${esc(prog.clock || "—")}`);
+  }
+  $("project-meta").innerHTML = meta.join(" · ");
+  $("requirement").textContent = p.requirement_text || "（无）";
+  $("roles").innerHTML = (p.roles || []).map(r => {
+    const running = r.status === "running";
+    const g = r.gate?.status || "off";
+    const q = r.quality?.score;
+    const grade = r.quality?.grade || "";
+    const badges = running
+      ? `<span class="badge status-running"><span class="pulse"></span> running ${elapsedOf(r)}s</span>
+         <span class="badge">${esc(r.started_clock || "")} 开始</span>`
+      : `<span class="badge gate-${esc(g)}">gate ${esc(g)}</span>
+         <span class="badge quality-${esc(grade)}">${q != null ? esc(q) : "—"} ${esc(grade)}</span>`;
+    return `
+      <div class="role-card ${state.role===r.role?"active":""} ${running?"running":""}" data-role="${esc(r.role)}">
+        <div class="row">${statusBadge(r.status)} ${badges}<span class="badge">${esc(r.role)}</span></div>
+        <div class="title">${esc(r.title)}</div>
+        <div class="meta"><span>${running ? "模型调用中…" : esc(r.model)}</span><span>${running ? `${elapsedOf(r)}s` : `${r.latency_ms||0}ms · ${r.tokens||0} tok`}</span></div>
+        <div class="files">${running ? "等待模型输出…" : (r.files?.length ? esc(r.files.map(f=>f.path).join(", ")) : "无文件")}${r.sandbox==="isolated" ? " · sandbox" : ""}${r.adjustment ? " · 已按调整要求重跑" : ""}</div>
+      </div>`;
+  }).join("") || `<div class="empty">该项目还没有角色记录。</div>`;
+  document.querySelectorAll(".role-card").forEach(el => el.addEventListener("click", () => {
+    state.note = "";
+    loadRole(el.dataset.role);
+  }));
+  if (selectRole) {
+    const target = preferredRole
+      || (p.roles || []).find(r => r.status === "running")?.role
+      || (p.roles || [])[0]?.role;
+    if (target) loadRole(target);
+    else $("detail").innerHTML = `<div class="empty">没有可展示的角色。</div>`;
+  }
+}
+
 async function loadProject(name, preferredRole = null) {
-  state.project = name; state.role = null; state.file = null;
+  state.project = name; state.role = null; state.file = null; state.roleSig = "";
   await loadProjects();
   try {
     const p = await api(`/api/projects/${encodeURIComponent(name)}`);
-    state.projectData = p;
-    $("project-title").textContent = p.name;
-    $("project-status").innerHTML = statusBadge(p.status);
-    const gates = p.gates || {};
-    $("project-meta").innerHTML = [
-      `模板 ${esc(p.template || "none")}`,
-      `证据 ${esc(p.tool_profile || "basic")}`,
-      p.quality_avg != null ? `质量均值 ${esc(p.quality_avg)}` : "质量 —",
-      `门禁 通过 ${gates.pass || 0} / 待补证 ${gates.need_evidence || 0} / 失败 ${gates.fail || 0}`,
-    ].join(" · ");
-    $("requirement").textContent = p.requirement_text || "（无）";
-    $("roles").innerHTML = (p.roles || []).map(r => {
-      const g = r.gate?.status || "off";
-      const q = r.quality?.score;
-      const grade = r.quality?.grade || "";
-      return `
-      <div class="role-card ${state.role===r.role?"active":""}" data-role="${esc(r.role)}">
-        <div class="row">${statusBadge(r.status)}
-          <span class="badge gate-${esc(g)}">gate ${esc(g)}</span>
-          <span class="badge quality-${esc(grade)}">${q != null ? esc(q) : "—"} ${esc(grade)}</span>
-          <span class="badge">${esc(r.role)}</span></div>
-        <div class="title">${esc(r.title)}</div>
-        <div class="meta"><span>${esc(r.model)}</span><span>${r.latency_ms||0}ms · ${r.tokens||0} tok</span></div>
-        <div class="files">${r.files?.length ? esc(r.files.map(f=>f.path).join(", ")) : "无文件"}${r.sandbox==="isolated" ? " · sandbox" : ""}${r.adjustment ? " · 已按调整要求重跑" : ""}</div>
-      </div>`;
-    }).join("") || `<div class="empty">该项目还没有角色记录。</div>`;
-    document.querySelectorAll(".role-card").forEach(el => el.addEventListener("click", () => loadRole(el.dataset.role)));
-    if (p.roles && p.roles.length) loadRole(preferredRole || p.roles[0].role);
-    else $("detail").innerHTML = `<div class="empty">没有可展示的角色。</div>`;
+    renderProject(p, preferredRole, true);
+    state.roleSig = "";
+    if (p.status === "running") startPolling(); else stopPolling();
   } catch (err) { $("roles").innerHTML = `<div class="empty">加载项目失败：${esc(err.message)}</div>`; }
+}
+
+function startPolling() {
+  stopPolling();
+  state.poll = setInterval(refreshLive, 2000);
+}
+function stopPolling() {
+  if (state.poll) clearInterval(state.poll);
+  state.poll = null;
+}
+async function refreshLive() {
+  if (!state.project || state.refreshing) return;
+  state.refreshing = true;
+  try {
+    const list = await api("/api/projects");
+    state.projects = list.projects || [];
+    renderProjectsList();
+    const p = await api(`/api/projects/${encodeURIComponent(state.project)}`);
+    renderProject(p, null, false);
+    const role = (p.roles || []).find(r => r.role === state.role);
+    const sig = role ? `${role.status}|${role.finished_at}|${role.gate?.status}|${role.quality?.score}` : "";
+    if (sig !== state.roleSig) {
+      state.roleSig = sig;
+      if (role) await loadRole(role.role);
+    }
+    if (p.status !== "running") stopPolling();
+  } catch (err) {
+    // Keep the last good view; the next tick retries.
+  } finally {
+    state.refreshing = false;
+  }
 }
 
 async function loadRole(role) {
@@ -327,7 +404,11 @@ function renderDetail() {
   const tools = meta.tools || {};
   const tabs = [["summary","摘要"],["gate","门禁"],["quality","质量"],["output","输出 JSON"],["prompt","System Prompt"],["request","实际请求"],["meta","Meta"],["files","文件"]];
   let body = "";
-  if (state.tab === "summary") body = `<div class="summary-text">${esc(d.summary || "（无 summary）")}</div>`;
+  if (state.tab === "summary") {
+    body = meta.status === "running"
+      ? `<div class="empty"><span class="pulse"></span> 模型调用中… ${esc(meta.started_clock || "")} 开始，已运行 ${esc(Math.max(0, Math.round(Date.now()/1000 - Number(meta.started_at || Date.now()/1000))))}s。<br>完成后自动刷新摘要、门禁和质量分。</div>`
+      : `<div class="summary-text">${esc(d.summary || "（无 summary）")}</div>`;
+  }
   else if (state.tab === "gate") body = renderGate(gate, d.role);
   else if (state.tab === "quality") body = renderQuality(quality, d.quality_history);
   else if (state.tab === "output") body = `<pre>${esc(JSON.stringify(d.output, null, 2))}</pre>`;
@@ -381,12 +462,13 @@ function renderDetail() {
         </select></label>
         <span class="meta" style="font-size:11px;color:var(--muted)">standard/full 需要 semgrep/trivy；缺失会升级决策</span>
       </div>
-      <textarea id="rerun-note" placeholder="可选：补充调整要求，例如“非目标不足，补 2 条；验收标准必须可量化；代码必须给出 files”。"></textarea>
+      <textarea id="rerun-note" placeholder="可选：补充调整要求，例如“非目标不足，补 2 条；验收标准必须可量化；代码必须给出 files”。">${esc(state.note)}</textarea>
       <div class="row"><button class="btn primary" id="rerun-btn" ${state.running?"disabled":""}>${state.running?"重跑中…":"重跑该角色"}</button>
         <span class="meta" style="font-size:11px;color:var(--muted)">重跑会覆盖该角色 artifacts、追加门禁/质量记录与事件账本</span></div>
     </div>`;
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { state.tab=b.dataset.tab; state.file=null; renderDetail(); }));
   document.querySelectorAll(".file-item").forEach(el => el.addEventListener("click", () => openFile(el.dataset.file)));
+  $("rerun-note").addEventListener("input", e => { state.note = e.target.value; });
   $("rerun-btn").addEventListener("click", () => rerunRole());
 }
 

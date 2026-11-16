@@ -1,0 +1,115 @@
+{
+  "role": "frontend",
+  "title": "前端实现",
+  "status": "done",
+  "prompt": {
+    "role": "frontend",
+    "version": 1,
+    "hash": "e03e38f7405c7201",
+    "path": "prompts\\roles\\frontend.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 20546,
+  "tokens": 6452,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "src/frontend/components/hud/HUD.tsx",
+      "sha256": "9366778e454dc1b29a1ecffc6ba257664fde36dfab6fcff23aa49cd7777776c0",
+      "bytes": 4232,
+      "source": "role",
+      "promoted": true
+    }
+  ],
+  "code_pass": true,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-frontend",
+    "role": "frontend",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "src/frontend/"
+      },
+      {
+        "name": "files_written",
+        "ok": true,
+        "detail": "代码角色没有写出文件"
+      },
+      {
+        "name": "evidence:unit",
+        "ok": true,
+        "detail": "pass"
+      },
+      {
+        "name": "evidence_subject",
+        "ok": true,
+        "detail": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee"
+      }
+    ],
+    "evidence_ids": [
+      "EV-000009"
+    ],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee"
+  },
+  "tools": {
+    "profile": "basic",
+    "subject_hash": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee",
+    "ledger": "D:\\agentteam\\projects\\test1\\evidence\\tool-ledger.jsonl",
+    "passed": [
+      "unit"
+    ],
+    "failed": [],
+    "missing": [
+      "compile"
+    ],
+    "evidence": [
+      {
+        "evidence_id": "EV-000009",
+        "kind": "unit",
+        "result": "pass",
+        "tool": "unittest",
+        "tool_version": "3.13.15"
+      }
+    ]
+  },
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-202614",
+  "started_at": 1794832207.3808339,
+  "started_clock": "20:30:07",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:30:44",
+  "quality": {
+    "score": 89,
+    "grade": "A",
+    "components": {
+      "completeness": 30,
+      "gate": 30,
+      "evidence": 10,
+      "efficiency": 9,
+      "clarity": 10
+    },
+    "issues": []
+  }
+}

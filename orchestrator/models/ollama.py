@@ -14,12 +14,14 @@ class OllamaBackend:
 
     def __init__(self, base_url: str, model: str,
                  fallback_models: list[str] | None = None,
-                 timeout_s: int = 120, think: bool = False) -> None:
+                 timeout_s: int = 120, think: bool = False,
+                 num_ctx: int = 32768) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.fallback_models = fallback_models or []
         self.timeout_s = timeout_s
         self.think = think
+        self.num_ctx = int(num_ctx)
         self._tags_cache: list[str] | None = None
         self._tags_at = 0.0
 
@@ -60,7 +62,8 @@ class OllamaBackend:
             "model": chosen,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "seed": seed},
+            "options": {"temperature": temperature, "seed": seed,
+                        "num_ctx": self.num_ctx},
             "think": self.think,
         }
         if response_format == "json":

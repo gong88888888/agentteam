@@ -1,0 +1,91 @@
+{
+  "role": "qa",
+  "title": "测试计划与用例",
+  "status": "done",
+  "prompt": {
+    "role": "qa",
+    "version": 1,
+    "hash": "75651a34fb0a2781",
+    "path": "prompts\\roles\\qa.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 5022,
+  "tokens": 5930,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "tests/test-plan.md",
+      "sha256": "582ebe3ff134a5f4b42da94ceec7a6c5429c29ed46332017110521740747f7ab",
+      "bytes": 1504,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-qa",
+    "role": "qa",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:用例",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：异常/边界/权限"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "tests/test-plan.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-202614",
+  "started_at": 1794832262.7971656,
+  "started_clock": "20:31:02",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:31:19",
+  "quality": {
+    "score": 95,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
+}

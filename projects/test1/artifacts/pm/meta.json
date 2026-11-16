@@ -1,0 +1,86 @@
+{
+  "role": "pm",
+  "title": "项目计划与切片",
+  "status": "done",
+  "prompt": {
+    "role": "pm",
+    "version": 1,
+    "hash": "11bdc73b9f9e300c",
+    "path": "prompts\\roles\\pm.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 4584,
+  "tokens": 8055,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "docs/plan/project-plan.md",
+      "sha256": "a2d81a25e9ef71fec5b213ab8e1962468b94de9b26d93e7539262ff6f2e9006e",
+      "bytes": 1347,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-pm",
+    "role": "pm",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：切片/模块/阶段/计划/路线"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/plan/project-plan.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-203245",
+  "started_at": 1794832365.1915748,
+  "started_clock": "20:32:45",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:33:02",
+  "quality": {
+    "score": 95,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
+}

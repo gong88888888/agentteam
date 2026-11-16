@@ -140,6 +140,7 @@ projects/<project>/
 ├── quality/history.jsonl           # 角色质量分历史
 ├── logs/events.jsonl
 ├── state/roles.json
+├── state/progress.json             # 实时角色/序号/心跳
 ├── src/backend/**, src/frontend/**
 ├── tests/**, contracts/**, docs/**
 └── README.md
@@ -157,7 +158,7 @@ python dashboard/serve.py --port 8765
 # open http://localhost:8765/projects.html
 ```
 
-项目角色页展示状态、门禁、质量分、模型、耗时、Token、文件、System Prompt、实际请求与输出；发现不合格时可填写调整要求并**只重跑该角色**（可选隔离沙箱与 basic/standard/full 证据 profile）。门禁未通过会自动进入决策收件箱。W3 工作台与 W4 决策收件箱原样保留。
+项目角色页展示状态、门禁、质量分、模型、耗时、Token、文件、System Prompt、实际请求与输出；运行中每 2 秒自动刷新当前角色、序号和耗时（`state/progress.json` 心跳每 3 秒更新）；发现不合格时可填写调整要求并**只重跑该角色**（可选隔离沙箱与 basic/standard/full 证据 profile）。门禁未通过会自动进入决策收件箱。W3 工作台与 W4 决策收件箱原样保留。
 
 详见 [PROJECT_PLAYBOOK.md](PROJECT_PLAYBOOK.md) 与 [projects/README.md](projects/README.md)。
 
@@ -198,7 +199,7 @@ python dashboard/serve.py --port 8765
 | 裁判 J2 | 本地 Qwen（不同家族） | DeepSeek |
 | 裁判 J3 | DeepSeek `deepseek-reasoner` | 本地 Qwen（仅显式降级） |
 
-本地 Qwen 3.x 是推理模型；`ollama.think=false` 关闭 thinking，直接输出 JSON。配置见 [config/config.example.yaml](config/config.example.yaml)，密钥从 `.env`、环境变量或 Windows 用户变量 `deepseek-key1` 读取。
+本地 Qwen 3.x 是推理模型；`ollama.think=false` 关闭 thinking，直接输出 JSON；`num_ctx=32768` 避免长需求被 Ollama 截断。配置见 [config/config.example.yaml](config/config.example.yaml)，密钥从 `.env`、环境变量或 Windows 用户变量 `deepseek-key1` 读取。
 
 ## 目录
 

@@ -73,6 +73,7 @@ python dashboard/serve.py --port 8765
 页面内容：
 
 - 项目列表与状态；需求原文可展开；模板、证据 profile、门禁计数与质量均值。
+- 实时进度：运行中项目显示 pulse、当前角色/序号、运行时长；页面每 2 秒轮询，`state/progress.json` 心跳每 3 秒刷新。截图见 `projects_live.png`。
 - 角色卡片：状态、门禁、质量分/等级、模型、耗时、Token、写出文件、沙箱/调整标记。
 - 详情页签：摘要、**门禁**、**质量**、输出 JSON、System Prompt、实际请求、Meta、文件。
 - 门禁页签：逐项检查、证据 ID、缺失项、subject hash、升级后的决策深链。

@@ -52,6 +52,8 @@ def main() -> int:
     p.add_argument("--stop-on-gate", action="store_true",
                    help="任一门禁未通过即停止后续角色")
     p.add_argument("--no-quality", action="store_true", help="不计算角色质量分")
+    p.add_argument("--merge", action="store_true",
+                   help="保留未运行角色的既有记录（用于单角色重跑）")
     p.add_argument("--decision-db", default=None,
                    help="门禁升级写入的决策库（默认 data/decisions.db）")
     p.add_argument("--config", default=None)
@@ -74,7 +76,8 @@ def main() -> int:
         stop_on_error=args.stop_on_error, template=template,
         tool_profile=args.tool_profile, gates=not args.no_gates,
         sandbox=args.sandbox, decision_db=args.decision_db,
-        stop_on_gate=args.stop_on_gate, quality=not args.no_quality)
+        stop_on_gate=args.stop_on_gate, quality=not args.no_quality,
+        merge_state=args.merge)
     result = runner.run()
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] != "failed" else 1

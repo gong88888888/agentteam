@@ -93,6 +93,7 @@ def _apply_env(cfg: dict[str, Any]) -> None:
     local.setdefault("fallback_models", [DEFAULT_LOCAL_FALLBACK])
     local.setdefault("timeout_s", 120)
     local.setdefault("think", False)
+    local.setdefault("num_ctx", 32768)
 
     ds = models.setdefault("deepseek", {})
     ds["base_url"] = (env_value("DEEPSEEK_HARNESS_URL")

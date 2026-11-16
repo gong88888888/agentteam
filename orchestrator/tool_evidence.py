@@ -86,15 +86,23 @@ def _semgrep_config(root: Path) -> Path | None:
     return None
 
 
-def build_checks(root: Path, profile: str, sandbox: Sandbox) -> list[CheckSpec]:
+def build_checks(root: Path, profile: str, sandbox: Sandbox,
+                 scope: str = "src",
+                 files: list[str] | None = None) -> list[CheckSpec]:
     if profile not in PROFILES:
         raise ValueError(f"未知 profile：{profile}")
     checks: list[CheckSpec] = []
     py = sys.executable
-    has_src = any(p.is_file() for p in (root / "src").rglob("*.py")) if (root / "src").is_dir() else False
+    scope_path = root / scope
+    py_files = list(files or [])
+    if not py_files:
+        py_files = [p.relative_to(root).as_posix() for p in scope_path.rglob("*.py")
+                    if p.is_file()] if scope_path.is_dir() else []
+    py_files = [p for p in py_files if p.endswith(".py")]
+    has_src = bool(py_files)
     checks.append(CheckSpec(
-        "compile", (py, "-m", "compileall", "-q", "src") if has_src else None,
-        "" if has_src else "src/ 下没有 Python 文件"))
+        "compile", (py, "-m", "compileall", "-q", *py_files) if has_src else None,
+        "" if has_src else f"{scope}/ 下没有 Python 文件"))
     tests = _test_files(root)
     if tests:
         if importlib.util.find_spec("pytest"):
@@ -108,8 +116,9 @@ def build_checks(root: Path, profile: str, sandbox: Sandbox) -> list[CheckSpec]:
         semgrep = shutil.which("semgrep")
         cfg = _semgrep_config(root)
         if semgrep and cfg:
+            sast_targets = py_files or [scope]
             checks.append(CheckSpec("sast", (semgrep, "--error", "--json",
-                                             "--config", str(cfg), "src")))
+                                             "--config", str(cfg), *sast_targets)))
         else:
             checks.append(CheckSpec("sast", None, "semgrep 或 tools/semgrep.yml 不可用"))
         contract = _contract_file(root)
@@ -168,7 +177,9 @@ def _contract_check(path: Path) -> tuple[int, str, str]:
 
 
 def collect(project_dir: str | Path, *, profile: str = "basic",
-            code_root: str | Path | None = None, ledger_path: str | Path | None = None,
+            code_root: str | Path | None = None, scope: str = "src",
+            files: list[str] | None = None,
+            ledger_path: str | Path | None = None,
             baseline_fp: str = "", key: bytes | None = None,
             timeout_s: int = 180, ttl_s: int = 7200) -> dict[str, Any]:
     """Run the profile and append signed evidence records to the ledger."""
@@ -182,7 +193,7 @@ def collect(project_dir: str | Path, *, profile: str = "basic",
     evidence: list[dict[str, Any]] = []
     missing: list[dict[str, Any]] = []
 
-    for spec in build_checks(root, profile, sandbox):
+    for spec in build_checks(root, profile, sandbox, scope=scope, files=files):
         if spec.argv is None:
             missing.append({"kind": spec.kind, "reason": spec.reason,
                             "required": spec.required})

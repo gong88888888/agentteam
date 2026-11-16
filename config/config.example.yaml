@@ -12,6 +12,7 @@ models:
     fallback_models: [qwen3.5:9b-q4_K_M]
     timeout_s: 120
     think: false   # Qwen 3.x 推理模型：关闭 thinking，直接输出 JSON
+    num_ctx: 32768 # 长需求文档需要更大的上下文，避免被 Ollama 截断
   deepseek:
     backend: deepseekharness
     base_url: https://api.deepseek.com/v1

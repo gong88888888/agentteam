@@ -54,6 +54,7 @@ def _project_dir(name: str) -> Path | None:
 def _project_summary(p: Path) -> dict:
     project = _read_json(p / "project.json", {})
     state = _read_json(p / "state" / "roles.json", {})
+    progress = _read_json(p / "state" / "progress.json", {})
     roles = []
     for spec in ROLE_SPECS:
         meta = state.get(spec.role)
@@ -83,10 +84,18 @@ def _project_summary(p: Path) -> dict:
                       "missing": tools.get("missing", []),
                       "subject_hash": tools.get("subject_hash", "")},
             "sandbox": meta.get("sandbox", "direct"),
+            "started_at": meta.get("started_at"),
+            "started_clock": meta.get("started_clock", ""),
+            "finished_at": meta.get("finished_at", ""),
         })
     return {"name": p.name, "status": project.get("status", "unknown"),
             "requirement": project.get("requirement", "requirements/input.md"),
             "offline": project.get("offline"), "created_at": project.get("created_at"),
+            "updated_at": project.get("updated_at", ""),
+            "current_role": project.get("current_role", ""),
+            "current_index": project.get("current_index", 0),
+            "total_roles": project.get("total_roles", len(roles)),
+            "progress": progress,
             "template": project.get("template", "none"),
             "template_hash": project.get("template_hash", ""),
             "tool_profile": project.get("tool_profile", "basic"),

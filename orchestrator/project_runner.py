@@ -8,6 +8,7 @@ import hashlib
 import os
 import re
 import shutil
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -161,6 +162,13 @@ class ProjectRunner:
             "requirement": str(target.relative_to(self.project_dir)),
             "offline": self.offline,
             "roles": project_roles,
+            "template": self.template,
+            "template_hash": self.template_record.get("hash", ""),
+            "tool_profile": self.tool_profile,
+            "run_id": self.run_id,
+            "current_role": "",
+            "current_index": 0,
+            "total_roles": len(self.roles),
             "status": "running",
         }
         (self.project_dir / "project.json").write_text(
@@ -233,6 +241,8 @@ class ProjectRunner:
 
 ## 项目运行器约束
 你正在项目目录 `{self.project_dir.name}` 中作为 {role} 工作。
+项目需求文档已经完整放在 user 消息中；不要因为缺少“额外附件、上一轮对话或具体代码路径”而返回 blocked。
+先基于现有需求完成本角色的交付物；信息缺口写入 open_questions，不要编造证据。
 输出只能是 JSON；如需写文件，files[].path 必须落在 `{', '.join(ROLE_MAP[role].scope)}`。
 不得写项目目录之外，不得写密钥；不确定时写 open_questions，不要编造证据。
 """
@@ -254,9 +264,13 @@ class ProjectRunner:
         state: dict[str, Any] = dict(existing)
         statuses: dict[str, str] = {}
         started_all = time.time()
+        self._run_started_at = started_all
+        self._run_total = len(self.roles)
+        self.live_state(state, "running", None, 0)
+        self._start_heartbeat()
         self.log("project.started", offline=self.offline, roles=self.roles)
 
-        for role in self.roles:
+        for index, role in enumerate(self.roles, 1):
             spec = ROLE_MAP[role]
             prompt = load_prompt(role)
             system_text = self.system_message(role)
@@ -267,17 +281,36 @@ class ProjectRunner:
             role_dir.mkdir(parents=True, exist_ok=True)
             (role_dir / "request.md").write_text(
                 f"# system\n\n{system_text}\n\n# user\n\n{user_text}\n", encoding="utf-8")
+            role_started_at = time.time()
+            placeholder = {
+                "role": role, "title": spec.title, "status": "running",
+                "prompt": prompt.metadata(), "model": "", "backend": "",
+                "latency_ms": 0, "tokens": 0, "files": [], "code_pass": False,
+                "adjustment": self.extra_note or "", "gate": None, "tools": None,
+                "sandbox": ("isolated" if self.sandbox_enabled and role in CODE_ROLES
+                            else "direct"),
+                "template": self.template, "run_id": self.run_id,
+                "started_at": role_started_at,
+                "started_clock": time.strftime("%H:%M:%S", time.localtime(role_started_at)),
+            }
+            (role_dir / "meta.json").write_text(
+                json.dumps(placeholder, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8")
+            state[role] = placeholder
+            self.live_state(state, "running", role, index)
             self.log("role.started", role=role,
                      adjustment=self.extra_note or None,
                      prompt=prompt.metadata())
             started = time.perf_counter()
             obj = None
             result = None
+            repairs: list[str] = []
             last_exc: Exception | None = None
             for _attempt in range(2):
                 try:
                     result = self.router.execution(role, messages, response_format="json")
-                    obj = parse_json_object(result.content)
+                    obj, repairs = self.normalize_envelope(
+                        parse_json_object(result.content), role)
                     jsonschema.validate(obj, self.schema)
                     break
                 except Exception as exc:
@@ -294,10 +327,16 @@ class ProjectRunner:
                 error = {"role": role, "error": str(last_exc), "at": time.time()}
                 (role_dir / "error.json").write_text(
                     json.dumps(error, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                state[role] = {**placeholder, "status": "error",
+                               "error": str(last_exc)[:500],
+                               "finished_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+                (role_dir / "meta.json").write_text(
+                    json.dumps(state[role], ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8")
                 self.log("role.failed", role=role, error=str(last_exc)[:500],
                          prompt=prompt.metadata())
                 prior.append(f"- {role}: FAILED — {str(last_exc)[:200]}")
-                state[role] = {"status": "error", "error": str(last_exc)[:500]}
+                self.live_state(state, "running", None, index)
                 if self.stop_on_error:
                     break
                 continue
@@ -319,7 +358,7 @@ class ProjectRunner:
             if self.sandbox_enabled and role in CODE_ROLES and raw_files:
                 with IsolatedWorkspace(self.project_dir, role) as ws:
                     files = self.write_files(role, raw_files, root=ws.path)
-                    tool_result = self.run_tools(ws.path, role)
+                    tool_result = self.run_tools(ws.path, role, files)
                     gate = self.run_gate(role, obj, files, tool_result)
                     if gate is not None and gate.status == "pass":
                         promoted = ws.promote([f["path"] for f in files])
@@ -332,7 +371,7 @@ class ProjectRunner:
             else:
                 files = self.write_files(role, raw_files)
                 if role in CODE_ROLES:
-                    tool_result = self.run_tools(self.project_dir, role)
+                    tool_result = self.run_tools(self.project_dir, role, files)
                 files += self.synthesize_docs(role, spec, obj, files)
                 gate = self.run_gate(role, obj, files, tool_result)
                 for f in files:
@@ -364,6 +403,9 @@ class ProjectRunner:
                             else "direct"),
                 "template": self.template,
                 "run_id": self.run_id,
+                "started_at": role_started_at,
+                "started_clock": placeholder["started_clock"],
+                "schema_repairs": repairs,
                 "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
             if self.quality_enabled and gate is not None:
@@ -380,6 +422,9 @@ class ProjectRunner:
                 json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             statuses[role] = role_status
             state[role] = meta
+            self.live_state(state, "running", None, index)
+            if repairs:
+                self.log("schema.repaired", role=role, repairs=repairs)
             prior.append(f"- {role}: {summary[:700]}"
                          f" | gate={gate.status if gate else 'off'}")
             if tool_result is not None:
@@ -413,6 +458,7 @@ class ProjectRunner:
             status = "partial"
         else:
             status = "completed"
+        self._stop_heartbeat()
         self.write_state(state, status, elapsed)
         self.write_readme(state, status)
         self.log("project.finished", status=status, elapsed_s=elapsed,
@@ -421,6 +467,126 @@ class ProjectRunner:
                 "roles": statuses, "errors": errors, "blocked": blocked,
                 "elapsed_s": elapsed, "model": self.router.summary(),
                 "template": self.template, "tool_profile": self.tool_profile}
+
+    @staticmethod
+    def normalize_envelope(obj: dict[str, Any], role: str) -> tuple[dict[str, Any], list[str]]:
+        """Map harmless model wording to the schema, never changing decisions/evidence."""
+        out = dict(obj)
+        repairs: list[str] = []
+        alias = {
+            "completed": "done", "complete": "done", "success": "done",
+            "ok": "done", "finished": "done", "partial": "done",
+            "failed": "blocked", "failure": "blocked", "error": "blocked",
+        }
+        status = str(out.get("status", "")).lower()
+        if status in alias and out.get("status") != alias[status]:
+            out["status"] = alias[status]
+            repairs.append(f"status:{status}->{alias[status]}")
+        defaults = {
+            "task_id": f"T-{role.upper()}-{int(time.time())}",
+            "artifacts": [], "claims": [], "evidence_refs": [],
+            "open_questions": [], "summary": "",
+        }
+        for key, value in defaults.items():
+            if key not in out:
+                out[key] = value
+                repairs.append(f"missing:{key}")
+        if isinstance(out.get("claims"), list):
+            fixed = []
+            for claim in out["claims"]:
+                if isinstance(claim, str):
+                    claim = {"claim": claim, "counts_as_evidence": False}
+                    repairs.append("claims:string->object")
+                if isinstance(claim, dict) and "counts_as_evidence" not in claim:
+                    claim = {**claim, "counts_as_evidence": False}
+                    repairs.append("claims:counts_as_evidence")
+                fixed.append(claim)
+            out["claims"] = fixed
+        return out, repairs
+
+    def _start_heartbeat(self, interval_s: float = 3.0) -> None:
+        if getattr(self, "_heartbeat_thread", None):
+            return
+        self._heartbeat_stop = threading.Event()
+
+        def loop() -> None:
+            while not self._heartbeat_stop.wait(interval_s):
+                path = self.project_dir / "state" / "progress.json"
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    now = time.time()
+                    data["updated_at"] = now
+                    data["clock"] = time.strftime("%H:%M:%S", time.localtime(now))
+                    data["elapsed_s"] = int(now - self._run_started_at)
+                    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                                    encoding="utf-8")
+                except (OSError, json.JSONDecodeError):
+                    continue
+
+        self._heartbeat_thread = threading.Thread(
+            target=loop, name=f"progress-{self.project_dir.name}", daemon=True)
+        self._heartbeat_thread.start()
+
+    def _stop_heartbeat(self) -> None:
+        stop = getattr(self, "_heartbeat_stop", None)
+        if stop:
+            stop.set()
+        thread = getattr(self, "_heartbeat_thread", None)
+        if thread:
+            thread.join(timeout=2)
+        self._heartbeat_thread = None
+
+    def _update_project(self, **fields: Any) -> None:
+        path = self.project_dir / "project.json"
+        try:
+            project = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            project = {"project_id": self.project_dir.name}
+        project.update(fields)
+        path.write_text(json.dumps(project, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8")
+
+    def _project_total(self, state: dict[str, Any]) -> int:
+        return len(state) if self.merge_state else getattr(self, "_run_total", len(self.roles))
+
+    def write_progress(self, state: dict[str, Any], status: str,
+                       current_role: str | None, index: int) -> None:
+        now = time.time()
+        progress = {
+            "status": status,
+            "current_role": current_role or "",
+            "current_index": index,
+            "total_roles": self._project_total(state),
+            "run_started_at": getattr(self, "_run_started_at", now),
+            "elapsed_s": int(now - getattr(self, "_run_started_at", now)),
+            "updated_at": now,
+            "clock": time.strftime("%H:%M:%S", time.localtime(now)),
+            "completed": [r for r, v in state.items()
+                          if isinstance(v, dict) and v.get("status") == "done"],
+            "blocked": [r for r, v in state.items()
+                        if isinstance(v, dict) and v.get("status") == "blocked"],
+            "failed": [r for r, v in state.items()
+                       if isinstance(v, dict) and v.get("status") == "error"],
+        }
+        path = self.project_dir / "state" / "progress.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(progress, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8")
+
+    def live_state(self, state: dict[str, Any], status: str,
+                   current_role: str | None, index: int) -> None:
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        self.state_path.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.write_progress(state, status, current_role, index)
+        self._update_project(
+            status=status,
+            current_role=current_role or "",
+            current_index=index,
+            total_roles=self._project_total(state),
+            progress_updated_at=time.time(),
+            updated_at=time.strftime("%Y-%m-%d %H:%M:%S"),
+        )
 
     @staticmethod
     def tools_summary(tool_result: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -440,10 +606,16 @@ class ProjectRunner:
                          for e in evidence],
         }
 
-    def run_tools(self, code_root: Path, role: str) -> dict[str, Any]:
+    def run_tools(self, code_root: Path, role: str,
+                  files: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        scope = next((p.rstrip("/") for p in ROLE_MAP[role].scope
+                      if p.startswith("src/")), "src")
+        paths = [str(f.get("path", "")) for f in (files or [])
+                 if str(f.get("path", "")).endswith(".py")]
         try:
             result = collect(self.project_dir, profile=self.tool_profile,
-                             code_root=code_root, ledger_path=self.evidence_ledger,
+                             code_root=code_root, scope=scope, files=paths or None,
+                             ledger_path=self.evidence_ledger,
                              baseline_fp=self.baseline_fp)
             return result
         except Exception as exc:
@@ -661,16 +833,32 @@ class ProjectRunner:
             if meta.get("quality"):
                 scores.append(meta["quality"]["score"])
         project = json.loads((self.project_dir / "project.json").read_text(encoding="utf-8"))
-        project.update({"status": status, "elapsed_s": elapsed,
+        total_elapsed = elapsed
+        if self.merge_state:
+            logged = 0
+            try:
+                for line in self.log_path.read_text(encoding="utf-8").splitlines():
+                    rec = json.loads(line)
+                    if rec.get("event") == "project.finished":
+                        logged += int(rec.get("elapsed_s", 0) or 0)
+            except (OSError, json.JSONDecodeError):
+                logged = int(project.get("elapsed_s", 0) or 0)
+            total_elapsed = logged + elapsed
+        project.update({"status": status, "elapsed_s": total_elapsed,
                         "model": self.router.summary(),
                         "template": self.template,
                         "template_hash": self.template_record.get("hash", ""),
                         "tool_profile": self.tool_profile,
                         "gates": gates,
                         "quality_avg": round(sum(scores) / len(scores), 1) if scores else None,
-                        "run_id": self.run_id})
+                        "run_id": self.run_id,
+                        "current_role": "",
+                        "current_index": self._project_total(state),
+                        "total_roles": self._project_total(state),
+                        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")})
         (self.project_dir / "project.json").write_text(
             json.dumps(project, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.write_progress(state, status, None, self._run_total)
 
     def write_readme(self, state: dict[str, Any], status: str) -> None:
         rows = ["| 角色 | 标题 | 状态 | 门禁 | 质量 | 模型 | Prompt | 文件 |",

@@ -1,5 +1,0 @@
-{
-  "role": "frontend",
-  "error": "'completed' is not one of ['done', 'need_evidence', 'blocked']\n\nFailed validating 'enum' in schema['properties']['status']:\n    {'type': 'string', 'enum': ['done', 'need_evidence', 'blocked']}\n\nOn instance['status']:\n    'completed'",
-  "at": 1794831397.7793252
-}

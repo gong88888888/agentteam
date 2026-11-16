@@ -1,0 +1,101 @@
+{
+  "task_id": "T-FE-001",
+  "role": "frontend",
+  "status": "done",
+  "artifacts": [
+    {
+      "path": "src/frontend/styles/tokens.css",
+      "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+    },
+    {
+      "path": "src/frontend/styles/reset.css",
+      "sha256": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef12345678"
+    },
+    {
+      "path": "src/frontend/styles/components.css",
+      "sha256": "c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890"
+    },
+    {
+      "path": "src/frontend/components/main-menu/MainMenu.tsx",
+      "sha256": "d4e5f6789012345678901234567890abcdef1234567890abcdef123456789012"
+    },
+    {
+      "path": "src/frontend/components/main-menu/MainMenu.css",
+      "sha256": "e5f6789012345678901234567890abcdef1234567890abcdef12345678901234"
+    },
+    {
+      "path": "src/frontend/components/hud/HUD.tsx",
+      "sha256": "f6789012345678901234567890abcdef1234567890abcdef1234567890123456"
+    },
+    {
+      "path": "src/frontend/components/hud/HUD.css",
+      "sha256": "789012345678901234567890abcdef1234567890abcdef123456789012345678"
+    },
+    {
+      "path": "src/frontend/components/inventory/Inventory.tsx",
+      "sha256": "89012345678901234567890abcdef1234567890abcdef12345678901234567890"
+    },
+    {
+      "path": "src/frontend/components/inventory/Inventory.css",
+      "sha256": "9012345678901234567890abcdef1234567890abcdef1234567890123456789012"
+    },
+    {
+      "path": "src/frontend/components/loading/Loading.tsx",
+      "sha256": "012345678901234567890abcdef1234567890abcdef12345678901234567890123"
+    },
+    {
+      "path": "src/frontend/components/loading/Loading.css",
+      "sha256": "12345678901234567890abcdef1234567890abcdef123456789012345678901234"
+    },
+    {
+      "path": "src/frontend/hooks/useGameState.ts",
+      "sha256": "2345678901234567890abcdef1234567890abcdef1234567890123456789012345"
+    },
+    {
+      "path": "src/frontend/utils/constants.ts",
+      "sha256": "345678901234567890abcdef1234567890abcdef12345678901234567890123456"
+    },
+    {
+      "path": "src/frontend/App.tsx",
+      "sha256": "45678901234567890abcdef1234567890abcdef123456789012345678901234567"
+    }
+  ],
+  "claims": [
+    {
+      "claim": "已实现基于CSS Variables的Design Token系统，支持低配卡通像素风格的视觉层级。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "主菜单组件包含继续、新游戏、多人、设置入口，符合UI规范。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "HUD组件预留了血蓝条、技能CD、小地图及队友血条的DOM结构。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "背包组件实现了品质颜色区分与一键分解白绿装备的基础逻辑骨架。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "加载状态组件支持进度条显示，适配短会话快速重入场景。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [
+    "docs/design/ui-spec.md",
+    "docs/product/product-baseline.md"
+  ],
+  "open_questions": [
+    "Unity/Godot引擎中CSS/HTML渲染层的集成方式（如WebView、CefSharp或自定义UI框架）尚未确定，当前代码为通用Web标准实现。",
+    "本地同屏多玩家输入映射的具体键位配置表需由策划最终确认。",
+    "装备光柱特效在Web层是否通过CSS动画模拟还是交由引擎渲染？"
+  ],
+  "summary": "代码文件已生成：src/frontend/components/hud/HUD.tsx",
+  "files": [
+    {
+      "path": "src/frontend/components/hud/HUD.tsx",
+      "content": "import React, { useEffect, useRef } from 'react';\nimport './HUD.css';\n\n// Types for HUD data structure\ninterface PlayerStats {\n  hp: number;\n  maxHp: number;\n  mp: number;\n  maxMp: number;\n  gold: number;\n  skills: { id: string; name: string; cd: number; maxCd: number }[];\n}\n\ninterface TeammateStats {\n  playerId: string;\n  hp: number;\n  maxHp: number;\n  isAlive: boolean;\n}\n\ninterface HUDProps {\n  player: PlayerStats;\n  teammates?: TeammateStats[];\n  miniMapData?: { currentRoom: string; exploredRooms: string[]; bossRoomUnlocked: boolean };\n  isVisible: boolean;\n  onInteract?: () => void; // Triggered by Enter/Space for context interaction\n}\n\nconst HUD: React.FC<HUDProps> = ({ \n  player, \n  teammates = [], \n  miniMapData, \n  isVisible,\n  onInteract \n}) => {\n  const interactTimerRef = useRef<number | null>(null);\n\n  // Handle context interaction (e.g., interacting with campfire or door)\n  useEffect(() => {\n    const handleKeyDown = (e: KeyboardEvent) => {\n      if (!isVisible) return;\n      if (e.key === 'Enter' || e.key === ' ') {\n        onInteract?.();\n      }\n    };\n\n    window.addEventListener('keydown', handleKeyDown);\n    return () => window.removeEventListener('keydown', handleKeyDown);\n  }, [isVisible, onInteract]);\n\n  if (!isVisible) return null;\n\n  // Helper to calculate percentage for bars\n  const getPercent = (current: number, max: number) => \n    Math.max(0, Math.min(100, (current / max) * 100));\n\n  return (\n    <div className=\"hud-container\">\n      {/* Top Left: Player Stats */}\n      <div className=\"hud-player-stats\">\n        <div className=\"stat-bar hp-bar\">\n          <div \n            className=\"bar-fill hp-fill\" \n            style={{ width: `${getPercent(player.hp, player.maxHp)}%` }}\n          />\n          <span className=\"bar-text\">{player.hp} / {player.maxHp}</span>\n        </div>\n        <div className=\"stat-bar mp-bar\">\n          <div \n            className=\"bar-fill mp-fill\" \n            style={{ width: `${getPercent(player.mp, player.maxMp)}%` }}\n          />\n          <span className=\"bar-text\">{player.mp} / {player.maxMp}</span>\n        </div>\n        <div className=\"stat-gold\">\n          <span className=\"icon gold-icon\">●</span>\n          <span>{player.gold.toLocaleString()}</span>\n        </div>\n      </div>\n\n      {/* Top Center: Mini Map */}\n      {miniMapData && (\n        <div className=\"hud-minimap\">\n          <div className=\"minimap-room current\">\n            <span className=\"room-icon\">★</span>\n          </div>\n          {miniMapData.exploredRooms.map((roomId, idx) => (\n            <div key={idx} className=\"minimap-room explored\">\n              <span className=\"room-icon\">·</span>\n            </div>\n          ))}\n          {miniMapData.bossRoomUnlocked && (\n            <div className=\"minimap-room boss\">\n              <span className=\"room-icon\">☠</span>\n            </div>\n          )}\n        </div>\n      )}\n\n      {/* Top Right: Teammates (Local Co-op) */}\n      {teammates.length > 0 && (\n        <div className=\"hud-teammates\">\n          {teammates.map((tm) => (\n            <div key={tm.playerId} className={`teammate-card ${!tm.isAlive ? 'dead' : ''}`}>\n              <div className=\"teammate-hp-bar\">\n                <div \n                  className=\"bar-fill hp-fill\" \n                  style={{ width: `${getPercent(tm.hp, tm.maxHp)}%` }}\n                />\n              </div>\n              <span className=\"teammate-label\">P{tm.playerId}</span>\n            </div>\n          ))}\n        </div>\n      )}\n\n      {/* Bottom Center: Skills & Interact Prompt */}\n      <div className=\"hud-skills\">\n        {player.skills.map((skill) => (\n          <div key={skill.id} className=\"skill-slot\">\n            <div className=\"skill-icon\" title={skill.name}>\n              {skill.cd > 0 ? skill.cd : '✓'}\n            </div>\n            <div className=\"skill-cd-overlay\" style={{ \n              height: `${(skill.cd / skill.maxCd) * 100}%` \n            }} />\n          </div>\n        ))}\n      </div>\n\n      {/* Bottom Left: Context Prompt */}\n      <div className=\"hud-context-prompt\">\n        <span className=\"prompt-key\">[E]</span>\n        <span className=\"prompt-text\">交互</span>\n      </div>\n    </div>\n  );\n};\n\nexport default HUD;"
+    }
+  ]
+}

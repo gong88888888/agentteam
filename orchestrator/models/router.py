@@ -23,7 +23,8 @@ class ModelRouter:
             local.get("model", "qwen3.6:35b-a3b-mtp-q4_K_M"),
             local.get("fallback_models", []),
             int(local.get("timeout_s", 120)),
-            bool(local.get("think", False)))
+            bool(local.get("think", False)),
+            int(local.get("num_ctx", 32768)))
         self.deepseek = DeepSeekBackend(
             ds.get("base_url", "https://api.deepseek.com/v1"),
             ds.get("api_key", ""),

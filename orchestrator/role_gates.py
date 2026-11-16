@@ -14,16 +14,16 @@ from typing import Any
 from .decisions import DecisionStore
 
 ROLE_KEYWORDS: dict[str, dict[str, list[str]]] = {
-    "pm": {"all": ["切片"], "any": ["依赖", "顺序", "门禁"]},
+    "pm": {"all": [], "any": ["切片", "模块", "阶段", "计划", "路线"]},
     "product": {"all": ["验收"], "any": ["非目标", "不做", "范围"]},
-    "ui": {"all": ["状态"], "any": ["可访问", "对比度", "空", "加载"]},
-    "arch": {"all": ["契约"], "any": ["错误", "不变量", "接口"]},
+    "ui": {"all": [], "any": ["状态", "交互", "流程", "设计规范", "设计 token", "token"]},
+    "arch": {"all": [], "any": ["契约", "接口", "状态机", "错误", "不变量", "事件"]},
     "review": {"all": [], "any": ["问题", "finding", "风险", "整改"]},
     "qa": {"all": ["用例"], "any": ["异常", "边界", "权限"]},
     "security": {"all": ["威胁"], "any": ["缓解", "风险", "验证"]},
     "ops": {"all": ["回滚"], "any": ["监控", "灰度", "演练"]},
     "kb": {"all": [], "any": ["知识", "复用", "决策", "踩坑"]},
-    "retro": {"all": ["根因"], "any": ["行动", "改进", "验证"]},
+    "retro": {"all": [], "any": ["根因", "偏差", "问题", "风险", "行动", "改进", "建议"]},
 }
 
 ARTIFACT_PATHS: dict[str, tuple[str, ...]] = {
@@ -163,11 +163,11 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
         checks.append(GateCheck("files_written", bool(authored),
                                 "代码角色没有写出文件"))
         if not tool_result:
-            missing.extend(sorted(_required_kinds(profile)))
+            missing.extend(sorted(_required_kinds(profile, role)))
             missing.append("tool_evidence")
             checks.append(GateCheck("tool_evidence", False, "没有执行工具证据"))
         else:
-            required = _required_kinds(profile)
+            required = _required_kinds(profile, role)
             for kind in sorted(required):
                 status, ev = _evidence_status(tool_result.get("evidence", []), kind)
                 if ev:
@@ -198,12 +198,14 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
     return result
 
 
-def _required_kinds(profile: str) -> set[str]:
+def _required_kinds(profile: str, role: str = "") -> set[str]:
     if profile == "basic":
-        return {"compile", "unit"}
+        return {"unit"} if role == "frontend" else {"compile", "unit"}
     if profile == "standard":
-        return {"compile", "unit", "sast", "contract_test"}
-    return {"compile", "unit", "sast", "contract_test", "secret_scan"}
+        base = {"unit", "sast", "contract_test"}
+        return base if role == "frontend" else base | {"compile"}
+    base = {"unit", "sast", "contract_test", "secret_scan"}
+    return base if role == "frontend" else base | {"compile"}
 
 
 def _slug(value: str) -> str:

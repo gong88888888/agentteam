@@ -1,236 +1,245 @@
-根据后端摘要（T-BE-001）及架构要求，以下是 `src/backend/models.py` 的完整实现。该文件定义了核心数据结构，包括装备、角色、存档系统以及本地同屏协作所需的状态同步逻辑。
-
-```python
+=== FILE: src/backend/services/dungeon_generator.py ===
 """
-src/backend/models.py
-核心数据模型定义
-包含: 装备, 角色, 房间, 存档, 本地同屏状态
+Dungeon Generator Service
+Deterministic dungeon generation based on seed, ensuring connectivity and room types.
 """
 
-from __future__ import annotations
-import json
-import hashlib
-import time
 import random
-from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Optional, Any, Tuple
-from enum import Enum
-import sqlite3
-import os
-import shutil
+from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass, field
 
-# ==============================================================================
-# 枚举与常量定义
-# ==============================================================================
+# --- Constants & Config ---
 
-class Rarity(Enum):
-    """装备品质"""
-    COMMON = "common"      # 白色
-    UNCOMMON = "uncommon"  # 绿色
-    RARE = "rare"          # 蓝色
-    EPIC = "epic"          # 紫色
-    LEGENDARY = "legendary" # 橙色
+ROOM_TYPES = {
+    "START": "start",
+    "COMBAT": "combat",
+    "PLATFORMING": "platforming",
+    "TREASURE": "treasure",
+    "SHOP": "shop",
+    "BONFIRE": "bonfire",
+    "EVENT": "event",
+    "ELITE": "elite",
+    "BOSS": "boss"
+}
 
-class ItemType(Enum):
-    """物品类型"""
-    WEAPON = "weapon"
-    ARMOR = "armor"
-    ACCESSORY = "accessory"
-    CONSUMABLE = "consumable"
+# Chapter 1 Configuration (MVP Scope)
+CHAPTER_CONFIG = {
+    "name": "蘑菇林迷宫",
+    "total_layers": 5,
+    "rooms_per_layer": 8,  # MVP simplified to 8 rooms + 1 boss
+    "elite_probability": 0.6,
+    "boss_room_index": -1  # Always last
+}
 
-class AffixType(Enum):
-    """词条类型"""
-    ATTACK_POWER = "attack_power"
-    CRITICAL_RATE = "critical_rate"
-    LUCK = "luck"
-    HP_MAX = "hp_max"
-    DEFENSE = "defense"
-
-class SaveVersion(Enum):
-    """存档版本，用于兼容迁移"""
-    V1_0_0 = "1.0.0"
-    CURRENT = "1.1.0"  # 当前版本
-
-# MVP 配置常量
-MAX_SAVE_SLOTS = 3
-BACKUP_SUFFIX = ".bak"
-CRC_SIZE = 4096  # CRC校验读取字节数
-
-# ==============================================================================
-# 数据模型类
-# ==============================================================================
+# Room Template Definitions (Simplified for Backend Logic)
+ROOM_TEMPLATES = {
+    "combat": {"min_waves": 2, "max_waves": 4},
+    "platforming": {"has_chest": True, "trap_chance": 0.3},
+    "treasure": {"min_chests": 1, "max_chests": 3},
+    "shop": {"sells_equipment": True, "sells_keys": True},
+    "bonfire": {"heals_player": True, "allows_save": True},
+    "event": {"type": "gamble_or_curse"},
+    "elite": {"has_affixes": True, "guaranteed_blue_plus_drop": True},
+    "boss": {"phase_count": 3, "guaranteed_blue_plus_drop": True}
+}
 
 @dataclass
-class Affix:
-    """装备词条"""
-    affix_type: AffixType
-    value: float
-    
-    def to_dict(self):
-        return {
-            "type": self.affix_type.value,
-            "value": self.value
-        }
-    
-    @staticmethod
-    def from_dict(data: dict) -> Affix:
-        return Affix(
-            affix_type=AffixType(data["type"]),
-            value=data["value"]
-        )
-
-@dataclass
-class Equipment:
-    """装备数据"""
-    item_id: str  # UUID或ID
-    name: str
-    rarity: Rarity
-    item_type: ItemType
-    base_stats: Dict[str, float] = field(default_factory=dict)
-    affixes: List[Affix] = field(default_factory=list)
-    level: int = 1
-    
-    def get_total_attack(self) -> float:
-        """计算总攻击力 (简化版，仅示例)"""
-        return self.base_stats.get("attack", 0.0) + \
-               sum(a.value for a in self.affixes if a.affix_type == AffixType.ATTACK_POWER)
-
-    def to_dict(self):
-        return {
-            "item_id": self.item_id,
-            "name": self.name,
-            "rarity": self.rarity.value,
-            "item_type": self.item_type.value,
-            "base_stats": self.base_stats,
-            "affixes": [a.to_dict() for a in self.affixes],
-            "level": self.level
-        }
-
-    @staticmethod
-    def from_dict(data: dict) -> Equipment:
-        return Equipment(
-            item_id=data["item_id"],
-            name=data["name"],
-            rarity=Rarity(data["rarity"]),
-            item_type=ItemType(data["item_type"]),
-            base_stats=data.get("base_stats", {}),
-            affixes=[Affix.from_dict(a) for a in data.get("affixes", [])],
-            level=data.get("level", 1)
-        )
-
-@dataclass
-class PlayerState:
-    """玩家状态 (用于存档和同步)"""
-    player_id: str
-    name: str
-    class_type: str  # e.g., "warrior", "mage"
-    level: int = 1
-    exp: float = 0.0
-    
-    # 属性
-    hp: float = 100.0
-    max_hp: float = 100.0
-    mp: float = 50.0
-    max_mp: float = 50.0
-    attack: float = 10.0
-    defense: float = 0.0
-    
-    # 位置 (用于本地同屏同步)
-    x: float = 0.0
-    y: float = 0.0
-    direction: int = 1  # 1 right, -1 left
-    
-    # 背包与装备
-    inventory: List[Equipment] = field(default_factory=list)
-    equipped_weapon: Optional[Equipment] = None
-    equipped_armor: Optional[Equipment] = None
-    
-    # 进度
-    gold: int = 0
-    unlocked_rooms: List[str] = field(default_factory=list)
-    current_room_id: str = "start_room"
-    
-    # 成就/图鉴 (简化)
-    kills: Dict[str, int] = field(default_factory=dict)
-    discovered_monsters: List[str] = field(default_factory=list)
-
-    def to_dict(self):
-        return {
-            "player_id": self.player_id,
-            "name": self.name,
-            "class_type": self.class_type,
-            "level": self.level,
-            "exp": self.exp,
-            "hp": self.hp,
-            "max_hp": self.max_hp,
-            "mp": self.mp,
-            "max_mp": self.max_mp,
-            "attack": self.attack,
-            "defense": self.defense,
-            "x": self.x,
-            "y": self.y,
-            "direction": self.direction,
-            "inventory": [e.to_dict() for e in self.inventory],
-            "equipped_weapon": self.equipped_weapon.to_dict() if self.equipped_weapon else None,
-            "equipped_armor": self.equipped_armor.to_dict() if self.equipped_armor else None,
-            "gold": self.gold,
-            "unlocked_rooms": self.unlocked_rooms,
-            "current_room_id": self.current_room_id,
-            "kills": self.kills,
-            "discovered_monsters": self.discovered_monsters
-        }
-
-    @staticmethod
-    def from_dict(data: dict) -> PlayerState:
-        return PlayerState(
-            player_id=data["player_id"],
-            name=data["name"],
-            class_type=data["class_type"],
-            level=data.get("level", 1),
-            exp=data.get("exp", 0.0),
-            hp=data.get("hp", 100.0),
-            max_hp=data.get("max_hp", 100.0),
-            mp=data.get("mp", 50.0),
-            max_mp=data.get("max_mp", 50.0),
-            attack=data.get("attack", 10.0),
-            defense=data.get("defense", 0.0),
-            x=data.get("x", 0.0),
-            y=data.get("y", 0.0),
-            direction=data.get("direction", 1),
-            inventory=[Equipment.from_dict(e) for e in data.get("inventory", [])],
-            equipped_weapon=Equipment.from_dict(data["equipped_weapon"]) if data.get("equipped_weapon") else None,
-            equipped_armor=Equipment.from_dict(data["equipped_armor"]) if data.get("equipped_armor") else None,
-            gold=data.get("gold", 0),
-            unlocked_rooms=data.get("unlocked_rooms", []),
-            current_room_id=data.get("current_room_id", "start_room"),
-            kills=data.get("kills", {}),
-            discovered_monsters=data.get("discovered_monsters", [])
-        )
-
-@dataclass
-class RoomState:
-    """房间状态 (用于存档同步)"""
+class Room:
     room_id: str
-    is_cleared: bool = False
-    boss_alive: bool = True
-    enemies_remaining: int = 0
-    loot_pool: List[str] = field(default_factory=list) # Item IDs
+    room_type: str
+    layer_index: int
+    position: Tuple[int, int]  # Grid coordinates (x, y)
+    connections: List[str] = field(default_factory=list)
+    data: Dict = field(default_factory=dict)
 
 @dataclass
-class LocalCoopSyncState:
-    """本地同屏同步状态结构"""
-    timestamp: float = 0.0
-    host_player_id: str = ""
-    players: Dict[str, PlayerState] = field(default_factory=dict)
-    camera_offset_x: float = 0.0
-    camera_offset_y: float = 0.0
-    zoom_level: float = 1.0
-    
-    def to_dict(self):
+class DungeonLayer:
+    layer_index: int
+    rooms: List[Room]
+    start_room_id: str
+    boss_room_id: str
+    seed: int
+
+@dataclass
+class GeneratedDungeon:
+    chapter_name: str
+    layers: List[DungeonLayer]
+    global_seed: int
+
+class DungeonGenerator:
+    """
+    Generates deterministic dungeons based on a seed.
+    Ensures connectivity from Start to Boss via a main path, with branches for side rooms.
+    """
+
+    def __init__(self):
+        self._rng = random.Random()
+
+    def generate_dungeon(self, chapter_id: str, global_seed: int) -> GeneratedDungeon:
+        """
+        Main entry point for dungeon generation.
+        """
+        config = CHAPTER_CONFIG  # In production, fetch from ConfigService
+        
+        rng = random.Random(global_seed)
+        layers = []
+
+        for layer_idx in range(config["total_layers"]):
+            layer_rooms = self._generate_layer(layer_idx, config, rng)
+            layers.append(DungeonLayer(
+                layer_index=layer_idx,
+                rooms=layer_rooms,
+                start_room_id=layer_rooms[0].room_id,
+                boss_room_id=layer_rooms[-1].room_id,
+                seed=rng.randint(0, 2**32)
+            ))
+
+        return GeneratedDungeon(
+            chapter_name=config["name"],
+            layers=layers,
+            global_seed=global_seed
+        )
+
+    def _generate_layer(self, layer_idx: int, config: dict, rng: random.Random) -> List[Room]:
+        """
+        Generates a single layer of rooms.
+        Structure: Linear path for main progression, with side branches.
+        """
+        num_rooms = config["rooms_per_layer"]
+        rooms = []
+        
+        # 1. Define Main Path Indices (0 to num_rooms-2)
+        # The last room is always the Boss
+        main_path_indices = list(range(num_rooms - 1))
+        
+        # 2. Assign Room Types along Main Path
+        # Ensure at least one Bonfire and one Shop in the layer if possible
+        has_bonfire = False
+        has_shop = False
+        
+        for i in range(len(main_path_indices)):
+            room_idx = main_path_indices[i]
+            
+            # Determine type based on position and probability
+            if i == 0:
+                r_type = ROOM_TYPES["START"]
+            elif i == len(main_path_indices) - 1:
+                # Second to last is usually Elite or Combat leading to Boss
+                if rng.random() < config.get("elite_probability", 0.6):
+                    r_type = ROOM_TYPES["ELITE"]
+                else:
+                    r_type = ROOM_TYPES["COMBAT"]
+            else:
+                # Random assignment for intermediate rooms
+                roll = rng.random()
+                if not has_bonfire and i == len(main_path_indices) // 2:
+                    r_type = ROOM_TYPES["BONFIRE"]
+                    has_bonfire = True
+                elif not has_shop and i == (len(main_path_indices) // 4):
+                    r_type = ROOM_TYPES["SHOP"]
+                    has_shop = True
+                else:
+                    # Weighted random for other types
+                    if roll < 0.4:
+                        r_type = ROOM_TYPES["COMBAT"]
+                    elif roll < 0.6:
+                        r_type = ROOM_TYPES["PLATFORMING"]
+                    elif roll < 0.8:
+                        r_type = ROOM_TYPES["TREASURE"]
+                    else:
+                        r_type = ROOM_TYPES["EVENT"]
+
+            # Create Room Object
+            room_id = f"L{layer_idx}_R{room_idx}"
+            position = (i, 0) # Linear layout for MVP
+            
+            # Generate specific data based on type
+            data = self._generate_room_data(r_type, rng)
+            
+            rooms.append(Room(
+                room_id=room_id,
+                room_type=r_type,
+                layer_index=layer_idx,
+                position=position,
+                connections=[],
+                data=data
+            ))
+
+        # 3. Add Boss Room (Last one)
+        boss_room = Room(
+            room_id=f"L{layer_idx}_R{num_rooms-1}",
+            room_type=ROOM_TYPES["BOSS"],
+            layer_index=layer_idx,
+            position=(num_rooms - 1, 0),
+            connections=[],
+            data={"phase_count": 3}
+        )
+        rooms.append(boss_room)
+
+        # 4. Establish Connections (Linear Chain)
+        for i in range(len(rooms) - 1):
+            rooms[i].connections.append(rooms[i+1].room_id)
+            rooms[i+1].connections.append(rooms[i].room_id)
+
+        return rooms
+
+    def _generate_room_data(self, r_type: str, rng: random.Random) -> Dict:
+        """Generates specific data payload for a room type."""
+        if r_type == ROOM_TYPES["COMBAT"]:
+            waves = rng.randint(2, 4)
+            return {"waves": [{"count": rng.randint(3, 6), "type": "slime"} for _ in range(waves)]}
+        
+        elif r_type == ROOM_TYPES["TREASURE"]:
+            chests = rng.randint(1, 3)
+            return {"chests": [self._generate_chest(rng) for _ in range(chests)]}
+        
+        elif r_type == ROOM_TYPES["EVENT"]:
+            event_type = rng.choice(["gamble", "curse_blessing"])
+            return {"event_type": event_type, "resolved": False}
+        
+        elif r_type == ROOM_TYPES["ELITE"]:
+            affixes = ["shield", "speed"] if rng.random() > 0.5 else ["regen"]
+            return {"affixes": affixes, "elite_hp_mult": 2.0}
+        
+        return {}
+
+    def _generate_chest(self, rng: random.Random) -> Dict:
+        """Helper to generate chest data."""
+        is_trap = rng.random() < 0.3
         return {
-            "timestamp": self.timestamp,
-            "host_player_id": self.host_player_id,
-            "players": {pid: p.to_dict() for pid, p in self.players.items()},
-            "camera_offset_x": self.camera_offset_x,
-            "camera_offset_y": self.camera_offset_y,
-            "zoom_level": self.zoom_level
+            "id": f"chest_{rng.randint(1000, 9999)}",
+            "is_trap": is_trap,
+            "loot_table_id": "common_treasure" if not is_trap else None
+        }
+
+    def get_room_by_id(self, dungeon: GeneratedDungeon, room_id: str) -> Optional[Room]:
+        """Helper to find a specific room in the generated dungeon."""
+        for layer in dungeon.layers:
+            for room in layer.rooms:
+                if room.room_id == room_id:
+                    return room
+        return None
+
+    def get_next_rooms(self, dungeon: GeneratedDungeon, current_room_id: str) -> List[Room]:
+        """Get valid next rooms from a specific room."""
+        current = self.get_room_by_id(dungeon, current_room_id)
+        if not current:
+            return []
+        
+        next_rooms = []
+        for conn_id in current.connections:
+            # Filter out locked doors or completed boss rooms if necessary
+            # For MVP, just return connected rooms
+            room = self.get_room_by_id(dungeon, conn_id)
+            if room and not self._is_room_locked(room):
+                next_rooms.append(room)
+        return next_rooms
+
+    def _is_room_locked(self, room: Room) -> bool:
+        """Check if a room is locked (e.g., requires key)."""
+        # MVP: Only keys might lock treasure rooms in some designs, 
+        # but spec says "max 1 key door per layer". 
+        # For now, assume unlocked unless data indicates otherwise.
+        return False
+
+=== END FILE ===

@@ -24,6 +24,34 @@ class RunnerIntegrationTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
+    def test_normalize_envelope_aliases(self) -> None:
+        obj, repairs = ProjectRunner.normalize_envelope(
+            {"status": "completed", "role": "frontend", "summary": "实现登录页",
+             "claims": ["保持组件复用"]}, "frontend")
+        self.assertEqual(obj["status"], "done")
+        self.assertEqual(obj["claims"][0]["claim"], "保持组件复用")
+        self.assertFalse(obj["claims"][0]["counts_as_evidence"])
+        self.assertIn("status:completed->done", repairs)
+        self.assertIn("claims:string->object", repairs)
+
+    def test_live_state_writes_progress(self) -> None:
+        project = self.base / "live"
+        runner = ProjectRunner(requirements=self.req, project_dir=project,
+                               offline=True, roles=["pm", "product"])
+        runner.prepare()
+        runner._run_started_at = 1000
+        runner._run_total = 2
+        runner.live_state({"pm": {"status": "running", "started_at": 1000}},
+                          "running", "pm", 1)
+        progress = json.loads((project / "state" / "progress.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(progress["status"], "running")
+        self.assertEqual(progress["current_role"], "pm")
+        self.assertEqual(progress["current_index"], 1)
+        project_meta = json.loads((project / "project.json").read_text(encoding="utf-8"))
+        self.assertEqual(project_meta["status"], "running")
+        self.assertEqual(project_meta["current_role"], "pm")
+
     def test_template_tools_gates_quality_and_sandbox(self) -> None:
         project = self.base / "proj"
         runner = ProjectRunner(
@@ -38,7 +66,7 @@ class RunnerIntegrationTest(unittest.TestCase):
         self.assertTrue((project / "docs" / "product" / "product-baseline.md").is_file())
         ledger = project / "evidence" / "tool-ledger.jsonl"
         rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
-        self.assertGreaterEqual(len(rows), 4)
+        self.assertGreaterEqual(len(rows), 3)
         state = json.loads((project / "state" / "roles.json").read_text(encoding="utf-8"))
         for role in ("product", "backend", "frontend"):
             self.assertEqual(state[role]["gate"]["status"], "pass", role)

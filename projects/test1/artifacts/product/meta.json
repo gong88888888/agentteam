@@ -10,14 +10,14 @@
   },
   "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
   "backend": "local",
-  "latency_ms": 7935,
-  "tokens": 3861,
+  "latency_ms": 4923,
+  "tokens": 5442,
   "cost_usd": 0.0,
   "files": [
     {
       "path": "docs/product/product-baseline.md",
-      "sha256": "20cdbc11a63cf513fd4354746e5ac94f5a31118490acdd9267b1fdce2274180a",
-      "bytes": 951,
+      "sha256": "67f0c22237b7e2d21164a8c5988def3a430055577ca1709dc285332f0ad4350f",
+      "bytes": 1327,
       "source": "runner-summary",
       "promoted": true
     }
@@ -68,8 +68,11 @@
   "tools": null,
   "sandbox": "direct",
   "template": "minimal-api",
-  "run_id": "20261116-201306",
-  "finished_at": "2026-11-16 20:14:07",
+  "run_id": "20261116-202614",
+  "started_at": 1794831983.9221008,
+  "started_clock": "20:26:23",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:26:40",
   "quality": {
     "score": 95,
     "grade": "A",

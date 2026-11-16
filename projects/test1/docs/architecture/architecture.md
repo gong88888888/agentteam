@@ -1,22 +1,18 @@
-# Architecture (scaffold)
+# arch · 架构与契约
 
-> Replace this scaffold with the requirement-specific design.
+> 运行器根据角色结构化输出生成；不是模型直接写入的文件，也不作为工具证据。
 
-## Layers
+- 状态：done
+- 摘要：完成《迷宫冒险家》技术架构设计与接口契约定义。核心决策：1. **架构模式**：采用Host-Authority，单机/本地同屏单进程，局域网联机Host权威；2. **技术栈解耦**：明确Unity/Godot为游戏运行时，React仅用于非实时UI（如主菜单、背包编辑），通过JSON/IPC交换数据，消除前端代码冲突风险；3. **存档安全**：定义WAL预写日志+双备份+CRC校验机制，确保异常退出数据不丢失；4. **接口契约**：定义迷宫生成器输出格式、装备词条结构、同步状态协议。MVP范围锁定第一章5层+本地双人，排除远程联机以降低复杂度。
 
-- HTTP adapter (`src/backend/app.py`)
-- Domain services
-- Persistence adapter
+## Claims（不参与门禁）
 
-## Contract
+- 已解决技术栈冲突：明确MVP阶段Unity/Godot为运行时引擎，React仅用于编辑器工具或启动器UI，二者通过本地HTTP/IPC通信。
+- 定义了Host-Authority架构，确保单人基准与多人同步的一致性，动态难度缩放由Host统一计算。
+- 存档系统采用WAL（Write-Ahead Logging）+ CRC校验双备份策略，解决原子性与防丢档问题。
 
-`contracts/openapi.yaml` is the frozen interface for this slice.
+## 未决问题
 
-## Invariants
-
-- TODO: state invariants and failure behavior.
-- Errors are returned as JSON with a stable code.
-
-## Out of scope
-
-- TODO.
+- Q-004: Unity与React集成具体采用Electron还是CEF？需确认性能开销与打包策略。
+- Q-005: Godot引擎若选型，需重新定义ScriptableObject对应的Resource格式及序列化协议。
+- Q-006: 局域网联机UDP包结构细节（如状态同步频率、丢包重传机制）需在P1阶段详细设计。

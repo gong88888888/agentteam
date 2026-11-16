@@ -1,0 +1,1125 @@
+{
+  "pm": {
+    "role": "pm",
+    "title": "项目计划与切片",
+    "status": "done",
+    "prompt": {
+      "role": "pm",
+      "version": 1,
+      "hash": "11bdc73b9f9e300c",
+      "path": "prompts\\roles\\pm.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 4584,
+    "tokens": 8055,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/plan/project-plan.md",
+        "sha256": "a2d81a25e9ef71fec5b213ab8e1962468b94de9b26d93e7539262ff6f2e9006e",
+        "bytes": 1347,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-pm",
+      "role": "pm",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：切片/模块/阶段/计划/路线"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/plan/project-plan.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-203245",
+    "started_at": 1794832365.1915748,
+    "started_clock": "20:32:45",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:33:02",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "product": {
+    "role": "product",
+    "title": "产品基准",
+    "status": "done",
+    "prompt": {
+      "role": "product",
+      "version": 1,
+      "hash": "3e6de06e4795901a",
+      "path": "prompts\\roles\\product.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 4923,
+    "tokens": 5442,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/product/product-baseline.md",
+        "sha256": "67f0c22237b7e2d21164a8c5988def3a430055577ca1709dc285332f0ad4350f",
+        "bytes": 1327,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-product",
+      "role": "product",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:验收",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：非目标/不做/范围"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/product/product-baseline.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794831983.9221008,
+    "started_clock": "20:26:23",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:26:40",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "ui": {
+    "role": "ui",
+    "title": "UI/UX 设计规范",
+    "status": "done",
+    "prompt": {
+      "role": "ui",
+      "version": 1,
+      "hash": "d79973713014ba6c",
+      "path": "prompts\\roles\\ui.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 4337,
+    "tokens": 9137,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/design/ui-spec.md",
+        "sha256": "d041b4b982f92dfa174157c6df80f82d669ac717c3142ef2d3cd03970a1f63c4",
+        "bytes": 1379,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-ui",
+      "role": "ui",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：状态/交互/流程/设计规范/设计 token/token"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/design/ui-spec.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-203709",
+    "started_at": 1794832629.5450954,
+    "started_clock": "20:37:09",
+    "schema_repairs": [
+      "claims:string->object",
+      "claims:string->object",
+      "claims:string->object"
+    ],
+    "finished_at": "2026-11-16 20:37:19",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "arch": {
+    "role": "arch",
+    "title": "架构与契约",
+    "status": "done",
+    "prompt": {
+      "role": "arch",
+      "version": 1,
+      "hash": "fb5584fc4cae3222",
+      "path": "prompts\\roles\\arch.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 14950,
+    "tokens": 7754,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/architecture/architecture.md",
+        "sha256": "ee4c2656c2c290818227bf52b9dde4779906440b9a15320670f098d5a9d50815",
+        "bytes": 1606,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-arch",
+      "role": "arch",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：契约/接口/状态机/错误/不变量/事件"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/architecture/architecture.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-203245",
+    "started_at": 1794832399.4875093,
+    "started_clock": "20:33:19",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:33:34",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "backend": {
+    "role": "backend",
+    "title": "后端实现",
+    "status": "done",
+    "prompt": {
+      "role": "backend",
+      "version": 1,
+      "hash": "c57160acc7ae1330",
+      "path": "prompts\\roles\\backend.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 16082,
+    "tokens": 8197,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "src/backend/services/dungeon_generator.py",
+        "sha256": "d22462f961c85ea75d9c045ffff75feb108ea74de4f3a8f69975bba1e1067b0c",
+        "bytes": 8569,
+        "source": "role",
+        "promoted": true
+      }
+    ],
+    "code_pass": true,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-backend",
+      "role": "backend",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "src/backend/"
+        },
+        {
+          "name": "files_written",
+          "ok": true,
+          "detail": "代码角色没有写出文件"
+        },
+        {
+          "name": "evidence:compile",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence:unit",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence_subject",
+          "ok": true,
+          "detail": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573"
+        }
+      ],
+      "evidence_ids": [
+        "EV-000010",
+        "EV-000011"
+      ],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573"
+    },
+    "tools": {
+      "profile": "basic",
+      "subject_hash": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573",
+      "ledger": "D:\\agentteam\\projects\\test1\\evidence\\tool-ledger.jsonl",
+      "passed": [
+        "compile",
+        "unit"
+      ],
+      "failed": [],
+      "missing": [],
+      "evidence": [
+        {
+          "evidence_id": "EV-000010",
+          "kind": "compile",
+          "result": "pass",
+          "tool": "python",
+          "tool_version": "3.13.15"
+        },
+        {
+          "evidence_id": "EV-000011",
+          "kind": "unit",
+          "result": "pass",
+          "tool": "unittest",
+          "tool_version": "3.13.15"
+        }
+      ]
+    },
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-203245",
+    "started_at": 1794832414.4565408,
+    "started_clock": "20:33:34",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:34:15",
+    "quality": {
+      "score": 99,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": []
+    }
+  },
+  "frontend": {
+    "role": "frontend",
+    "title": "前端实现",
+    "status": "done",
+    "prompt": {
+      "role": "frontend",
+      "version": 1,
+      "hash": "e03e38f7405c7201",
+      "path": "prompts\\roles\\frontend.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 20546,
+    "tokens": 6452,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "src/frontend/components/hud/HUD.tsx",
+        "sha256": "9366778e454dc1b29a1ecffc6ba257664fde36dfab6fcff23aa49cd7777776c0",
+        "bytes": 4232,
+        "source": "role",
+        "promoted": true
+      }
+    ],
+    "code_pass": true,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-frontend",
+      "role": "frontend",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "src/frontend/"
+        },
+        {
+          "name": "files_written",
+          "ok": true,
+          "detail": "代码角色没有写出文件"
+        },
+        {
+          "name": "evidence:unit",
+          "ok": true,
+          "detail": "pass"
+        },
+        {
+          "name": "evidence_subject",
+          "ok": true,
+          "detail": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee"
+        }
+      ],
+      "evidence_ids": [
+        "EV-000009"
+      ],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee"
+    },
+    "tools": {
+      "profile": "basic",
+      "subject_hash": "6e3fedaf72340eeae7b96a0c8e9b08aa443be5c3e4625e57adb6834ff7b7a5ee",
+      "ledger": "D:\\agentteam\\projects\\test1\\evidence\\tool-ledger.jsonl",
+      "passed": [
+        "unit"
+      ],
+      "failed": [],
+      "missing": [
+        "compile"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EV-000009",
+          "kind": "unit",
+          "result": "pass",
+          "tool": "unittest",
+          "tool_version": "3.13.15"
+        }
+      ]
+    },
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832207.3808339,
+    "started_clock": "20:30:07",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:30:44",
+    "quality": {
+      "score": 89,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 10,
+        "efficiency": 9,
+        "clarity": 10
+      },
+      "issues": []
+    }
+  },
+  "review": {
+    "role": "review",
+    "title": "代码评审",
+    "status": "done",
+    "prompt": {
+      "role": "review",
+      "version": 1,
+      "hash": "14bb816c171b120c",
+      "path": "prompts\\roles\\review.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 6237,
+    "tokens": 5855,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/reviews/review.md",
+        "sha256": "2cd72a60e0303b54a2a63e904e0de91c6551c9004753bca3a5e5e05ae804a6cd",
+        "bytes": 1498,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-review",
+      "role": "review",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：问题/finding/风险/整改"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/reviews/review.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832244.4933298,
+    "started_clock": "20:30:44",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:31:02",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "qa": {
+    "role": "qa",
+    "title": "测试计划与用例",
+    "status": "done",
+    "prompt": {
+      "role": "qa",
+      "version": 1,
+      "hash": "75651a34fb0a2781",
+      "path": "prompts\\roles\\qa.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 5022,
+    "tokens": 5930,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "tests/test-plan.md",
+        "sha256": "582ebe3ff134a5f4b42da94ceec7a6c5429c29ed46332017110521740747f7ab",
+        "bytes": 1504,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-qa",
+      "role": "qa",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:用例",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：异常/边界/权限"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "tests/test-plan.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832262.7971656,
+    "started_clock": "20:31:02",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:31:19",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "security": {
+    "role": "security",
+    "title": "安全与合规",
+    "status": "done",
+    "prompt": {
+      "role": "security",
+      "version": 1,
+      "hash": "029edc5b6957ee1a",
+      "path": "prompts\\roles\\security.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 9350,
+    "tokens": 5060,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/security/threat-model.md",
+        "sha256": "a0850f933945ec6adea6792222a4607f2c4ebde56c2952f78288b3c9d60c8627",
+        "bytes": 1031,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-security",
+      "role": "security",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:威胁",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：缓解/风险/验证"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/security/threat-model.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832279.7017803,
+    "started_clock": "20:31:19",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:31:29",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "ops": {
+    "role": "ops",
+    "title": "发布与回滚",
+    "status": "done",
+    "prompt": {
+      "role": "ops",
+      "version": 1,
+      "hash": "9eed02c89930aed9",
+      "path": "prompts\\roles\\ops.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 13039,
+    "tokens": 6942,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/ops/release-plan.md",
+        "sha256": "7cd212c428b9f78d53d671c48f42917da4edd493b7de928790f8a6e0fb84f58a",
+        "bytes": 2731,
+        "source": "role",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-ops",
+      "role": "ops",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:回滚",
+          "ok": true,
+          "detail": "缺少必需内容"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：监控/灰度/演练"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/ops/release-plan.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832289.0690422,
+    "started_clock": "20:31:29",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:31:53",
+    "quality": {
+      "score": 100,
+      "grade": "A",
+      "components": {
+        "completeness": 30,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": []
+    }
+  },
+  "kb": {
+    "role": "kb",
+    "title": "知识沉淀",
+    "status": "done",
+    "prompt": {
+      "role": "kb",
+      "version": 1,
+      "hash": "62e7cccb3983d9f3",
+      "path": "prompts\\roles\\kb.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 5987,
+    "tokens": 6321,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "knowledge/project-notes.md",
+        "sha256": "828bcf8e0ab1935eb7cbb65c685c125834a5fae357c5762db855db3a390314ee",
+        "bytes": 1873,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-kb",
+      "role": "kb",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：知识/复用/决策/踩坑"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "knowledge/project-notes.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-202614",
+    "started_at": 1794832313.0208824,
+    "started_clock": "20:31:53",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:32:10",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  },
+  "retro": {
+    "role": "retro",
+    "title": "复盘与改进",
+    "status": "done",
+    "prompt": {
+      "role": "retro",
+      "version": 1,
+      "hash": "d50198e7c91b58fd",
+      "path": "prompts\\roles\\retro.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 5487,
+    "tokens": 9211,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "docs/retro/retro.md",
+        "sha256": "0efe9f144bcb965d410aae09c10df5a54d421782271929e8763a1503417e71a3",
+        "bytes": 1304,
+        "source": "runner-summary",
+        "promoted": true
+      }
+    ],
+    "code_pass": false,
+    "adjustment": "",
+    "gate": {
+      "gate_id": "G-TEST1-retro",
+      "role": "retro",
+      "status": "pass",
+      "checks": [
+        {
+          "name": "role_matches",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "status_not_blocked",
+          "ok": true,
+          "detail": "done"
+        },
+        {
+          "name": "summary_present",
+          "ok": true,
+          "detail": "summary 过短或缺失"
+        },
+        {
+          "name": "keyword:any",
+          "ok": true,
+          "detail": "缺少任一预期内容：根因/偏差/问题/风险/行动/改进/建议"
+        },
+        {
+          "name": "artifact",
+          "ok": true,
+          "detail": "docs/retro/retro.md"
+        }
+      ],
+      "evidence_ids": [],
+      "missing": [],
+      "decision_id": null,
+      "subject_hash": ""
+    },
+    "tools": null,
+    "sandbox": "direct",
+    "template": "minimal-api",
+    "run_id": "20261116-203423",
+    "started_at": 1794832463.652106,
+    "started_clock": "20:34:23",
+    "schema_repairs": [],
+    "finished_at": "2026-11-16 20:34:43",
+    "quality": {
+      "score": 95,
+      "grade": "A",
+      "components": {
+        "completeness": 25,
+        "gate": 30,
+        "evidence": 20,
+        "efficiency": 10,
+        "clarity": 10
+      },
+      "issues": [
+        "没有模型-authored 交付物",
+        "存在 runner-summary 补写的文档"
+      ]
+    }
+  }
+}

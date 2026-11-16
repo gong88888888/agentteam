@@ -1,0 +1,91 @@
+{
+  "role": "security",
+  "title": "安全与合规",
+  "status": "done",
+  "prompt": {
+    "role": "security",
+    "version": 1,
+    "hash": "029edc5b6957ee1a",
+    "path": "prompts\\roles\\security.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 9350,
+  "tokens": 5060,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "docs/security/threat-model.md",
+      "sha256": "a0850f933945ec6adea6792222a4607f2c4ebde56c2952f78288b3c9d60c8627",
+      "bytes": 1031,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-security",
+    "role": "security",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:威胁",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：缓解/风险/验证"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/security/threat-model.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-202614",
+  "started_at": 1794832279.7017803,
+  "started_clock": "20:31:19",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:31:29",
+  "quality": {
+    "score": 95,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
+}

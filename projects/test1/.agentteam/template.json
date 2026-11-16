@@ -2,7 +2,8 @@
   "template": "minimal-api",
   "title": "Minimal stdlib API",
   "hash": "0a227e36d8eb8929",
-  "copied": [
+  "copied": [],
+  "skipped": [
     "contracts/openapi.yaml",
     "docs/architecture/architecture.md",
     "docs/product/product-baseline.md",
@@ -14,6 +15,5 @@
     "tests/test_app.py",
     "tools/semgrep.yml"
   ],
-  "skipped": [],
   "overwrite": false
 }

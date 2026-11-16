@@ -1,0 +1,86 @@
+{
+  "role": "arch",
+  "title": "架构与契约",
+  "status": "done",
+  "prompt": {
+    "role": "arch",
+    "version": 1,
+    "hash": "fb5584fc4cae3222",
+    "path": "prompts\\roles\\arch.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 14950,
+  "tokens": 7754,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "docs/architecture/architecture.md",
+      "sha256": "ee4c2656c2c290818227bf52b9dde4779906440b9a15320670f098d5a9d50815",
+      "bytes": 1606,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-arch",
+    "role": "arch",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：契约/接口/状态机/错误/不变量/事件"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/architecture/architecture.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-203245",
+  "started_at": 1794832399.4875093,
+  "started_clock": "20:33:19",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 20:33:34",
+  "quality": {
+    "score": 95,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
+}
