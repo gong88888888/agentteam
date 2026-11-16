@@ -95,6 +95,7 @@ class Task:
     risk: str = "medium"
     acceptance: list[str] = field(default_factory=list)
     write_scope: list[str] = field(default_factory=list)
+    locks: list[str] = field(default_factory=list)
     gate: str | None = None
     approval: str | None = None
     start_after: int = 0
@@ -222,6 +223,7 @@ class DagValidationError(Exception):
 class Sim:
     def __init__(self) -> None:
         self.t = 0
+        self.out_dir = OUT_DIR
         self.tasks: dict[str, Task] = {}
         self.events: list[dict] = []
         self.decisions: list[Decision] = []
@@ -232,6 +234,12 @@ class Sim:
         self.cache: dict[str, Evidence] = {}
         self.defects: list[dict] = []
         self.running: dict[str, int] = {}
+        self.lock_owner: dict[str, str] = {}
+        self.lock_conflicts = 0
+        self.lock_wait_total = 0
+        self.lock_waiters: set[str] = set()
+        self.lock_wait_start: dict[str, int] = {}
+        self.peak_locks = 0
         self.max_concurrency = 4
         self.peak_concurrency = 0
         self.tokens = 0
@@ -332,7 +340,7 @@ class Sim:
             task.ready_at = self.t
         self.log("task.created", task=task.id, slice=task.slice_id, role=task.role,
                  gate=task.gate, decision=task.approval,
-                 deps=task.deps, deps_any=task.deps_any)
+                 deps=task.deps, deps_any=task.deps_any, locks=task.locks)
 
     def validate_dag(self) -> None:
         # 依赖存在性（add_task 已保证 required；这里复查）
@@ -1491,7 +1499,7 @@ class Sim:
                                  "slice": "S2",
                                  "title": "水平越权：GET /records/{id} 未校验 owner",
                                  "status": "open"})
-            self.log("defect.found", defect="D-101", severity="致命",
+            self.log("defect.found", task=task.id, defect="D-101", severity="致命",
                      file="src/backend/s2/main.py:142",
                      detail="用户 A 可读取用户 B 的记录；权限测试工具签名")
             self.rework_count += 1
@@ -1511,7 +1519,7 @@ class Sim:
                                  "slice": "S3",
                                  "title": "空数据月份图表显示 NaN",
                                  "status": "closed"})
-            self.log("defect.found", defect="D-102", severity="一般",
+            self.log("defect.found", task=task.id, defect="D-102", severity="一般",
                      detail="已在本任务内修复并回归，不阻塞门禁")
             return False
         return False
@@ -1547,7 +1555,28 @@ class Sim:
             if not candidates:
                 return
             candidates.sort(key=lambda x: (x.priority, -x.duration, x.id))
-            task = candidates[0]
+            for t in candidates:
+                held = [lock for lock in t.locks if lock in self.lock_owner]
+                if held and t.id not in self.lock_waiters:
+                    self.lock_waiters.add(t.id)
+                    self.lock_wait_start[t.id] = self.t
+                    self.lock_conflicts += 1
+                    self.log("shared_file.conflict", task=t.id,
+                             locks=held, held_by=[self.lock_owner[x] for x in held])
+            startable = [t for t in candidates
+                         if not any(lock in self.lock_owner for lock in t.locks)]
+            if not startable:
+                return
+            task = startable[0]
+            for lock in task.locks:
+                self.lock_owner[lock] = task.id
+            self.peak_locks = max(self.peak_locks, len(self.lock_owner))
+            if task.locks:
+                wait = self.t - self.lock_wait_start.pop(task.id, self.t)
+                self.lock_wait_total += wait
+                self.lock_waiters.discard(task.id)
+                self.log("shared_file.acquired", task=task.id,
+                         locks=task.locks, wait_min=wait)
             task.state = CHECKING if (task.gate or task.approval) else RUNNING
             task.attempts += 1
             task.started_at = self.t
@@ -1568,6 +1597,10 @@ class Sim:
             task = self.tasks[tid]
             del self.running[tid]
             task.ended_at = self.t
+            for lock in getattr(task, "locks", []):
+                if self.lock_owner.get(lock) == task.id:
+                    del self.lock_owner[lock]
+                    self.log("shared_file.released", task=task.id, lock=lock)
             if task.gate or task.approval:
                 self.prepare_decision(task)
                 continue
@@ -1628,6 +1661,10 @@ class Sim:
             self.log("scheduler.loop_guard")
         if self.status == "running":
             self.status = "completed" if self.all_terminal() else "incomplete"
+        if any(t.state == BLOCKED for t in self.tasks.values()):
+            self.fatal = True
+            if self.status == "completed":
+                self.status = "failed"
         if self.fatal and self.status == "completed":
             self.status = "failed"
         self.log("project.closed", elapsed_minutes=self.t,
@@ -1657,6 +1694,9 @@ class Sim:
             "tasks_failed": failed,
             "tasks_superseded": superseded,
             "peak_concurrency": self.peak_concurrency,
+            "lock_conflicts": self.lock_conflicts,
+            "lock_wait_min": self.lock_wait_total,
+            "peak_locks": self.peak_locks,
             "avg_queue_wait_min": round(sum(waits) / len(waits), 1) if waits else 0,
             "max_queue_wait_min": max(waits) if waits else 0,
             "gates": len(gate_ids),
@@ -1712,12 +1752,12 @@ class Sim:
         }
 
     def write_outputs(self) -> dict:
-        os.makedirs(OUT_DIR, exist_ok=True)
+        os.makedirs(self.out_dir, exist_ok=True)
         m = self.metrics()
-        with open(os.path.join(OUT_DIR, "events.jsonl"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.out_dir, "events.jsonl"), "w", encoding="utf-8") as f:
             for e in self.events:
                 f.write(json.dumps(e, ensure_ascii=False) + "\n")
-        with open(os.path.join(OUT_DIR, "metrics.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.out_dir, "metrics.json"), "w", encoding="utf-8") as f:
             json.dump(m, f, ensure_ascii=False, indent=2)
 
         lines = ["# 开发预演事件时间线", "",
@@ -1734,7 +1774,7 @@ class Sim:
             lines.append(f"| {e['clock']} | {e['event']} | "
                          f"{e.get('task') or e.get('gate') or e.get('defect') or e.get('decision') or '-'} | "
                          f"{detail} |")
-        with open(os.path.join(OUT_DIR, "timeline.md"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.out_dir, "timeline.md"), "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
 
         rows = ["| 任务 | 切片 | 角色 | 尝试 | 状态 | 等待(min) | 门禁 |",
@@ -1794,7 +1834,7 @@ class Sim:
             f"- {', '.join(m['acceptance_covered'])}",
             "",
         ]
-        with open(os.path.join(OUT_DIR, "auto-report.md"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.out_dir, "auto-report.md"), "w", encoding="utf-8") as f:
             f.write("\n".join(report) + "\n")
         return m
 

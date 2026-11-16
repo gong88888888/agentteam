@@ -25,3 +25,6 @@ RAG-Agent-Toolkit.zip
 .idea/
 .DS_Store
 Thumbs.db
+
+# generated dashboard data (index.html embeds it)
+dashboard/data.json

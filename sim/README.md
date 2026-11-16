@@ -62,3 +62,27 @@ python -I sim/selfcheck.py
 ## 口径
 
 任务时长、Token、费用为设定/估算值；单项目、3 切片，不能外推为所有项目的工期。真实接入 DeepSeek 前，必须用金标准集测出裁判漏判率与误批率，并用真实 `JudgeBackend` 替换脚本化 rubric 桩。
+
+
+## W3：并行 / 共享文件 / 契约影响 / Serial Baseline
+
+```bash
+python sim/w3.py --mode both
+python sim/w3_selfcheck.py
+python dashboard/build.py
+```
+
+| 指标 | Parallel | Serial |
+|---|---|---|
+| 虚拟工期 | 1,302 min | 2,815 min |
+| 平均排队等待 | 12.8 min | 60.7 min |
+| 峰值并发 | 4 | 1 |
+| 共享文件冲突 / 锁等待 | 3 / 85 min | 0 / 0 |
+| 契约变更 / 影响任务 | 1 / 6 | 1 / 6 |
+| 门禁首过 | 38% | 50% |
+| 返工 | 7 | 6 |
+| 裁判调用 / 成本 | 24 / $0.27 | 23 / $0.266 |
+
+并行加速比 **2.16x**。`shared_pkg_s1/s2/s3` 竞争 `package.json` 锁，
+`shared_tokens_s1/s3` 竞争 `shared/ui-tokens.css` 锁；X1 契约 v1.1 变更
+使 S1/S2/S3 旧证据与裁决失效，并生成 3 个契约返工 + 3 个复评门禁。
