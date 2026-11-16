@@ -43,4 +43,6 @@ python eval/run_eval.py --real
 
 真实本地（Qwen 3.6，未配置 DeepSeek Key，`--allow-local-judge`）：judge 11/11，canary 7/7（坏包由机械硬拦），agents 6/6，revalidation 4/4；13 次模型调用，约 49 秒，17.2K Token，$0（本地）；`family_collisions=6`。
 
-> 注意：`family_collisions` 表示 J1/J3 因没有 DeepSeek Key 降级到了本地 Qwen，与 J2 同族。生产环境应配置 `DEEPSEEK_API_KEY`，让 J1/J3 使用 DeepSeek、J2 使用本地 Qwen，避免同族盲点。真实 DeepSeek API 的裁决准确率尚未在本机验证。
+真实 DeepSeek（`deepseek-key1` 自动识别，J1/J3=DeepSeek，J2=本地 Qwen）：judge 11/11，canary 7/7，agents 6/6，revalidation 4/4；13 次调用（DeepSeek 3 / 本地 10），44 秒，17.5K Token，$0.0039，`family_collisions=0`。
+
+> `family_collisions` 表示裁判是否因 DeepSeek 不可用降级到本地 Qwen。生产环境使用 `deepseek-key1`/`DEEPSEEK_API_KEY` 时 J1/J3 是 DeepSeek、J2 是本地 Qwen，不同家族；`--allow-local-judge` 仅用于无 Key 预演。

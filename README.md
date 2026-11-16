@@ -30,7 +30,8 @@ python eval/run_eval.py --offline
 # W1/W2：真实本地模型（Qwen 3.6；无 DeepSeek Key 时裁判显式降级）
 python eval/run_eval.py --real --allow-local-judge
 
-# 配置 DEEPSEEK_API_KEY 后：J1/J3 走 DeepSeek，J2 走本地 Qwen
+# 配置 DEEPSEEK_API_KEY 或 Windows 用户变量 deepseek-key1 后：
+# J1/J3 走 DeepSeek，J2 走本地 Qwen
 python eval/run_eval.py --real
 ```
 
@@ -53,8 +54,9 @@ W2 评测：
 |---|---|---|---|---|---|
 | `--offline` | 11/11 | 7/7 | 6/6 schema | 4/4 | stub |
 | `--real --allow-local-judge` | 11/11 | 7/7 | 6/6 schema | 4/4 | 13 次 / 49s / 17.2K Token / $0（本地） |
+| `--real`（DeepSeek J1/J3 + 本地 J2） | 11/11 | 7/7 | 6/6 schema | 4/4 | 13 次 / 44s / 17.5K Token / $0.0039，family=0 |
 
-> 真实本地模式下 `family_collisions=6`：没有 DeepSeek Key 时 J1/J3 降级到本地 Qwen，与 J2 同族。生产环境应配置 `DEEPSEEK_API_KEY`，让 J1/J3 使用 DeepSeek、J2 使用本地 Qwen。真实 DeepSeek API 的裁决准确率尚未在本机验证。
+> `deepseek-key1` / `DEEPSEEK_API_KEY` 会自动识别，无需手动 export。真实 DeepSeek 模式下 J1/J3 与 J2（本地 Qwen）不同家族，`family_collisions=0`。`--allow-local-judge` 仅在无 Key 或离线预演时显式降级，会产生 family collision。
 
 ## 模型路由
 
@@ -65,7 +67,7 @@ W2 评测：
 | 裁判 J2 | 本地 Qwen（不同家族） | DeepSeek |
 | 裁判 J3 | DeepSeek `deepseek-reasoner` | 本地 Qwen（仅显式降级） |
 
-本地 Qwen 3.x 是推理模型；`ollama.think=false` 关闭 thinking，直接输出 JSON。配置见 [config/config.example.yaml](config/config.example.yaml)，密钥只从环境变量读取。
+本地 Qwen 3.x 是推理模型；`ollama.think=false` 关闭 thinking，直接输出 JSON。配置见 [config/config.example.yaml](config/config.example.yaml)，密钥从 `.env`、环境变量或 Windows 用户变量 `deepseek-key1` 读取。
 
 ## 目录
 
