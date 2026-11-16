@@ -1,0 +1,133 @@
+# W4 role golden set: 12 roles x 2 cases. Offline runs use the role-aware stub;
+# real runs use local Qwen 3.6 or DeepSeek.
+- id: product-1
+  role: product
+  task: 为个人记账应用写产品基准，列出核心功能、至少 3 条非目标、可量化验收标准和用户场景。只输出 JSON。
+  keywords: [非目标, 验收标准]
+  min_keywords: 2
+- id: product-2
+  role: product
+  task: 评审一个需求变更：新增 CSV 导出。给出是否纳入本版本、非目标影响和验收标准。只输出 JSON。
+  keywords: [非目标, 范围]
+  min_keywords: 2
+
+- id: ui-1
+  role: ui
+  task: 为登录与记账页输出信息架构、交互状态、深色模式与可访问性要求。只输出 JSON。
+  keywords: [信息架构, 可访问性]
+  min_keywords: 2
+- id: ui-2
+  role: ui
+  task: 为月度报表页设计空状态、加载状态和错误状态，并说明设计规范。只输出 JSON。
+  keywords: [交互状态, 设计规范]
+  min_keywords: 2
+
+- id: arch-1
+  role: arch
+  task: 定义 X1 认证、X2 记账、X3 报表的接口契约、不变量、状态机和错误码。只输出 JSON。
+  keywords: [接口契约, 不变量]
+  min_keywords: 2
+- id: arch-2
+  role: arch
+  task: 评估把 token 过期时间写入接口字段的契约影响和兼容策略。只输出 JSON。
+  keywords: [接口契约, 状态机]
+  min_keywords: 2
+
+- id: frontend-1
+  role: frontend
+  task: 实现登录页加载、成功、失败三态，处理空数据和网络异常，并保证可访问性。只输出 JSON。
+  keywords: [加载, 可访问性]
+  min_keywords: 2
+- id: frontend-2
+  role: frontend
+  task: 优化记账表单的深色模式与错误提示，说明组件复用方案。只输出 JSON。
+  keywords: [深色模式, 组件]
+  min_keywords: 2
+
+- id: backend-1
+  role: backend
+  task: 实现 S2 记账接口，包含参数校验、状态机、错误码、操作日志和单元测试。只输出 JSON。
+  keywords: [参数校验, 状态机]
+  min_keywords: 2
+- id: backend-2
+  role: backend
+  task: 修复 GET /records/{id} 水平越权，说明参数校验、日志和回归测试。只输出 JSON。
+  keywords: [参数校验, 日志]
+  min_keywords: 2
+
+- id: review-1
+  role: review
+  task: 评审一个新增 token_expires_at 字段但契约未定义的 PR，输出问题、证据引用和整改方向。只输出 JSON。
+  keywords: [证据引用, 整改方向]
+  min_keywords: 2
+- id: review-2
+  role: review
+  task: 评审一个绕过分层直接操作数据库的 PR，指出规范和可维护性问题。只输出 JSON。
+  keywords: [评审, 契约漂移]
+  min_keywords: 1
+
+- id: qa-1
+  role: qa
+  task: 为权限接口设计正常、异常、边界、越权回归用例，并说明证据要求。只输出 JSON。
+  keywords: [边界, 权限]
+  min_keywords: 2
+- id: qa-2
+  role: qa
+  task: 为月度报表空数据场景设计回归用例，说明预期和验证方式。只输出 JSON。
+  keywords: [回归, 证据]
+  min_keywords: 2
+
+- id: security-1
+  role: security
+  task: 对登录与记账接口做威胁建模，列出威胁、缓解措施和高危红线。只输出 JSON。
+  keywords: [威胁, 缓解]
+  min_keywords: 2
+- id: security-2
+  role: security
+  task: 检查依赖与密钥配置风险，说明高危判定和修复建议。只输出 JSON。
+  keywords: [高危, 依赖]
+  min_keywords: 2
+
+- id: ops-1
+  role: ops
+  task: 制定生产发布与回滚方案，包含灰度、监控和回滚演练。只输出 JSON。
+  keywords: [回滚, 演练]
+  min_keywords: 2
+- id: ops-2
+  role: ops
+  task: 设计灰度失败时的告警与恢复流程，说明监控指标。只输出 JSON。
+  keywords: [监控, 告警]
+  min_keywords: 2
+
+- id: kb-1
+  role: kb
+  task: 把一次契约变更的复盘沉淀为知识条目，标注来源、适用条件和失效时间。只输出 JSON。
+  keywords: [来源, 适用条件]
+  min_keywords: 2
+- id: kb-2
+  role: kb
+  task: 评估一条候选经验是否能晋升为权威知识，说明信任等级和证据。只输出 JSON。
+  keywords: [信任等级, 证据]
+  min_keywords: 2
+
+- id: retro-1
+  role: retro
+  task: 复盘一次发布后错误率升高的事故，输出时间线、根因、行动项和验证方式。只输出 JSON。
+  keywords: [根因, 行动项]
+  min_keywords: 2
+- id: retro-2
+  role: retro
+  task: 分析连续三次契约漂移的流程根因，给出 owner、deadline 和验证标准。只输出 JSON。
+  keywords: [根因, 验证]
+  min_keywords: 2
+
+- id: pm-1
+  role: pm
+  task: 为一个 L2 契约变更组装决策包，列出选项、证据、风险和建议。只输出 JSON。
+  keywords: [决策包, 选项]
+  min_keywords: 2
+- id: pm-2
+  role: pm
+  task: 门禁发现缺失证据，说明如何升级与生成补证任务。只输出 JSON。
+  keywords: [证据, 升级]
+  min_keywords: 2

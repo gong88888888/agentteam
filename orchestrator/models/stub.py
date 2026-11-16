@@ -10,6 +10,22 @@ from .. import hard_blocks
 from .base import ChatResult, ModelTimeout
 
 
+ROLE_STUB = {
+    "pm": "决策包 选项 证据 风险 升级 裁决协调",
+    "product": "非目标 验收标准 用户场景 范围",
+    "ui": "信息架构 交互状态 深色模式 可访问性 设计规范",
+    "arch": "接口契约 不变量 状态机 错误码 架构",
+    "frontend": "加载 错误 空状态 可访问性 深色模式 组件",
+    "backend": "参数校验 状态机 日志 错误码 单元测试 接口",
+    "review": "评审 证据引用 整改方向 契约漂移 findings",
+    "qa": "正常 异常 边界 权限 回归 证据 用例",
+    "security": "威胁 缓解 高危 权限 依赖 合规",
+    "ops": "回滚 演练 监控 灰度 发布 告警",
+    "kb": "来源 证据 适用条件 失效时间 信任等级 检索",
+    "retro": "时间线 根因 行动项 owner deadline verification 验证 残余风险",
+}
+
+
 class StubBackend:
     """Rule-based stand-in for local/remote models.
 
@@ -38,15 +54,16 @@ class StubBackend:
             obj = self._judge(self._extract_packet(text))
         else:
             role = self._role(text)
+            summary = f"stub {role}: {ROLE_STUB.get(role, 'stub output')}"
             obj = {
                 "task_id": "stub-task",
                 "role": role,
                 "status": "done",
                 "artifacts": [],
-                "claims": [{"claim": "stub output", "counts_as_evidence": False}],
+                "claims": [{"claim": summary, "counts_as_evidence": False}],
                 "evidence_refs": [],
                 "open_questions": [],
-                "summary": "stub backend output",
+                "summary": summary,
             }
         if self.mode == "schema_error":
             content = '{"not": "a verdict"'

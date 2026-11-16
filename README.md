@@ -1,6 +1,6 @@
 # AgentTeam
 
-一人公司主导的全栈交付 Agent 集群。当前仓库包含 **v4.1 编排协议**、**W1/W2 真实适配层** 与 **W3 三切片并行/共享文件/契约影响/Serial Baseline**：本地 Qwen 3.6 负责执行 Agent，DeepSeek（deepseekharness）负责裁判或作为补充；门禁只接受工具签名证据，裁决和证据失效可审计、可复评；W3 监控工作台在 `dashboard/`。
+一人公司主导的全栈交付 Agent 集群。当前仓库包含 **v4.1 编排协议**、**W1/W2 真实适配层**、**W3 三切片并行/共享文件/契约影响/Serial Baseline** 与 **W4 角色 golden set/prompt 回归、混合检索知识库、决策收件箱**：本地 Qwen 3.6 负责执行 Agent，DeepSeek（deepseekharness）负责裁判或作为补充；门禁只接受工具签名证据，裁决和证据失效可审计、可复评；W3 监控工作台在 `dashboard/`。
 
 ## 先看这几份
 
@@ -41,6 +41,19 @@ python sim/w3_selfcheck.py
 # W3 监控工作台（静态 HTML，可离线打开）
 python dashboard/build.py
 # open dashboard/index.html，或 python dashboard/serve.py --port 8765
+
+# W4：角色 golden set + prompt 回归
+python prompts/build_prompts.py
+python eval/role_eval.py --offline
+python eval/prompt_regression.py --offline
+
+# W4：知识库混合检索（bge-m3 + FTS5）
+python -m orchestrator.cli kb-index
+python eval/kb_eval.py
+
+# W4：决策收件箱
+python dashboard/serve.py --port 8765
+# open http://localhost:8765/decisions.html
 ```
 
 ## 结果
@@ -81,6 +94,19 @@ W3 结果（3 切片、共享 package.json/ui-tokens、X1 契约变更）：
 
 **并行加速比 2.16x**。共享文件冲突与锁等待是并行带来的真实成本；契约变更会失效 3 个切片的旧证据并强制 3 个复评门禁。
 
+## W4 结果
+
+| 能力 | 结果 |
+|---|---|
+| 角色 golden set（12 角色 × 2 用例，离线） | schema 24/24 · required 24/24 · keyword 24/24 |
+| 真实子集（product，1 用例） | schema/required/keyword 1/1 |
+| Prompt 回归（offline baseline vs strict-json） | delta 0 · regressed=false |
+| Prompt 回归（real product 1 用例） | schema/required/keyword 均 1.0；tokens 1,113 → 1,053，无回归 |
+| 知识库（bge-m3 + FTS5） | 61 docs / 735 chunks；kb recall@5 **7/7**；source filter 2/2 |
+| 决策收件箱 | 3 个示例决策；approve / conditions / reject / defer / request evidence；审计持久化 |
+
+角色提示词由 `specs/agent-specs.yaml` + 本地技能生成，版本和 hash 见 `prompts/registry.yaml`；知识库对应 RAGFlow 的解析/切块/embedding/混合检索/引用思想，但不引入其重型运行时；决策收件箱只处理升级、审计与 L3 策略变更，不把常规门禁退回人工。
+
 ## 模型路由
 
 | 角色 | 主模型 | 补充 |
@@ -99,8 +125,10 @@ orchestrator/          W1/W2：模型路由、裁判、证据账本、裁决账�
   models/              Ollama(qwen3.6) / DeepSeek / Stub / Router
   judge/               packet / verdict / panel / canary / revalidation / rubric
   evidence/            evidence store / verdict store / dependency graph / signing
-eval/                  W2 评测集、金丝雀、报告（eval/out/）
-dashboard/             W3 监控工作台（静态 HTML + build/serve）
+eval/                  W2/W4 评测：金丝雀、role golden set、prompt 回归、知识库召回
+dashboard/             W3 监控工作台 + W4 决策收件箱（静态 HTML + API）
+prompts/               12 角色版本化提示词 + 候选 v2 + registry
+knowledge/             RAGFlow 风格混合检索说明（FTS5 + bge-m3 + RRF）
 skills/                本地技能注册表（引用 RAG-Agent-Toolkit 的 4 个技能）
 specs/                 任务卡、证据、决策包、裁决、Agent 规格
 rubrics/               产品/架构/代码/验收/发布/复核 rubric
@@ -115,5 +143,8 @@ config/                配置示例（只放环境变量名）
 - 机械硬约束先于裁判执行：确定性失败、缺证据、未签名证据、越界写、高危漏洞、无回滚发布、指令性文本，裁判无权批准。
 - 医疗、金融持牌等要求人工签核的场景不适用本方案。
 - W3 的共享文件锁是内存租约模型；真实仓库的 worktree/锁文件/合并冲突仍需执行层。
+- W4 的 role eval 默认全量离线、真实只跑子集；全量 12 角色真实评测需按预算单独跑。
+- 知识库未直接运行 RAGFlow（依赖 Elasticsearch/MySQL/Redis），复用其检索概念；`data/knowledge.db` 可重建。
+- 决策收件箱是策略所有者/审计入口；常规门禁仍由 J1/J2/J3 裁决，不逐次人工审批。
 - 尚未实现：真实 CI/测试工具签名、容器沙箱、工作树租约、进程崩溃恢复、完整 MCP 服务端；W1/W2/W3 的评测、账本与工作台是本地可运行版本。
 - 监控工作台读取 `sim/out/w3`；重新跑 W3 后执行 `python dashboard/build.py` 刷新。

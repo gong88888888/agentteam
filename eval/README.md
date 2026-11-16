@@ -46,3 +46,22 @@ python eval/run_eval.py --real
 真实 DeepSeek（`deepseek-key1` 自动识别，J1/J3=DeepSeek，J2=本地 Qwen）：judge 11/11，canary 7/7，agents 6/6，revalidation 4/4；约 14 次调用（DeepSeek 3 / 本地 11），55 秒，19.6K Token，$0.0039，`family_collisions=0`。
 
 > `family_collisions` 表示裁判是否因 DeepSeek 不可用降级到本地 Qwen。生产环境使用 `deepseek-key1`/`DEEPSEEK_API_KEY` 时 J1/J3 是 DeepSeek、J2 是本地 Qwen，不同家族；`--allow-local-judge` 仅用于无 Key 预演。
+
+
+## W4：角色 golden set / prompt 回归 / 知识库召回
+
+```bash
+python prompts/build_prompts.py
+python eval/role_eval.py --offline
+python eval/role_eval.py --real --roles product,review --limit 2
+python eval/prompt_regression.py --offline
+python eval/prompt_regression.py --real --roles product --limit 1
+python eval/kb_eval.py
+python eval/kb_eval.py --real   # 使用 data/knowledge.db (bge-m3)
+```
+
+- `role-eval.md/json`：12 角色 × 2 用例；schema/required/keyword 通过率。
+- `prompt-regression.md/json`：baseline `prompts/roles` vs candidate `prompts/candidates/strict-json`，delta、regressed/improved、prompt hash。
+- `kb-eval.md/json`：recall@5 与 source_type filter。
+
+当前结果：离线 role 24/24；真实 product 子集 1/1；prompt 回归无退化；知识库 recall@5 7/7（hash 与 bge-m3 均通过）。

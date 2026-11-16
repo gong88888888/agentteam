@@ -1,0 +1,24 @@
+# Knowledge retrieval golden set. expected: any citation containing one of these.
+- id: kb-shared-lock
+  query: 共享文件冲突 锁 租约
+  expected: [sim/README.md, README.md, 修复实施记录.md]
+- id: kb-judge
+  query: 外部模型裁判 J1 J2 J3 证据
+  expected: [agentteam-v4-外部模型裁判.md]
+- id: kb-frontend-rules
+  query: 前端十大黄金法则 可访问性
+  expected: [agentteam2.md]
+- id: kb-release
+  query: 回滚 演练 发布 门禁
+  expected: [rubrics/release-gate.yaml, agentteam-v4-外部模型裁判.md]
+- id: kb-postmortem
+  query: postmortem 根因 回归测试
+  expected: [postmortem-to-tests, skills/registry.yaml]
+  source_type: skill
+- id: kb-ragflow
+  query: 混合检索 RAGFlow FTS5 向量
+  expected: [knowledge/README.md]
+- id: kb-skill-filter
+  query: 可访问性 配色 字体
+  expected: [skills/]
+  source_type: skill

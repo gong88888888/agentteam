@@ -106,6 +106,17 @@
     border: 1px solid var(--border); background: var(--surface);
     color: var(--ink); cursor: pointer; font-size: 17px;
   }
+  .link-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink); border-radius: 10px; font-size: 13px;
+  }
+  .link-btn:hover { background: var(--surface-2); }
+  .decision-badge {
+    display: none; min-width: 18px; justify-content: center;
+    padding: 1px 6px; border-radius: 999px; background: var(--warning);
+    color: #0b0b0b; font-size: 11px; font-weight: 600;
+  }
   .hero-row { display: grid; grid-template-columns: 1.1fr 2.9fr; gap: 16px; margin-bottom: 16px; }
   .card {
     background: var(--surface); border: 1px solid var(--border);
@@ -198,6 +209,7 @@
         <button data-mode="parallel" class="active">Parallel</button>
         <button data-mode="serial">Serial</button>
       </div>
+      <a class="link-btn" href="decisions.html">决策收件箱 <span class="decision-badge" id="decision-badge"></span></a>
       <button class="icon-btn" id="theme-toggle" title="切换深浅色" aria-label="切换深浅色">◐</button>
     </div>
   </header>
@@ -585,6 +597,10 @@ document.addEventListener("mouseout", (e) => {
 
 initTheme();
 renderAll();
+fetch("/api/decisions/stats").then(r => r.json()).then(s => {
+  const badge = document.getElementById("decision-badge");
+  if (s.pending) { badge.textContent = s.pending; badge.style.display = "inline-flex"; }
+}).catch(() => {});
 </script>
 </body>
 </html>

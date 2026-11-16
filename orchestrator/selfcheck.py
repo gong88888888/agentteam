@@ -22,6 +22,10 @@ from .judge.revalidation import RevalidationPlanner
 from .judge.rubric import load_rubric, load_rubric as _lr
 from .models.deepseek import DeepSeekBackend
 from .models.router import ModelRouter
+from .decisions import DecisionStore
+from .knowledge import (HashingEmbedder, HybridRetriever, KnowledgeStore,
+                        index_project)
+from .prompts import load_prompt
 from .skills import SkillRegistry
 
 
@@ -108,6 +112,62 @@ def test_revalidation() -> None:
     print("  revalidation OK")
 
 
+def test_prompts() -> None:
+    for role in ("pm", "product", "ui", "arch", "frontend", "backend",
+                 "review", "qa", "security", "ops", "kb", "retro"):
+        p1 = load_prompt(role)
+        p2 = load_prompt(role, "prompts/candidates/strict-json")
+        assert p1.version == 1 and p2.version == 2
+        assert p1.hash != p2.hash
+        assert f"ROLE: {role}" in p1.text
+    print("  prompts OK")
+
+
+def test_decisions() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        store = DecisionStore(Path(td) / "decisions.db")
+        assert store.seed_demo() == 3
+        assert store.stats()["pending"] == 3
+        item = store.decide("DEC-X1-001", "approve_with_conditions", "补兼容测试")
+        assert item["status"] == "approved_with_conditions"
+        assert item["audit"] and item["audit"][-1]["action"] == "approve_with_conditions"
+        try:
+            store.decide("DEC-X1-001", "approve", "")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("重复决策未拒绝")
+    print("  decisions OK")
+
+
+def test_knowledge() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "a.md").write_text(
+            """# 共享文件冲突
+
+并行切片修改 package.json 需要锁租约。
+
+# 混合检索
+
+FTS5 BM25 加 bge-m3 向量，RRF 融合。""", encoding="utf-8")
+        (root / "b.md").write_text(
+            """# 裁判裁决
+
+J1/J2/J3 证据必须签名。""", encoding="utf-8")
+        db = root / "kb.db"
+        store = KnowledgeStore(db)
+        emb = HashingEmbedder()
+        index_project(store, emb, [root / "a.md", root / "b.md"], root)
+        r = HybridRetriever(db, embedder=emb)
+        hits = r.search("共享文件冲突 租约", top_k=3)
+        assert hits and "shared" not in hits[0]["citation"]
+        assert "a.md" in hits[0]["citation"]
+        hits2 = r.search("裁判 证据", top_k=3)
+        assert hits2 and "b.md" in hits2[0]["citation"]
+    print("  knowledge OK")
+
+
 def test_deepseek_adapter() -> None:
     from unittest.mock import patch
 
@@ -162,6 +222,9 @@ def main() -> None:
     test_hard_blocks()
     test_panel_and_canary()
     test_revalidation()
+    test_prompts()
+    test_decisions()
+    test_knowledge()
     test_deepseek_adapter()
     test_skills_and_router()
     print("ALL CHECKS PASSED")

@@ -30,6 +30,10 @@ from .judge.packet import build_packet, load_packet, make_evidence
 from .judge.rubric import load_rubric
 from .judge.canary import run_canary
 from .models.router import ModelRouter
+from .prompts import load_prompt
+from .knowledge import (HybridRetriever, KnowledgeStore, get_embedder,
+                        index_project)
+from .decisions import DecisionStore
 from .skills import SkillRegistry
 
 
@@ -161,26 +165,15 @@ def _agent_spec(role: str) -> dict[str, Any]:
     raise SystemExit(f"未知角色：{role}")
 
 
-def _agent_prompt(role: str, skills: SkillRegistry) -> str:
-    spec = _agent_spec(role)
-    return (
-        f"ROLE: {role}\n"
-        f"{spec['role']}\n\n"
-        f"工具白名单：{json.dumps(spec['tools'], ensure_ascii=False)}\n"
-        f"读写范围：{json.dumps(spec['scope'], ensure_ascii=False)}\n"
-        f"禁止事项：{json.dumps(spec['prohibitions'], ensure_ascii=False)}\n"
-        f"输出必须符合 specs/agent-output.schema.json，只能输出 JSON。\n"
-        f"claims 不参与门禁；证据必须引用 evidence_refs。\n"
-        f"artifacts 每项必须包含 path 和 sha256；没有真实产物时使用 []。\n"
-        f"输出格式示例：{{\"task_id\":\"T-1\",\"role\":\"{role}\",\"status\":\"done\",\"artifacts\":[],\"claims\":[{{\"claim\":\"...\",\"counts_as_evidence\":false}}],\"evidence_refs\":[],\"open_questions\":[],\"summary\":\"...\"}}\n"
-        f"{skills.prompt_context(role)}"
-    )
+def _agent_prompt(role: str) -> str:
+    return load_prompt(role).text
 
 
 def cmd_agent(args: argparse.Namespace) -> int:
-    cfg, router, _, _, _, _, skills = build_runtime(args)
+    cfg, router, _, _, _, _, _ = build_runtime(args)
+    prompt = load_prompt(args.role)
     text = Path(args.input).read_text(encoding="utf-8") if args.input else sys.stdin.read()
-    messages = [{"role": "system", "content": _agent_prompt(args.role, skills)},
+    messages = [{"role": "system", "content": prompt.text},
                 {"role": "user", "content": text}]
     schema = load_schema("agent-output.schema.json")
     last = None
@@ -190,6 +183,7 @@ def cmd_agent(args: argparse.Namespace) -> int:
             obj = parse_json_object(result.content)
             jsonschema.validate(obj, schema)
             print(json.dumps({"output": obj,
+                              "prompt": prompt.metadata(),
                               "model": result.model,
                               "backend": result.backend,
                               "latency_ms": result.latency_ms,
@@ -205,6 +199,80 @@ def cmd_agent(args: argparse.Namespace) -> int:
     print(json.dumps({"error": f"Agent 输出两次不合法：{last}"},
                      ensure_ascii=False, indent=2))
     return 1
+
+
+def cmd_kb_index(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    db = data_dir(cfg) / "knowledge.db"
+    store = KnowledgeStore(db)
+    embedder = get_embedder(cfg, args.backend)
+    paths = None
+    if args.paths:
+        paths = [Path(p) for p in args.paths.split(",") if p]
+    result = index_project(store, embedder, paths, ROOT)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_kb_query(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    db = data_dir(cfg) / "knowledge.db"
+    if not db.exists():
+        print(json.dumps({"error": "知识库未索引，请先运行 kb-index"},
+                         ensure_ascii=False))
+        return 2
+    retriever = HybridRetriever(db, cfg)
+    hits = retriever.search(args.query, top_k=args.top_k,
+                            source_type=args.source_type,
+                            path_prefix=args.path_prefix)
+    if args.json:
+        print(json.dumps({"query": args.query, "hits": hits,
+                          "stats": retriever.stats()}, ensure_ascii=False, indent=2))
+        return 0
+    print(f"query: {args.query}")
+    for h in hits:
+        if "warnings" in h:
+            print("warning:", h["warnings"])
+            continue
+        print(f"- {h['score']:.4f}  {h['citation']}")
+        print(f"    {h['text'][:180].replace(chr(10), ' ')}")
+    return 0
+
+
+def cmd_kb_stats(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    db = data_dir(cfg) / "knowledge.db"
+    if not db.exists():
+        print(json.dumps({"error": "知识库未索引"}, ensure_ascii=False))
+        return 2
+    print(json.dumps(KnowledgeStore(db).stats(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_decisions(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    store = DecisionStore(data_dir(cfg) / "decisions.db")
+    store.seed_demo()
+    if args.action in ("list",):
+        status = None if args.status == "all" else args.status
+        print(json.dumps({"decisions": store.list(status), "stats": store.stats()},
+                         ensure_ascii=False, indent=2))
+        return 0
+    if not args.id:
+        raise SystemExit("需要 --id")
+    if args.action == "show":
+        item = store.get(args.id)
+        if not item:
+            raise SystemExit(f"决策不存在：{args.id}")
+        print(json.dumps(item, ensure_ascii=False, indent=2))
+        return 0
+    mapping = {"approve": "approve", "approve-conditions": "approve_with_conditions",
+               "reject": "reject", "defer": "defer",
+               "request-evidence": "request_evidence"}
+    item = store.decide(args.id, mapping[args.action], args.reason or "",
+                        args.actor or "policy-owner")
+    print(json.dumps(item, ensure_ascii=False, indent=2))
+    return 0
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
@@ -247,6 +315,31 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", type=int, default=None)
     sp.add_argument("--real", action="store_true",
                     help="调用本地 Qwen；裁判需要 DeepSeek 或 --allow-local-judge")
+
+    sp = sub.add_parser("decisions", help="决策收件箱：列表/查看/审批")
+    sp.add_argument("action", choices=["list", "show", "approve",
+                                        "approve-conditions", "reject",
+                                        "defer", "request-evidence"])
+    sp.add_argument("--id", default=None)
+    sp.add_argument("--reason", default="")
+    sp.add_argument("--actor", default="policy-owner")
+    sp.add_argument("--status", default="pending",
+                    choices=["pending", "all", "decided"])
+    sp.add_argument("--config", default=None)
+
+    sp = sub.add_parser("kb-index", help="索引项目文档到本地混合检索知识库")
+    sp.add_argument("--config", default=None)
+    sp.add_argument("--backend", choices=["auto", "hash", "ollama"], default="auto")
+    sp.add_argument("--paths", default=None, help="逗号分隔的文件/目录；省略则索引默认文档")
+    sp = sub.add_parser("kb-query", help="混合检索知识库")
+    sp.add_argument("query")
+    sp.add_argument("--config", default=None)
+    sp.add_argument("--top-k", type=int, default=8)
+    sp.add_argument("--source-type", default=None)
+    sp.add_argument("--path-prefix", default=None)
+    sp.add_argument("--json", action="store_true")
+    sp = sub.add_parser("kb-stats", help="知识库统计")
+    sp.add_argument("--config", default=None)
     return p
 
 
@@ -268,6 +361,14 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_agent(args)
     if args.command == "eval":
         return cmd_eval(args)
+    if args.command == "decisions":
+        return cmd_decisions(args)
+    if args.command == "kb-index":
+        return cmd_kb_index(args)
+    if args.command == "kb-query":
+        return cmd_kb_query(args)
+    if args.command == "kb-stats":
+        return cmd_kb_stats(args)
     return 2
 
 

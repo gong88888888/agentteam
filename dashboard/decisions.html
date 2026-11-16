@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentTeam · 决策收件箱</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f2ee;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --shadow:0 1px 2px rgba(11,11,11,.04), 0 12px 32px rgba(11,11,11,.05);
+    --radius:18px;
+  }
+  [data-theme="dark"] {
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --axis:#383835;
+    --border:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 40px rgba(0,0,0,.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme:dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220;
+      --ink:#fff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --axis:#383835;
+      --border:rgba(255,255,255,.10);
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 40px rgba(0,0,0,.28);
+    }
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--page); color:var(--ink); }
+  body { font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+         font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a { color:var(--s1); text-decoration:none; }
+  .page { max-width:1280px; margin:0 auto; padding:32px 28px 60px; }
+  .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:20px; }
+  .eyebrow { color:var(--muted); font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; }
+  h1 { font-size:clamp(26px,3vw,36px); line-height:1.1; margin:0 0 8px; letter-spacing:-.02em; }
+  .sub { color:var(--ink-2); margin:0; max-width:760px; }
+  .controls { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .btn, .icon-btn {
+    border:1px solid var(--border); background:var(--surface); color:var(--ink);
+    border-radius:10px; padding:8px 12px; cursor:pointer; font:inherit; font-size:13px;
+  }
+  .icon-btn { width:38px; height:38px; border-radius:50%; font-size:16px; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--s1); border-color:var(--s1); color:#fff; }
+  .btn.danger { background:var(--critical); border-color:var(--critical); color:#fff; }
+  .btn.ghost { background:transparent; }
+  .banner {
+    background:var(--surface-2); border:1px solid var(--border); border-radius:14px;
+    padding:12px 16px; color:var(--ink-2); font-size:13px; margin-bottom:16px;
+  }
+  .banner b { color:var(--ink); }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+  .stat { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
+  .stat .label { color:var(--muted); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+  .stat .value { font-size:24px; font-weight:650; letter-spacing:-.02em; margin-top:6px; }
+  .stat .hint { color:var(--ink-2); font-size:12px; }
+  .layout { display:grid; grid-template-columns:390px 1fr; gap:16px; align-items:start; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .list-panel { padding:14px; position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; }
+  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .tabs { display:inline-flex; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:3px; }
+  .tabs button { border:0; background:transparent; color:var(--ink-2); padding:6px 11px; border-radius:999px; cursor:pointer; font:inherit; font-size:12px; }
+  .tabs button.active { background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .decision-item { border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:9px; cursor:pointer; background:var(--surface); transition:border-color .12s, background .12s; }
+  .decision-item:hover { background:var(--surface-2); }
+  .decision-item.active { border-color:var(--s1); box-shadow:0 0 0 2px rgba(42,120,214,.12); }
+  .decision-item .title { font-weight:600; font-size:13px; margin:5px 0 4px; }
+  .decision-item .meta { color:var(--muted); font-size:11px; display:flex; justify-content:space-between; gap:8px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .badge { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); color:var(--ink-2); font-size:11px; }
+  .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .risk-low { background:var(--good); } .risk-medium { background:var(--warning); }
+  .risk-high { background:var(--serious); } .risk-critical { background:var(--critical); }
+  .status-pending { color:var(--warning); border-color:rgba(250,178,25,.4); }
+  .status-approved, .status-approved_with_conditions { color:var(--good); border-color:rgba(12,163,12,.35); }
+  .status-rejected { color:var(--critical); border-color:rgba(208,59,59,.35); }
+  .status-deferred, .status-evidence_requested { color:var(--s2); border-color:rgba(235,104,52,.35); }
+  .detail { padding:20px; min-height:500px; }
+  .detail h2 { font-size:20px; margin:6px 0 6px; letter-spacing:-.02em; }
+  .detail .meta-line { color:var(--muted); font-size:12px; }
+  .section { border-top:1px solid var(--grid); padding-top:14px; margin-top:14px; }
+  .section h3 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 10px; }
+  .recommendation { background:var(--surface-2); border-left:3px solid var(--s1); border-radius:8px; padding:11px 13px; color:var(--ink-2); font-size:13px; }
+  .options { display:grid; gap:8px; }
+  .option { border:1px solid var(--border); border-radius:10px; padding:10px 12px; cursor:pointer; background:var(--surface); }
+  .option:hover { background:var(--surface-2); }
+  .option.selected { border-color:var(--s1); box-shadow:0 0 0 2px rgba(42,120,214,.12); }
+  .option .opt-title { font-weight:600; font-size:13px; }
+  .option .opt-meta { color:var(--muted); font-size:11px; margin-top:3px; }
+  .verdicts { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
+  .verdict { border:1px solid var(--border); border-radius:10px; padding:9px 11px; font-size:12px; }
+  .verdict .tier { color:var(--muted); font-size:11px; }
+  .verdict .decision { font-weight:600; margin:3px 0; }
+  .verdict .reason { color:var(--ink-2); font-size:11px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; color:var(--muted); font-weight:500; padding:7px 6px; border-bottom:1px solid var(--grid); }
+  td { padding:7px 6px; border-bottom:1px solid var(--grid); color:var(--ink-2); vertical-align:top; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .form { display:grid; gap:9px; }
+  textarea, select {
+    width:100%; background:var(--surface); color:var(--ink); border:1px solid var(--border);
+    border-radius:9px; padding:9px 10px; font:inherit; font-size:13px; resize:vertical;
+  }
+  textarea { min-height:74px; }
+  .form-row { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+  .audit { display:grid; gap:8px; }
+  .audit-item { display:grid; grid-template-columns:130px 1fr; gap:8px; font-size:12px; color:var(--ink-2); }
+  .audit-item .when { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .empty { color:var(--muted); font-size:13px; padding:22px 4px; }
+  .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+           background:var(--ink); color:var(--surface); padding:9px 14px; border-radius:9px; font-size:13px;
+           transition:.2s; z-index:30; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .footer { color:var(--muted); font-size:12px; margin-top:18px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  @media (max-width:960px) {
+    .layout { grid-template-columns:1fr; }
+    .list-panel { position:static; max-height:none; }
+    .page { padding:22px 14px 44px; }
+    .topbar { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">AgentTeam · Decision Inbox</div>
+      <h1>决策收件箱</h1>
+      <p class="sub">策略所有者处理升级、审计与 L3 策略变更；常规门禁由 J1/J2/J3 裁决，不进入此队列。</p>
+    </div>
+    <div class="controls">
+      <a class="btn ghost" href="index.html">← 监控工作台</a>
+      <button class="icon-btn" id="theme-toggle" title="切换深浅色">◐</button>
+    </div>
+  </header>
+
+  <div class="banner">
+    <b>审批范围：</b>裁判失败关闭、J1/J2 分歧、L3 策略变更、法律要求人工签核、非阻塞抽查升级。
+    普通门禁、补证、复评不在这里逐次审批。
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="layout">
+    <aside class="card list-panel">
+      <div class="list-head">
+        <div class="tabs" id="tabs">
+          <button data-filter="pending" class="active">待处理</button>
+          <button data-filter="all">全部</button>
+          <button data-filter="decided">已处理</button>
+        </div>
+        <span class="meta" id="list-count">—</span>
+      </div>
+      <div id="list"></div>
+    </aside>
+    <main class="card detail" id="detail">
+      <div class="empty">正在加载决策包…</div>
+    </main>
+  </div>
+
+  <div class="footer">
+    <span id="generated"></span>
+    <span>决策即审计：操作写入 decision_audit，不覆盖历史。</span>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const state = { items: [], selected: null, filter: "pending", selectedOption: null };
+const colors = { low: "var(--good)", medium: "var(--warning)", high: "var(--serious)", critical: "var(--critical)" };
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem("agentteam-theme", theme); } catch (_) {}
+}
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem("agentteam-theme"); } catch (_) {}
+  setTheme(saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+}
+$("theme-toggle").addEventListener("click", () => {
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+
+function fmtTime(t) {
+  if (!t) return "—";
+  const d = new Date(t * 1000);
+  return d.toLocaleString("zh-CN", {hour12:false});
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+function riskBadge(risk) {
+  const label = {low:"低", medium:"中", high:"高", critical:"严重"}[risk] || risk;
+  return `<span class="badge"><span class="dot" style="background:${colors[risk] || "var(--muted)"}"></span>${esc(label)}风险</span>`;
+}
+const STATUS_LABEL = {
+  pending: "待处理", approved: "已批准", approved_with_conditions: "有条件批准",
+  rejected: "已驳回", deferred: "已推迟", evidence_requested: "已要求补证"
+};
+function statusBadge(status) {
+  return `<span class="badge status-${esc(status)}">${esc(STATUS_LABEL[status] || status)}</span>`;
+}
+
+async function load() {
+  try {
+    const data = await api("/api/decisions");
+    state.items = data.decisions || [];
+    renderKpis(data.stats || {});
+  } catch (err) {
+    $("list").innerHTML = `<div class="empty">无法连接决策 API：${esc(err.message)}。<br>请运行 <code>python dashboard/serve.py</code> 后打开本页。</div>`;
+    $("detail").innerHTML = `<div class="empty">需要本地服务。</div>`;
+    return;
+  }
+  renderList();
+  const first = state.items.find(x => state.filter === "pending" ? x.status === "pending" : true);
+  if (first) select(first.id);
+  else $("detail").innerHTML = `<div class="empty">当前筛选下没有决策。</div>`;
+}
+
+function renderKpis(stats) {
+  $("kpis").innerHTML = [
+    ["待处理", stats.pending ?? "—", "需要策略所有者动作"],
+    ["高风险", stats.high_risk ?? "—", "high / critical"],
+    ["24h 内到期", stats.expiring_24h ?? "—", "过期后需重新裁决"],
+    ["已处理", stats.decided ?? "—", "写入审计账本"],
+  ].map(([a,b,c]) => `<div class="stat"><div class="label">${esc(a)}</div><div class="value">${esc(b)}</div><div class="hint">${esc(c)}</div></div>`).join("");
+}
+
+function filtered() {
+  if (state.filter === "pending") return state.items.filter(x => x.status === "pending");
+  if (state.filter === "decided") return state.items.filter(x => x.status !== "pending");
+  return state.items;
+}
+
+function renderList() {
+  const items = filtered();
+  $("list-count").textContent = `${items.length} 项`;
+  $("list").innerHTML = items.map(item => `
+    <div class="decision-item ${state.selected === item.id ? "active" : ""}" data-id="${esc(item.id)}">
+      <div class="row">${riskBadge(item.risk)} ${statusBadge(item.status)}</div>
+      <div class="title">${esc(item.title)}</div>
+      <div class="meta"><span>${esc(item.gate_id)}</span><span>${fmtTime(item.expires_at)} 到期</span></div>
+    </div>`).join("") || `<div class="empty">没有匹配的决策。</div>`;
+  document.querySelectorAll(".decision-item").forEach(el =>
+    el.addEventListener("click", () => select(el.dataset.id)));
+}
+
+async function select(id) {
+  state.selected = id;
+  state.selectedOption = null;
+  renderList();
+  const detail = $("detail");
+  detail.innerHTML = `<div class="empty">加载 ${esc(id)}…</div>`;
+  try {
+    const d = await api(`/api/decisions/${encodeURIComponent(id)}`);
+    renderDetail(d);
+  } catch (err) {
+    detail.innerHTML = `<div class="empty">加载失败：${esc(err.message)}</div>`;
+  }
+}
+
+function renderDetail(d) {
+  const pending = d.status === "pending";
+  const options = (d.options || []).map(o => `
+    <label class="option ${state.selectedOption === o.id ? "selected" : ""}" data-opt="${esc(o.id)}">
+      <input type="radio" name="option" value="${esc(o.id)}" ${state.selectedOption === o.id ? "checked" : ""} style="display:none">
+      <div class="opt-title">${esc(o.id)}. ${esc(o.summary)}</div>
+      <div class="opt-meta">成本 ${esc(o.cost)} · 风险 ${esc(o.risk)} · ${o.reversible ? "可回滚" : "不可回滚"}</div>
+    </label>`).join("");
+  const verdicts = (d.verdicts || []).map(v => `
+    <div class="verdict">
+      <div class="tier">${esc(v.tier)} · ${esc(v.model || "")}</div>
+      <div class="decision">${esc(v.decision)} · ${Math.round((v.confidence || 0) * 100)}%</div>
+      <div class="reason">${esc(v.reason || "")}</div>
+    </div>`).join("") || `<div class="empty">无裁判记录</div>`;
+  const evidence = (d.evidence || []).map(e => `
+    <tr><td>${esc(e.evidence_id)}</td><td>${esc(e.kind)}</td><td>${esc(e.result)}</td><td>${esc(e.signed_by)}</td></tr>`).join("");
+  const checks = (d.packet?.deterministic_checks || []).map(c => `
+    <tr><td>${esc(c.kind)}</td><td>${esc(c.result)}</td><td>${esc(c.tool)}</td><td>${esc(c.evidence_id)}</td></tr>`).join("");
+  const audit = (d.audit || []).map(a => `
+    <div class="audit-item"><span class="when">${fmtTime(a.at)}</span><span><b>${esc(a.action)}</b> · ${esc(a.actor)}${a.reason ? " · " + esc(a.reason) : ""}</span></div>`).join("") || `<div class="empty">尚无审计记录</div>`;
+  $("detail").innerHTML = `
+    <div class="row">${riskBadge(d.risk)} ${statusBadge(d.status)} <span class="badge">${esc(d.gate_id)}</span></div>
+    <h2>${esc(d.title)}</h2>
+    <div class="meta-line">创建 ${fmtTime(d.created_at)} · 到期 ${fmtTime(d.expires_at)} · ${esc(d.id)}</div>
+
+    <div class="section"><h3>裁判建议</h3>
+      <div class="recommendation">${esc(d.recommendation)}</div>
+      <div class="verdicts" style="margin-top:9px">${verdicts}</div>
+    </div>
+
+    ${options ? `<div class="section"><h3>有限选项（选择后再提交）</h3><div class="options">${options}</div></div>` : ""}
+
+    <div class="section"><h3>确定性证据</h3>
+      ${checks ? `<table><thead><tr><th>检查</th><th>结果</th><th>工具</th><th>证据</th></tr></thead><tbody>${checks}</tbody></table>` : `<div class="empty">无确定性检查（策略/人工裁决包）</div>`}
+      ${evidence ? `<table style="margin-top:8px"><thead><tr><th>证据</th><th>类型</th><th>结果</th><th>签名</th></tr></thead><tbody>${evidence}</tbody></table>` : ""}
+    </div>
+
+    <div class="section"><h3>决策</h3>
+      ${pending ? `
+      <div class="form">
+        <select id="action">
+          <option value="approve">批准</option>
+          <option value="approve_with_conditions">带条件批准</option>
+          <option value="reject">驳回</option>
+          <option value="defer">推迟</option>
+          <option value="request_evidence">要求补证</option>
+        </select>
+        <textarea id="reason" placeholder="理由（驳回/推迟/带条件/补证必填；批准可选）"></textarea>
+        <div class="form-row">
+          <button class="btn primary" id="submit">提交决策</button>
+          <span class="meta" id="decision-hint">决策写入审计账本，不覆盖历史。</span>
+        </div>
+      </div>` : `
+      <div class="recommendation"><b>${esc(STATUS_LABEL[d.status] || d.status)}</b> · ${esc(d.actor || "")} · ${fmtTime(d.decided_at)}<br>${esc(d.reason || "")}</div>`}
+    </div>
+
+    <div class="section"><h3>审计时间线</h3><div class="audit">${audit}</div></div>
+  `;
+  document.querySelectorAll(".option").forEach(el => {
+    el.addEventListener("click", () => {
+      state.selectedOption = el.dataset.opt;
+      document.querySelectorAll(".option").forEach(x => x.classList.toggle("selected", x === el));
+    });
+  });
+  if (pending) $("submit").addEventListener("click", () => submit(d));
+}
+
+async function submit(d) {
+  const action = $("action").value;
+  let reason = $("reason").value.trim();
+  if ((d.options || []).length && !state.selectedOption && action === "approve") {
+    toast("请先选择一个选项");
+    return;
+  }
+  if (d.options?.length && state.selectedOption) {
+    reason = `选项 ${state.selectedOption}${reason ? "：" + reason : ""}`;
+  }
+  if (!reason && ["reject","defer","request_evidence","approve_with_conditions"].includes(action)) {
+    toast("该动作必须填写理由");
+    return;
+  }
+  try {
+    await api(`/api/decisions/${encodeURIComponent(d.id)}/decision`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({action, reason})
+    });
+    toast("决策已提交");
+    await load();
+  } catch (err) {
+    toast(`提交失败：${err.message}`);
+  }
+}
+
+document.querySelectorAll("#tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.filter = btn.dataset.filter;
+    renderList();
+    const first = filtered()[0];
+    if (first) select(first.id);
+    else $("detail").innerHTML = `<div class="empty">当前筛选下没有决策。</div>`;
+  });
+});
+
+initTheme();
+$("generated").textContent = `数据：data/decisions.db · API: /api/decisions`;
+load();
+</script>
+</body>
+</html>

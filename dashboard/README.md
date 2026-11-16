@@ -37,3 +37,23 @@ python dashboard/serve.py --port 8765
 
 Palette: dataviz reference palette; categorical slots 1/2/3 validated for light
 and dark surfaces. Status colors are reserved for success/failure/blocked.
+
+
+## W4 Decision Inbox
+
+`decisions.html` 是策略所有者/审计入口，只处理升级、审计与 L3 策略变更；常规门禁仍由 J1/J2/J3 裁决。
+
+```bash
+python dashboard/serve.py --port 8765
+# http://localhost:8765/decisions.html
+```
+
+API：
+
+- `GET /api/decisions?status=pending`
+- `GET /api/decisions/{id}`
+- `POST /api/decisions/{id}/decision` `{action, reason}`
+  - action: approve / approve_with_conditions / reject / defer / request_evidence
+- `GET /api/decisions/stats`
+
+决策写入 `data/decisions.db`，审计写入 `decision_audit`；首次启动自动 seed 3 个示例决策。

@@ -36,6 +36,7 @@ from orchestrator.judge.panel import JudgePanel  # noqa: E402
 from orchestrator.judge.revalidation import RevalidationPlanner  # noqa: E402
 from orchestrator.judge.rubric import load_rubric, rubric_for_gate  # noqa: E402
 from orchestrator.models.router import ModelRouter  # noqa: E402
+from orchestrator.prompts import load_prompt  # noqa: E402
 from orchestrator.skills import SkillRegistry  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
@@ -117,36 +118,22 @@ def _run_judge_cases(panel: JudgePanel, limit: int | None) -> dict[str, Any]:
     }
 
 
-def _agent_prompt(role: str, skills: SkillRegistry) -> str:
-    specs = yaml.safe_load((ROOT / "specs" / "agent-specs.yaml").read_text(encoding="utf-8"))
-    spec = next((s for s in specs["specs"] if s["id"] == role), None)
-    if not spec:
-        raise ValueError(f"未知角色：{role}")
-    return (
-        f"ROLE: {role}\n{spec['role']}\n\n"
-        f"工具白名单：{json.dumps(spec['tools'], ensure_ascii=False)}\n"
-        f"读写范围：{json.dumps(spec['scope'], ensure_ascii=False)}\n"
-        f"禁止事项：{json.dumps(spec['prohibitions'], ensure_ascii=False)}\n"
-        f"输出必须符合 specs/agent-output.schema.json，只能输出 JSON。\n"
-        f"claims 不参与门禁；证据必须引用 evidence_refs。\n"
-        f"artifacts 每项必须包含 path 和 sha256；没有真实产物时使用 []。\n"
-        f"输出格式示例：{{\"task_id\":\"T-1\",\"role\":\"{role}\",\"status\":\"done\",\"artifacts\":[],\"claims\":[{{\"claim\":\"...\",\"counts_as_evidence\":false}}],\"evidence_refs\":[],\"open_questions\":[],\"summary\":\"...\"}}\n"
-        f"{skills.prompt_context(role)}"
-    )
+def _agent_prompt(role: str, prompt_dir=None) -> str:
+    return load_prompt(role, prompt_dir).text
 
 
 def _run_agent_cases(router: ModelRouter, offline: bool,
-                     limit: int | None) -> dict[str, Any]:
+                     limit: int | None, prompt_dir=None) -> dict[str, Any]:
     cases = _load_yaml("agent_cases.yaml")
     if limit:
         cases = cases[:limit]
     schema = load_schema("agent-output.schema.json")
-    skills = SkillRegistry.load(ROOT / "skills" / "registry.yaml")
     rows = []
     schema_pass = required_pass = errors = 0
     latency = tokens = 0
     for case in cases:
-        messages = [{"role": "system", "content": _agent_prompt(case["role"], skills)},
+        prompt = load_prompt(case["role"], prompt_dir)
+        messages = [{"role": "system", "content": prompt.text},
                     {"role": "user", "content": case["task"]}]
         started = time.perf_counter()
         obj = None
@@ -183,7 +170,8 @@ def _run_agent_cases(router: ModelRouter, offline: bool,
             rows.append({"id": case["id"], "role": case["role"],
                          "schema": True, "required": not missing and has_claim,
                          "missing": missing, "model": result.model if result else "",
-                         "backend": result.backend if result else ""})
+                         "backend": result.backend if result else "",
+                         "prompt": prompt.metadata()})
     total = len(cases)
     return {
         "total": total,
