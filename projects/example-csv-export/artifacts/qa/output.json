@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "qa",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub qa: 正常 异常 边界 权限 回归 证据 用例",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub qa: 正常 异常 边界 权限 回归 证据 用例"
+}

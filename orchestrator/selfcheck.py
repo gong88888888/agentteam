@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 
 from . import hard_blocks
-from .config import load_config, signing_key
+from .config import ROOT, load_config, signing_key
 from .evidence.store import EvidenceStore
 from .evidence.verdict_store import VerdictStore
 from .judge.backend import StubJudgeBackend
@@ -26,6 +26,8 @@ from .decisions import DecisionStore
 from .knowledge import (HashingEmbedder, HybridRetriever, KnowledgeStore,
                         index_project)
 from .prompts import load_prompt
+from .project_runner import ProjectRunner
+from .requirements import select as select_requirement
 from .skills import SkillRegistry
 
 
@@ -168,6 +170,39 @@ J1/J2/J3 证据必须签名。""", encoding="utf-8")
     print("  knowledge OK")
 
 
+def test_requirement_selection() -> None:
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / "selected"
+        result = select_requirement(ROOT / "requirements" / "backlog.example.yaml", out)
+        assert result["selected"]["id"] == "REQ-CSV"
+        assert result["band"] == "now"
+        assert (out / "selected.md").exists()
+        assert (out / "selection.md").exists()
+    print("  requirements OK")
+
+
+def test_project_runner() -> None:
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        req = Path(td) / "req.md"
+        req.write_text("""# 需求：演示
+
+实现一个最小 CSV 导出，含验收标准。
+""", encoding="utf-8")
+        proj = Path(td) / "project"
+        runner = ProjectRunner(requirements=req, project_dir=proj, offline=True,
+                               roles=["pm", "product", "backend"])
+        result = runner.run()
+        assert result["status"] == "completed", result
+        for role in ("pm", "product", "backend"):
+            for name in ("output.json", "summary.md", "meta.json", "prompt.md"):
+                assert (proj / "artifacts" / role / name).exists(), (role, name)
+        assert (proj / "README.md").exists()
+        assert (proj / "logs" / "events.jsonl").exists()
+    print("  project runner OK")
+
+
 def test_deepseek_adapter() -> None:
     from unittest.mock import patch
 
@@ -200,7 +235,6 @@ def test_deepseek_adapter() -> None:
 
 
 def test_skills_and_router() -> None:
-    from .config import ROOT
     skills = SkillRegistry.load(ROOT / "skills" / "registry.yaml")
     assert not skills.errors
     assert {"frontend-design", "ui-ux-pro-max",
@@ -225,6 +259,8 @@ def main() -> None:
     test_prompts()
     test_decisions()
     test_knowledge()
+    test_requirement_selection()
+    test_project_runner()
     test_deepseek_adapter()
     test_skills_and_router()
     print("ALL CHECKS PASSED")

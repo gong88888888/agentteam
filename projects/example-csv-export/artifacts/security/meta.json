@@ -1,0 +1,18 @@
+{
+  "role": "security",
+  "title": "安全与合规",
+  "status": "done",
+  "prompt": {
+    "role": "security",
+    "version": 1,
+    "hash": "029edc5b6957ee1a",
+    "path": "prompts\\roles\\security.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

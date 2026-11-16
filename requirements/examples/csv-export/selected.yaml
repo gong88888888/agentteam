@@ -1,0 +1,33 @@
+project: MiniLedger
+selected:
+  id: REQ-CSV
+  title: 月度记录 CSV 导出
+  description: 用户可以按月份把记账记录导出为 CSV，用于个人归档和二次分析。 导出内容包含日期、金额、分类、备注；只允许导出当前用户自己的记录。
+  users:
+  - 个人用户
+  - 小型团队
+  value: 2
+  effort: 1
+  risk: 1
+  dependency: 0
+  strategic_fit: 2
+  acceptance:
+  - 导出文件包含所选月份全部记录，字段为 date, amount, category, note。
+  - 导出接口必须校验 owner，不能导出其他用户记录。
+  - 单次导出 1 万行时 P95 < 2s；超过 10 万行返回明确错误。
+  - 空数据月份导出合法空 CSV，不报错。
+  non_goals:
+  - 不支持 Excel 公式、图表或多 sheet。
+  - 不做定时/邮件自动导出。
+  - 不引入新的导出服务或消息队列。
+  constraints:
+  - 复用现有认证与记录查询接口。
+  - 导出文件使用 UTF-8 + BOM，兼容 Excel。
+  - 不改变现有记录数据结构。
+  tags:
+  - export
+  - csv
+  - reporting
+  depends_on: []
+score: 10.0
+band: now

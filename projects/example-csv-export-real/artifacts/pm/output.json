@@ -1,0 +1,26 @@
+{
+  "task_id": "T-PM-001",
+  "role": "pm",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "项目目标已明确：实现 MiniLedger 的月度 CSV 导出功能，满足个人归档与二次分析需求。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "功能切片已规划为：接口定义、核心导出逻辑、权限校验、性能优化、测试验证五个阶段。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "依赖顺序遵循：先定义契约，再实现核心逻辑，最后进行集成与性能测试。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [
+    "是否需要支持自定义列顺序或字段选择？当前需求未提及，默认为固定顺序。",
+    "对于超过 10 万行的错误返回，具体 HTTP 状态码和错误消息格式是否有统一规范？"
+  ],
+  "summary": "已完成 MiniLedger 月度 CSV 导出功能的项目计划与切片。明确了核心目标、非目标及验收标准。规划了从接口定义到测试验证的五个功能切片，并确定了依赖顺序。需关注权限校验的安全性与大数据量下的性能表现。"
+}

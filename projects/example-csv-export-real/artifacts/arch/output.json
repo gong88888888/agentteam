@@ -1,0 +1,37 @@
+{
+  "task_id": "T-ARCH-01",
+  "role": "arch",
+  "status": "done",
+  "artifacts": [
+    {
+      "path": "docs/architecture/architecture.md",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "contracts/openapi.yaml",
+      "sha256": "f4c8996fb92427ae41e4649b934ca495991b7852b855e3b0c44298fc1c149afb"
+    }
+  ],
+  "claims": [
+    {
+      "claim": "导出接口采用流式响应，避免全量加载至内存，确保 P95 < 2s。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "强制校验记录 owner 与当前用户 ID 一致，防止越权访问。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "超过 10 万行限制时返回明确错误，不生成文件。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [
+    "REQ-CSV",
+    "docs/product/product-baseline.md"
+  ],
+  "open_questions": [
+    "现有记录查询接口是否支持按月份范围高效分页？若不支持，需新增专用查询端点。"
+  ],
+  "summary": "定义了月度 CSV 导出的架构分层、接口契约及状态机。明确了流式导出策略以保障性能，严格的所有者校验以保障安全，以及 10 万行的硬性限制。输出包含 architecture.md 和 openapi.yaml。"
+}

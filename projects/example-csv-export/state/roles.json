@@ -1,0 +1,219 @@
+{
+  "pm": {
+    "role": "pm",
+    "title": "项目计划与切片",
+    "status": "done",
+    "prompt": {
+      "role": "pm",
+      "version": 1,
+      "hash": "11bdc73b9f9e300c",
+      "path": "prompts\\roles\\pm.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "product": {
+    "role": "product",
+    "title": "产品基准",
+    "status": "done",
+    "prompt": {
+      "role": "product",
+      "version": 1,
+      "hash": "3e6de06e4795901a",
+      "path": "prompts\\roles\\product.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "code_pass": false,
+    "finished_at": "2026-11-16 16:44:46"
+  },
+  "ui": {
+    "role": "ui",
+    "title": "UI/UX 设计规范",
+    "status": "done",
+    "prompt": {
+      "role": "ui",
+      "version": 1,
+      "hash": "d79973713014ba6c",
+      "path": "prompts\\roles\\ui.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "arch": {
+    "role": "arch",
+    "title": "架构与契约",
+    "status": "done",
+    "prompt": {
+      "role": "arch",
+      "version": 1,
+      "hash": "fb5584fc4cae3222",
+      "path": "prompts\\roles\\arch.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "backend": {
+    "role": "backend",
+    "title": "后端实现",
+    "status": "done",
+    "prompt": {
+      "role": "backend",
+      "version": 1,
+      "hash": "c57160acc7ae1330",
+      "path": "prompts\\roles\\backend.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "frontend": {
+    "role": "frontend",
+    "title": "前端实现",
+    "status": "done",
+    "prompt": {
+      "role": "frontend",
+      "version": 1,
+      "hash": "e03e38f7405c7201",
+      "path": "prompts\\roles\\frontend.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "review": {
+    "role": "review",
+    "title": "代码评审",
+    "status": "done",
+    "prompt": {
+      "role": "review",
+      "version": 1,
+      "hash": "14bb816c171b120c",
+      "path": "prompts\\roles\\review.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "qa": {
+    "role": "qa",
+    "title": "测试计划与用例",
+    "status": "done",
+    "prompt": {
+      "role": "qa",
+      "version": 1,
+      "hash": "75651a34fb0a2781",
+      "path": "prompts\\roles\\qa.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "security": {
+    "role": "security",
+    "title": "安全与合规",
+    "status": "done",
+    "prompt": {
+      "role": "security",
+      "version": 1,
+      "hash": "029edc5b6957ee1a",
+      "path": "prompts\\roles\\security.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "ops": {
+    "role": "ops",
+    "title": "发布与回滚",
+    "status": "done",
+    "prompt": {
+      "role": "ops",
+      "version": 1,
+      "hash": "9eed02c89930aed9",
+      "path": "prompts\\roles\\ops.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "kb": {
+    "role": "kb",
+    "title": "知识沉淀",
+    "status": "done",
+    "prompt": {
+      "role": "kb",
+      "version": 1,
+      "hash": "62e7cccb3983d9f3",
+      "path": "prompts\\roles\\kb.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  },
+  "retro": {
+    "role": "retro",
+    "title": "复盘与改进",
+    "status": "done",
+    "prompt": {
+      "role": "retro",
+      "version": 1,
+      "hash": "d50198e7c91b58fd",
+      "path": "prompts\\roles\\retro.md"
+    },
+    "model": "stub",
+    "backend": "stub",
+    "latency_ms": 0,
+    "tokens": 0,
+    "cost_usd": 0.0,
+    "files": [],
+    "finished_at": "2026-11-16 16:31:08"
+  }
+}

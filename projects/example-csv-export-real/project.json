@@ -1,0 +1,25 @@
+{
+  "project_id": "example-csv-export-real",
+  "created_at": "2026-11-16 16:39:09",
+  "requirement": "requirements\\input.md",
+  "offline": false,
+  "roles": [
+    "pm",
+    "product",
+    "arch",
+    "backend",
+    "frontend"
+  ],
+  "status": "completed",
+  "elapsed_s": 64,
+  "model": {
+    "calls": 8,
+    "by_backend": {
+      "local": 8
+    },
+    "latency_ms": 64505,
+    "tokens": 20254,
+    "cost_usd": 0.0,
+    "family_collisions": 0
+  }
+}

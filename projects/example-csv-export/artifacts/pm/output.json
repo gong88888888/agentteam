@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "pm",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub pm: 决策包 选项 证据 风险 升级 裁决协调",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub pm: 决策包 选项 证据 风险 升级 裁决协调"
+}

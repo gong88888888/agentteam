@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "review",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub review: 评审 证据引用 整改方向 契约漂移 findings",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub review: 评审 证据引用 整改方向 契约漂移 findings"
+}

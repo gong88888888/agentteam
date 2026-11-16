@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "ops",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub ops: 回滚 演练 监控 灰度 发布 告警",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub ops: 回滚 演练 监控 灰度 发布 告警"
+}

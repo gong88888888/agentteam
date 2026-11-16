@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "product",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub product: 非目标 验收标准 用户场景 范围",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub product: 非目标 验收标准 用户场景 范围"
+}

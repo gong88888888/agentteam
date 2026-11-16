@@ -1,0 +1,25 @@
+{
+  "role": "frontend",
+  "title": "前端实现",
+  "status": "done",
+  "prompt": {
+    "role": "frontend",
+    "version": 1,
+    "hash": "e03e38f7405c7201",
+    "path": "prompts\\roles\\frontend.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 6917,
+  "tokens": 2443,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "src/frontend/hooks/useExport.ts",
+      "sha256": "e3f3e7c41626faec888b19f75a1ea0d096860620ebff44dc8c27b02b9a724938",
+      "bytes": 2469
+    }
+  ],
+  "code_pass": true,
+  "finished_at": "2026-11-16 16:40:17"
+}

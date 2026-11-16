@@ -1,0 +1,18 @@
+{
+  "role": "retro",
+  "title": "复盘与改进",
+  "status": "done",
+  "prompt": {
+    "role": "retro",
+    "version": 1,
+    "hash": "d50198e7c91b58fd",
+    "path": "prompts\\roles\\retro.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

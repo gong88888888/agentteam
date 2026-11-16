@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "backend",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub backend: 参数校验 状态机 日志 错误码 单元测试 接口",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub backend: 参数校验 状态机 日志 错误码 单元测试 接口"
+}

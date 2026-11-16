@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "security",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub security: 威胁 缓解 高危 权限 依赖 合规",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub security: 威胁 缓解 高危 权限 依赖 合规"
+}

@@ -1,0 +1,18 @@
+{
+  "role": "arch",
+  "title": "架构与契约",
+  "status": "done",
+  "prompt": {
+    "role": "arch",
+    "version": 1,
+    "hash": "fb5584fc4cae3222",
+    "path": "prompts\\roles\\arch.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

@@ -1,0 +1,146 @@
+=== FILE: src/backend/mini_ledger/services/export_service.py ===
+"""
+Monthly CSV Export Service for MiniLedger.
+
+Handles data retrieval, validation, and CSV generation with UTF-8 BOM encoding.
+Enforces ownership checks and row limits.
+"""
+
+import csv
+import io
+from datetime import date
+from typing import List, Tuple
+
+# Assuming standard SQLAlchemy or similar ORM structure based on context
+# If using a different DB driver, adjust the query execution accordingly.
+from mini_ledger.models.transaction import Transaction  # type: ignore
+from mini_ledger.exceptions import (
+    BadRequestError,
+    ForbiddenError,
+    TooManyRecordsError,
+)
+
+# Constants
+MAX_EXPORT_ROWS = 100_000
+CHUNK_SIZE = 1000  # For potential streaming/chunking if needed later
+
+
+def get_monthly_transactions(
+    owner_id: int,
+    year: int,
+    month: int,
+) -> List[Transaction]:
+    """
+    Fetch transactions for a specific user and month.
+
+    Args:
+        owner_id: The ID of the user requesting the export.
+        year: The year of the records to export.
+        month: The month of the records to export (1-12).
+
+    Returns:
+        A list of Transaction objects.
+
+    Raises:
+        ForbiddenError: If the user does not own these records (handled by query scope).
+        TooManyRecordsError: If the count exceeds MAX_EXPORT_ROWS.
+    """
+    # Start and end dates for the month
+    start_date = date(year, month, 1)
+    
+    # Calculate next month's first day to use < operator for range
+    if month == 12:
+        next_month_start = date(year + 1, 1, 1)
+    else:
+        next_month_start = date(year, month + 1, 1)
+
+    # Query scoped by owner_id to ensure security (only own records)
+    # Using count() first to check limit before loading all objects into memory
+    # This is critical for performance with large datasets.
+    query = Transaction.query.filter(
+        Transaction.owner_id == owner_id,
+        Transaction.date >= start_date,
+        Transaction.date < next_month_start,
+    )
+
+    total_count = query.count()
+
+    if total_count > MAX_EXPORT_ROWS:
+        raise TooManyRecordsError(
+            f"Export limit exceeded. Found {total_count} records for "
+            f"{year}-{month:02d}. Maximum allowed is {MAX_EXPORT_ROWS}."
+        )
+
+    # Fetch all records. For 100k rows, this fits in memory for most modern servers.
+    # If P95 becomes an issue with this specific ORM, consider pagination or streaming.
+    transactions = query.all()
+
+    return transactions
+
+
+def generate_csv_content(transactions: List[Transaction]) -> bytes:
+    """
+    Generate CSV content from a list of transactions.
+
+    Args:
+        transactions: List of Transaction objects.
+
+    Returns:
+        Bytes containing the CSV data with UTF-8 BOM.
+    """
+    output = io.StringIO()
+    
+    # Use 'utf-8-sig' to automatically add BOM for Excel compatibility
+    writer = csv.writer(output, lineterminator='\n')
+    
+    # Write header
+    writer.writerow(["date", "amount", "category", "note"])
+
+    if not transactions:
+        # Return empty CSV with just header (or no content? Standard is usually header only)
+        # The requirement says "valid empty CSV". A file with just headers is valid.
+        pass
+    else:
+        for txn in transactions:
+            writer.writerow([
+                txn.date.isoformat(),  # YYYY-MM-DD
+                txn.amount,
+                txn.category,
+                txn.note or "",       # Handle null notes gracefully
+            ])
+
+    # Encode to bytes with UTF-8 BOM
+    # csv.writer writes strings, so we encode the string buffer.
+    # utf-8-sig ensures the BOM is present at the start of the byte stream.
+    return output.getvalue().encode('utf-8-sig')
+
+
+def export_monthly_csv(owner_id: int, year: int, month: int) -> bytes:
+    """
+    Main entry point for monthly CSV export.
+
+    Args:
+        owner_id: The ID of the authenticated user.
+        year: The year to export.
+        month: The month to export (1-12).
+
+    Returns:
+        Bytes containing the UTF-8 BOM encoded CSV content.
+
+    Raises:
+        ForbiddenError: If ownership validation fails (though query scope handles this, 
+                        explicit check is good practice if owner_id comes from untrusted source).
+        TooManyRecordsError: If record count exceeds limit.
+        BadRequestError: If date parameters are invalid.
+    """
+    # Basic validation of month
+    if not 1 <= month <= 12:
+        raise BadRequestError("Invalid month. Must be between 1 and 12.")
+
+    # Fetch data with ownership scope
+    transactions = get_monthly_transactions(owner_id, year, month)
+
+    # Generate CSV
+    csv_bytes = generate_csv_content(transactions)
+
+    return csv_bytes

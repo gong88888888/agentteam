@@ -1,0 +1,18 @@
+{
+  "role": "frontend",
+  "title": "前端实现",
+  "status": "done",
+  "prompt": {
+    "role": "frontend",
+    "version": 1,
+    "hash": "e03e38f7405c7201",
+    "path": "prompts\\roles\\frontend.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

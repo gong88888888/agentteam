@@ -10,7 +10,8 @@
 | [agentteam-评审报告-2026-11-16.md](agentteam-评审报告-2026-11-16.md) | 独立评审：问题清单与改进方向 |
 | [修复实施记录.md](修复实施记录.md) | 对照《修复建议1.md》逐项修复与验证 |
 | [specs/README.md](specs/README.md) | 任务卡/证据/决策包/裁决/Agent 规格 |
-| [eval/README.md](eval/README.md) | W2 评测集、金丝雀与阈值 |
+| [eval/README.md](eval/README.md) | W2/W4 评测集、金丝雀、role/prompt/KB 评测 |
+| [PROJECT_PLAYBOOK.md](PROJECT_PLAYBOOK.md) | 选需求、启动项目、角色记录与优化路线 |
 
 ## 快速运行
 
@@ -54,6 +55,11 @@ python eval/kb_eval.py
 # W4：决策收件箱
 python dashboard/serve.py --port 8765
 # open http://localhost:8765/decisions.html
+
+# 选需求 → 启动项目 → 查看角色记录
+python -m orchestrator.requirements select   --backlog requirements/backlog.example.yaml --out requirements/examples/csv-export
+python start_project.py   --requirements requirements/examples/csv-export/selected.md   --project-dir projects/example-csv-export --offline
+# 真实模型：--real --roles pm,product,arch,backend,frontend --kb
 ```
 
 ## 结果
@@ -94,6 +100,35 @@ W3 结果（3 切片、共享 package.json/ui-tokens、X1 契约变更）：
 
 **并行加速比 2.16x**。共享文件冲突与锁等待是并行带来的真实成本；契约变更会失效 3 个切片的旧证据并强制 3 个复评门禁。
 
+## 项目启动与角色记录
+
+需求选择使用确定性评分（价值/战略/工作量/风险/依赖），选出 `now` 需求；`start_project.py` 接收需求文件和开发目录，按角色顺序执行并落盘：
+
+```
+projects/<project>/
+├── artifacts/<role>/{prompt.md,request.md,output.json,summary.md,meta.json}
+├── logs/events.jsonl
+├── state/roles.json
+├── src/backend/**, src/frontend/**
+└── README.md
+```
+
+示例：
+
+- `projects/example-csv-export/`：12 角色离线结构跑通
+- `projects/example-csv-export-real/`：本地 Qwen 3.6 跑 pm/product/arch/backend/frontend，backend/frontend 已生成代码文件
+
+角色监控与调整：
+
+```bash
+python dashboard/serve.py --port 8765
+# open http://localhost:8765/projects.html
+```
+
+项目角色页展示每个角色的状态、模型、耗时、Token、文件、System Prompt、实际请求与输出；发现不合格时可填写调整要求并**只重跑该角色**。调整要求会写入 `request.md`、`meta.json` 和 `logs/events.jsonl`，便于事后核对。W3 工作台与 W4 决策收件箱原样保留。
+
+详见 [PROJECT_PLAYBOOK.md](PROJECT_PLAYBOOK.md) 与 [projects/README.md](projects/README.md)。
+
 ## W4 结果
 
 | 能力 | 结果 |
@@ -125,6 +160,8 @@ orchestrator/          W1/W2：模型路由、裁判、证据账本、裁决账�
   models/              Ollama(qwen3.6) / DeepSeek / Stub / Router
   judge/               packet / verdict / panel / canary / revalidation / rubric
   evidence/            evidence store / verdict store / dependency graph / signing
+  requirements.py      确定性需求评分与选择（now/next/later）
+  project_runner.py    需求文件 → 项目目录 → 12 角色记录/代码/日志
 eval/                  W2/W4 评测：金丝雀、role golden set、prompt 回归、知识库召回
 dashboard/             W3 监控工作台 + W4 决策收件箱（静态 HTML + API）
 prompts/               12 角色版本化提示词 + 候选 v2 + registry
@@ -134,6 +171,10 @@ specs/                 任务卡、证据、决策包、裁决、Agent 规格
 rubrics/               产品/架构/代码/验收/发布/复核 rubric
 sim/                   编排协议预演（v4.1 + W3），v4.0 备份在 dryrun_v4.0.py
 config/                配置示例（只放环境变量名）
+requirements/          backlog、需求选择脚本与示例需求
+projects/              角色运行示例（prompt/output/meta/logs/src）
+start_project.py       项目启动脚本
+PROJECT_PLAYBOOK.md    选需求/启动/角色记录/优化路线
 ```
 
 ## 当前边界
@@ -146,5 +187,6 @@ config/                配置示例（只放环境变量名）
 - W4 的 role eval 默认全量离线、真实只跑子集；全量 12 角色真实评测需按预算单独跑。
 - 知识库未直接运行 RAGFlow（依赖 Elasticsearch/MySQL/Redis），复用其检索概念；`data/knowledge.db` 可重建。
 - 决策收件箱是策略所有者/审计入口；常规门禁仍由 J1/J2/J3 裁决，不逐次人工审批。
+- `start_project.py` 的角色输出是**开发草稿**，不替代工具证据、门禁、裁判与沙箱；真实项目需按 Playbook 接入 pytest/契约/扫描证据。
 - 尚未实现：真实 CI/测试工具签名、容器沙箱、工作树租约、进程崩溃恢复、完整 MCP 服务端；W1/W2/W3 的评测、账本与工作台是本地可运行版本。
 - 监控工作台读取 `sim/out/w3`；重新跑 W3 后执行 `python dashboard/build.py` 刷新。

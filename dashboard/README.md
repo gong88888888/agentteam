@@ -57,3 +57,32 @@ API：
 - `GET /api/decisions/stats`
 
 决策写入 `data/decisions.db`，审计写入 `decision_audit`；首次启动自动 seed 3 个示例决策。
+
+## W5 Project Role Monitor
+
+`projects.html` 读取 `projects/*/artifacts`，展示每个角色的工作记录，并支持单角色调整重跑；W3 工作台与决策收件箱保留不变。
+
+```bash
+python start_project.py \
+  --requirements requirements/examples/csv-export/selected.md \
+  --project-dir projects/example-csv-export --offline
+python dashboard/serve.py --port 8765
+# http://localhost:8765/projects.html
+```
+
+页面内容：
+
+- 项目列表与状态；需求原文可展开。
+- 角色卡片：状态、模型、耗时、Token、写出文件、是否按调整要求重跑。
+- 详情页签：摘要、输出 JSON、System Prompt、实际请求（含调整要求与前置摘要）、Meta、文件内容。
+- 调整重跑：填写补充要求后只重跑当前角色；默认 stub，取消勾选调用本地 Qwen/DeepSeek。
+
+API：
+
+- `GET /api/projects`
+- `GET /api/projects/{name}`
+- `GET /api/projects/{name}/roles/{role}`
+- `GET /api/projects/{name}/file?path=src/backend/...`
+- `POST /api/projects/{name}/roles/{role}/rerun` `{note, offline}`
+
+重跑写入新的 `request.md`、`meta.json`（含 `adjustment`）与 `logs/events.jsonl` 的 `role.started`；已有其他角色记录保留。

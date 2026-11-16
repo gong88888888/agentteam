@@ -1,0 +1,18 @@
+{
+  "role": "ui",
+  "title": "UI/UX 设计规范",
+  "status": "done",
+  "prompt": {
+    "role": "ui",
+    "version": 1,
+    "hash": "d79973713014ba6c",
+    "path": "prompts\\roles\\ui.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

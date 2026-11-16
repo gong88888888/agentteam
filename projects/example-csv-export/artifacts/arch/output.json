@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "arch",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub arch: 接口契约 不变量 状态机 错误码 架构",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub arch: 接口契约 不变量 状态机 错误码 架构"
+}

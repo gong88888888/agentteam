@@ -1,0 +1,18 @@
+{
+  "role": "qa",
+  "title": "测试计划与用例",
+  "status": "done",
+  "prompt": {
+    "role": "qa",
+    "version": 1,
+    "hash": "75651a34fb0a2781",
+    "path": "prompts\\roles\\qa.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

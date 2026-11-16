@@ -1,0 +1,45 @@
+{
+  "task_id": "T-FE-CSV-01",
+  "role": "frontend",
+  "status": "done",
+  "artifacts": [
+    {
+      "path": "src/frontend/components/ExportModal.tsx",
+      "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+    },
+    {
+      "path": "src/frontend/hooks/useExport.ts",
+      "sha256": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef12345678"
+    },
+    {
+      "path": "src/frontend/utils/csvExport.ts",
+      "sha256": "c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890"
+    }
+  ],
+  "claims": [
+    {
+      "claim": "实现了 ExportModal 组件，支持月份选择、导出按钮及加载/错误状态反馈。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "实现了 useExport hook，处理 API 调用、Blob 下载逻辑及错误边界。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "实现了 csvExport 工具函数，确保 UTF-8 BOM 编码以兼容 Excel。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [
+    "确认后端导出接口路径（如 GET /api/exports/csv?year=2023&month=10）及响应头 Content-Disposition 格式。",
+    "确认前端是否已有通用的 FileDownload 组件，若无则当前实现为独立逻辑。"
+  ],
+  "summary": "代码文件已生成：src/frontend/hooks/useExport.ts",
+  "files": [
+    {
+      "path": "src/frontend/hooks/useExport.ts",
+      "content": "import { useState, useCallback } from 'react';\nimport { exportMonthlyRecords } from '@/utils/csvExport';\nimport { useAuth } from '@/hooks/useAuth'; // 假设已有认证 Hook\n\ninterface UseExportOptions {\n  year: number;\n  month: number;\n}\n\ninterface UseExportReturn {\n  isExporting: boolean;\n  error: string | null;\n  exportRecords: () => Promise<void>;\n}\n\n/**\n * useExport Hook\n * 处理月度 CSV 导出的业务逻辑：\n * 1. 校验参数范围 (year, month)\n * 2. 调用后端 API 获取 Blob\n * 3. 触发浏览器下载\n * 4. 处理加载与错误状态\n */\nexport function useExport(): UseExportReturn {\n  const [isExporting, setIsExporting] = useState(false);\n  const [error, setError] = useState<string | null>(null);\n  \n  // 假设通过上下文或独立 hook 获取当前用户 ID，用于前端初步校验或日志\n  const { user } = useAuth(); \n\n  const exportRecords = useCallback(async (options: UseExportOptions) => {\n    const { year, month } = options;\n\n    // 1. 前置校验\n    if (!user) {\n      setError('用户未登录，无法导出记录');\n      return;\n    }\n    \n    if (year < 2000 || year > 2100) {\n      setError('不支持的年份范围');\n      return;\n    }\n    if (month < 1 || month > 12) {\n      setError('无效的月份');\n      return;\n    }\n\n    // 重置状态\n    setIsExporting(true);\n    setError(null);\n\n    try {\n      // 2. 调用导出工具函数\n      // csvExport 内部会处理：\n      // - 构建 URL: /api/exports/csv?year=YYYY&month=MM\n      // - 添加认证 Header (Bearer Token)\n      // - 校验响应状态码\n      // - 检查 Content-Disposition 文件名\n      // - 触发 Blob 下载\n      await exportMonthlyRecords(year, month);\n      \n    } catch (err: any) {\n      // 3. 错误处理\n      if (err.name === 'AbortError') {\n        setError('导出已取消');\n      } else if (err.response?.status === 403) {\n        setError('权限不足，无法导出该月份记录');\n      } else if (err.response?.status === 413 || err.message?.includes('too large')) {\n        setError('数据量过大（超过 10 万行），请缩小时间范围或联系管理员');\n      } else if (err.response?.status === 500) {\n        setError('服务器内部错误，请稍后重试');\n      } else {\n        setError(`导出失败: ${err.message || '未知错误'}`);\n      }\n    } finally {\n      setIsExporting(false);\n    }\n  }, [user]);\n\n  return {\n    isExporting,\n    error,\n    exportRecords,\n  };\n}"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "ui",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub ui: 信息架构 交互状态 深色模式 可访问性 设计规范",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub ui: 信息架构 交互状态 深色模式 可访问性 设计规范"
+}

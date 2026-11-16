@@ -1,0 +1,18 @@
+{
+  "role": "backend",
+  "title": "后端实现",
+  "status": "done",
+  "prompt": {
+    "role": "backend",
+    "version": 1,
+    "hash": "c57160acc7ae1330",
+    "path": "prompts\\roles\\backend.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

@@ -1,0 +1,19 @@
+{
+  "role": "product",
+  "title": "产品基准",
+  "status": "done",
+  "prompt": {
+    "role": "product",
+    "version": 1,
+    "hash": "3e6de06e4795901a",
+    "path": "prompts\\roles\\product.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 4789,
+  "tokens": 1912,
+  "cost_usd": 0.0,
+  "files": [],
+  "code_pass": false,
+  "finished_at": "2026-11-16 16:39:32"
+}

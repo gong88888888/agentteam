@@ -1,0 +1,19 @@
+{
+  "role": "arch",
+  "title": "架构与契约",
+  "status": "done",
+  "prompt": {
+    "role": "arch",
+    "version": 1,
+    "hash": "fb5584fc4cae3222",
+    "path": "prompts\\roles\\arch.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 4218,
+  "tokens": 2860,
+  "cost_usd": 0.0,
+  "files": [],
+  "code_pass": false,
+  "finished_at": "2026-11-16 16:39:42"
+}

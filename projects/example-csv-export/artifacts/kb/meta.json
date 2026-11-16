@@ -1,0 +1,18 @@
+{
+  "role": "kb",
+  "title": "知识沉淀",
+  "status": "done",
+  "prompt": {
+    "role": "kb",
+    "version": 1,
+    "hash": "62e7cccb3983d9f3",
+    "path": "prompts\\roles\\kb.md"
+  },
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
+  "files": [],
+  "finished_at": "2026-11-16 16:31:08"
+}

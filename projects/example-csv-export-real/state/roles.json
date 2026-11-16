@@ -1,0 +1,109 @@
+{
+  "pm": {
+    "role": "pm",
+    "title": "项目计划与切片",
+    "status": "done",
+    "prompt": {
+      "role": "pm",
+      "version": 1,
+      "hash": "11bdc73b9f9e300c",
+      "path": "prompts\\roles\\pm.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 14495,
+    "tokens": 1918,
+    "cost_usd": 0.0,
+    "files": [],
+    "code_pass": false,
+    "finished_at": "2026-11-16 16:39:27"
+  },
+  "product": {
+    "role": "product",
+    "title": "产品基准",
+    "status": "done",
+    "prompt": {
+      "role": "product",
+      "version": 1,
+      "hash": "3e6de06e4795901a",
+      "path": "prompts\\roles\\product.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 4789,
+    "tokens": 1912,
+    "cost_usd": 0.0,
+    "files": [],
+    "code_pass": false,
+    "finished_at": "2026-11-16 16:39:32"
+  },
+  "arch": {
+    "role": "arch",
+    "title": "架构与契约",
+    "status": "done",
+    "prompt": {
+      "role": "arch",
+      "version": 1,
+      "hash": "fb5584fc4cae3222",
+      "path": "prompts\\roles\\arch.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 4218,
+    "tokens": 2860,
+    "cost_usd": 0.0,
+    "files": [],
+    "code_pass": false,
+    "finished_at": "2026-11-16 16:39:42"
+  },
+  "backend": {
+    "role": "backend",
+    "title": "后端实现",
+    "status": "done",
+    "prompt": {
+      "role": "backend",
+      "version": 1,
+      "hash": "c57160acc7ae1330",
+      "path": "prompts\\roles\\backend.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 7258,
+    "tokens": 2486,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "src/backend/mini_ledger/services/export_service.py",
+        "sha256": "b556ef837416da0cdecca9e5dabec45ca3fbfb1b56857ce72a901740d8f757fe",
+        "bytes": 4634
+      }
+    ],
+    "code_pass": true,
+    "finished_at": "2026-11-16 16:40:02"
+  },
+  "frontend": {
+    "role": "frontend",
+    "title": "前端实现",
+    "status": "done",
+    "prompt": {
+      "role": "frontend",
+      "version": 1,
+      "hash": "e03e38f7405c7201",
+      "path": "prompts\\roles\\frontend.md"
+    },
+    "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+    "backend": "local",
+    "latency_ms": 6917,
+    "tokens": 2443,
+    "cost_usd": 0.0,
+    "files": [
+      {
+        "path": "src/frontend/hooks/useExport.ts",
+        "sha256": "e3f3e7c41626faec888b19f75a1ea0d096860620ebff44dc8c27b02b9a724938",
+        "bytes": 2469
+      }
+    ],
+    "code_pass": true,
+    "finished_at": "2026-11-16 16:40:17"
+  }
+}

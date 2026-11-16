@@ -1,0 +1,15 @@
+{
+  "task_id": "stub-task",
+  "role": "retro",
+  "status": "done",
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "stub retro: 时间线 根因 行动项 owner deadline verification 验证 残余风险",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [],
+  "summary": "stub retro: 时间线 根因 行动项 owner deadline verification 验证 残余风险"
+}

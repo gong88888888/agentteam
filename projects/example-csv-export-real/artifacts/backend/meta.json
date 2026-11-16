@@ -1,0 +1,25 @@
+{
+  "role": "backend",
+  "title": "后端实现",
+  "status": "done",
+  "prompt": {
+    "role": "backend",
+    "version": 1,
+    "hash": "c57160acc7ae1330",
+    "path": "prompts\\roles\\backend.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 7258,
+  "tokens": 2486,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "src/backend/mini_ledger/services/export_service.py",
+      "sha256": "b556ef837416da0cdecca9e5dabec45ca3fbfb1b56857ce72a901740d8f757fe",
+      "bytes": 4634
+    }
+  ],
+  "code_pass": true,
+  "finished_at": "2026-11-16 16:40:02"
+}
