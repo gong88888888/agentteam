@@ -1,0 +1,9 @@
+{
+  "name": "@local/adaptive-frontend-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.js", "./layout.css": "./layout.css" },
+  "scripts": { "test": "node --test test" },
+  "engines": { "node": ">=18" }
+}

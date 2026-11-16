@@ -4,15 +4,19 @@
 !.env.example
 config/config.yaml
 
-# runtime
+# runtime (repo-root only; keep nested reference assets like
+# RAG-Agent-Toolkit/**/data/ tracked)
 sim/out/
 __pycache__/
 *.pyc
 *.pyo
-data/
-workspace/
-logs/
-temp/
+/data/
+/workspace/
+/logs/
+/temp/
+
+# downloaded reference archive; extracted sources are tracked under RAG-Agent-Toolkit/
+RAG-Agent-Toolkit.zip
 
 # editor / OS
 .vscode/

@@ -1,0 +1,16 @@
+/* Opt-in only. Host semantic tokens retain ownership of the theme. */
+.af-scope { container-type: inline-size; min-width: 0; box-sizing: border-box; }
+.af-scope *, .af-scope *::before, .af-scope *::after { box-sizing: inherit; }
+.af-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--af-gap, 16px); }
+.af-split > *, .af-toolbar > * { min-width: 0; }
+.af-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.af-wrap { overflow-wrap: anywhere; }
+.af-media { display: block; width: 100%; aspect-ratio: var(--af-media-ratio, 16 / 9); object-fit: contain; }
+.af-icon-button { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; }
+.af-scope :focus-visible { outline: 2px solid var(--af-focus, #1764c0); outline-offset: 3px; }
+@container (min-width: 850px) {
+  .af-split { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .af-scope { scroll-behavior: auto; }
+}

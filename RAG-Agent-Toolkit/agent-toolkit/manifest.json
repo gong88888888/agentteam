@@ -1,0 +1,63 @@
+{
+  "name": "RAG-Agent-Toolkit",
+  "source_project": "RAG-Dual-AI-Generator",
+  "description": "从 RAG 双 AI 生成平台抽取的智能体执行能力包：MCP 工具 + Harness 多智能体框架 + mcp-tools 文档/统计引擎 + Agent Skills",
+  "generated_at": "2026-11-16",
+  "packages": {
+    "mcp": {
+      "path": "mcp/",
+      "entry": "mcp/index.js#initMCP(app)",
+      "protocol": "MCP 1.0 (JSON-RPC 2.0)",
+      "rest_prefix": "/api/mcp",
+      "modules": [
+        "registry.js", "server.js", "client.js", "sandbox.js", "permissions.js",
+        "audit.js", "chat.js", "demos.js", "harnessBridge.js", "marketplace.js",
+        "customLoader.js", "rateLimit.js", "types.js", "index.js"
+      ]
+    },
+    "mcp-tools": {
+      "path": "mcp-tools/",
+      "entry": "mcp-tools/index.js#initMcpTools()",
+      "tools": ["document-processor"],
+      "placeholders": ["knowledge-graph"],
+      "engines": ["textPreprocessor", "chunkingEngine", "qualityScorer", "documentParser", "statsEngine", "ganttEngine"]
+    },
+    "harness": {
+      "path": "harness/",
+      "entry": "harness/index.js#initHarness(app)",
+      "rest_prefix": "/api/harness",
+      "modules": ["controller.js", "stateMachine.js", "stateMachines/dualRoleStateMachine.js", "toolLoader.js", "validator.js", "logger.js", "index.js"],
+      "tools": ["aiTool", "ragTool", "pptOutline", "pptGenerate", "excelFormula", "excelDataClean", "excelChart", "excelPivot", "excelCompare"]
+    },
+    "skills": {
+      "path": "skills/",
+      "items": [
+        { "name": "frontend-design", "source": "anthropics/skills", "desc": "distinctive UI visual design guidance" },
+        { "name": "adaptive-frontend-optimization", "desc": "audit and incrementally optimize existing frontend workflow/responsive/async/a11y" },
+        { "name": "postmortem-to-tests", "license": "MIT", "desc": "incident postmortem -> structured root cause + regression tests (6-stage)" },
+        { "name": "ui-ux-pro-max", "desc": "UI/UX knowledge base: 67 styles / 96 palettes / 57 font pairings / 13 stacks" }
+      ]
+    }
+  },
+  "mcp_tools": {
+    "builtin_core": [
+      "ai.chat", "rag.context", "excel.formula", "excel.clean", "excel.chart",
+      "excel.pivot", "excel.compare", "ppt.outline", "ppt.generate", "ppt.compose_graphics",
+      "fs.readText", "web.search", "math.eval", "workflow.split"
+    ],
+    "git": ["git.init", "git.clone", "git.status", "git.add", "git.commit", "git.log", "git.diff", "git.branch", "git.push", "git.remote", "git.tag"],
+    "github": ["github.list_repos", "github.repo_info", "github.get_file", "github.create_file", "github.search_repos", "github.search_code", "github.get_issue", "github.get_pr", "github.download_zip", "github.parse_url", "github.test_token", "github.get_config"],
+    "office": ["office.create", "office.view", "office.set", "office.add", "office.merge", "office.batch", "office.info"],
+    "ppt_design_vector": ["ppt.themes", "ppt.layouts", "ppt.html", "ppt.enhanced", "ppt.outline", "ppt.generate", "ppt.compose_graphics", "ppt.search_vector_graphics", "ppt.clone_vector_graphic", "ppt.generate_vector_diagram"],
+    "excel_classic": ["excel.chart", "excel.clean", "excel.pivot", "excel.formula", "excel.compare", "excel.anomaly"],
+    "excel_management": ["excel.gantt", "excel.schedule", "excel.budget", "excel.kpi", "excel.riskRegister", "excel.meetingNotes", "excel.taskStats"],
+    "excel_stats": ["excel.regression", "excel.correlation", "excel.timeSeries"],
+    "marketplace": ["web.browse", "email.send", "db.query", "calendar.event", "code.python", "image.generate"],
+    "mcp_tools_framework": ["document-processor"]
+  },
+  "notes": [
+    "源码抽取包，保留 mcp/、mcp-tools/、harness/ 相对布局以维持工具间相对 require。",
+    "完整运行需宿主项目提供 backend/services/*、backend/middleware/auth、backend/routes/mcp、backend/config、data/*.json。",
+    "mcp/custom/ 在原项目为空，未打包；已剔除 __pycache__ / *.pyc。"
+  ]
+}
