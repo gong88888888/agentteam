@@ -1,0 +1,128 @@
+{
+  "role": "backend",
+  "title": "后端实现",
+  "status": "blocked",
+  "prompt": {
+    "role": "backend",
+    "version": 1,
+    "hash": "c57160acc7ae1330",
+    "path": "prompts\\roles\\backend.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 8644,
+  "tokens": 3363,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "src/backend/models.py",
+      "sha256": "e1b7d222eb9b87b65ec1c812d82cf9d9b543b8756322aa04757f34576fa3239f",
+      "bytes": 4462,
+      "source": "role",
+      "promoted": true
+    }
+  ],
+  "code_pass": true,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-backend",
+    "role": "backend",
+    "status": "fail",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "src/backend/"
+      },
+      {
+        "name": "files_written",
+        "ok": true,
+        "detail": "代码角色没有写出文件"
+      },
+      {
+        "name": "evidence:compile",
+        "ok": false,
+        "detail": "fail"
+      },
+      {
+        "name": "evidence:unit",
+        "ok": true,
+        "detail": "pass"
+      },
+      {
+        "name": "evidence_subject",
+        "ok": true,
+        "detail": "a74e237de7fc76294c6a136b0fb43c604637c1f76c85e8cf585de6c08cc9a928"
+      }
+    ],
+    "evidence_ids": [
+      "EV-000001",
+      "EV-000002"
+    ],
+    "missing": [],
+    "decision_id": "DEC-TEST1-BACKEND",
+    "subject_hash": "a74e237de7fc76294c6a136b0fb43c604637c1f76c85e8cf585de6c08cc9a928"
+  },
+  "tools": {
+    "profile": "basic",
+    "subject_hash": "a74e237de7fc76294c6a136b0fb43c604637c1f76c85e8cf585de6c08cc9a928",
+    "ledger": "D:\\agentteam\\projects\\test1\\evidence\\tool-ledger.jsonl",
+    "passed": [
+      "unit"
+    ],
+    "failed": [
+      "compile"
+    ],
+    "missing": [],
+    "evidence": [
+      {
+        "evidence_id": "EV-000001",
+        "kind": "compile",
+        "result": "fail",
+        "tool": "python",
+        "tool_version": "3.13.15"
+      },
+      {
+        "evidence_id": "EV-000002",
+        "kind": "unit",
+        "result": "pass",
+        "tool": "unittest",
+        "tool_version": "3.13.15"
+      }
+    ]
+  },
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-201306",
+  "finished_at": "2026-11-16 20:16:10",
+  "quality": {
+    "score": 60,
+    "grade": "C",
+    "components": {
+      "completeness": 30,
+      "gate": 0,
+      "evidence": 10,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "evidence:compile: fail",
+      "存在失败工具证据"
+    ]
+  }
+}

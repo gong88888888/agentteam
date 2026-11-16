@@ -1,0 +1,19 @@
+{
+  "template": "minimal-api",
+  "title": "Minimal stdlib API",
+  "hash": "0a227e36d8eb8929",
+  "copied": [],
+  "skipped": [
+    "contracts/openapi.yaml",
+    "docs/architecture/architecture.md",
+    "docs/product/product-baseline.md",
+    "README.md",
+    "src/__init__.py",
+    "src/backend/__init__.py",
+    "src/backend/app.py",
+    "src/frontend/index.html",
+    "tests/test_app.py",
+    "tools/semgrep.yml"
+  ],
+  "overwrite": false
+}

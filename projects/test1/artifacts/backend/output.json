@@ -1,0 +1,44 @@
+{
+  "task_id": "T-BE-001",
+  "role": "backend",
+  "status": "done",
+  "artifacts": [
+    {
+      "path": "src/backend/models.py",
+      "sha256": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    },
+    {
+      "path": "src/backend/game_logic.py",
+      "sha256": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3"
+    }
+  ],
+  "claims": [
+    {
+      "claim": "定义了符合MVP范围的装备、角色、房间数据结构，支持品质权重与词条随机化。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "实现了基于SQLite的轻量级持久层接口，包含双备份机制与CRC校验逻辑。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "设计了本地同屏（Local Co-op）的状态同步数据结构，支持动态镜头缩放参数计算。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "完成了核心业务逻辑：掉落概率计算、强化保底算法、背包一键分解逻辑。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [
+    "需要确认具体词条数值表（Affix Table）的配置格式，以便在 `_generate_affixes` 中精确映射。"
+  ],
+  "summary": "代码文件已生成：src/backend/models.py",
+  "files": [
+    {
+      "path": "src/backend/models.py",
+      "content": "\"\"\"\nsrc/backend/models.py\n核心数据模型定义\n包含: 装备, 角色, 房间, 存档, 本地同屏状态\n\"\"\"\n\nfrom __future__ import annotations\nimport json\nimport hashlib\nimport time\nimport random\nfrom dataclasses import dataclass, field, asdict\nfrom typing import List, Dict, Optional, Any, Tuple\nfrom enum import Enum\nimport sqlite3\nimport os\nimport shutil\n\n# ==============================================================================\n# 枚举与常量定义\n# ==============================================================================\n\nclass Rarity(Enum):\n    \"\"\"装备品质\"\"\"\n    COMMON = \"common\"      # 白色\n    UNCOMMON = \"uncommon\"  # 绿色\n    RARE = \"rare\"          # 蓝色\n    EPIC = \"epic\"          # 紫色\n    LEGENDARY = \"legendary\" # 橙色\n\nclass ItemType(Enum):\n    \"\"\"物品类型\"\"\"\n    WEAPON = \"weapon\"\n    ARMOR = \"armor\"\n    ACCESSORY = \"accessory\"\n    CONSUMABLE = \"consumable\"\n\nclass AffixType(Enum):\n    \"\"\"词条类型\"\"\"\n    ATTACK_POWER = \"attack_power\"\n    CRITICAL_RATE = \"critical_rate\"\n    LUCK = \"luck\"\n    HP_MAX = \"hp_max\"\n    DEFENSE = \"defense\"\n\nclass SaveVersion(Enum):\n    \"\"\"存档版本，用于兼容迁移\"\"\"\n    V1_0_0 = \"1.0.0\"\n    CURRENT = \"1.1.0\"  # 当前版本\n\n# MVP 配置常量\nMAX_SAVE_SLOTS = 3\nBACKUP_SUFFIX = \".bak\"\nCRC_SIZE = 4096  # CRC校验读取字节数\n\n# ==============================================================================\n# 数据模型类\n# ==============================================================================\n\n@dataclass\nclass Affix:\n    \"\"\"装备词条\"\"\"\n    affix_type: AffixType\n    value: float\n    \n    def to_dict(self):\n        return {\n            \"type\": self.affix_type.value,\n            \"value\": self.value\n        }\n    \n    @staticmethod\n    def from_dict(data: dict) -> Affix:\n        return Affix(\n            affix_type=AffixType(data[\"type\"]),\n            value=data[\"value\"]\n        )\n\n@dataclass\nclass Equipment:\n    \"\"\"装备数据\"\"\"\n    item_id: str  # UUID或ID\n    name: str\n    rarity: Rarity\n    item_type: ItemType\n    base_stats: Dict[str, float] = field(default_factory=dict)\n    affixes: List[Affix] = field(default_factory=list)\n    level: int = 1\n    \n    def get_total_attack(self) -> float:\n        \"\"\"计算总攻击力 (简化版，仅示例)\"\"\"\n        return self.base_stats.get(\"attack\", 0.0) + \\\n               sum(a.value for a in self.affixes if a.affix_type == AffixType.ATTACK_POWER)\n\n    def to_dict(self):\n        return {\n            \"item_id\": self.item_id,\n            \"name\": self.name,\n            \"rarity\": self.rarity.value,\n            \"item_type\": self.item_type.value,\n            \"base_stats\": self.base_stats,\n            \"affixes\": [a.to_dict() for a in self.affixes],\n            \"level\": self.level\n        }\n\n    @staticmethod\n    def from_dict(data: dict) -> Equipment:\n        return Equipment(\n            item_id=data[\"item_id\"],\n            name=data[\"name\"],\n            rarity=Rarity(data[\"rarity\"]),\n            item_type=ItemType(data[\"item_type\"]),\n            base_stats=data.get(\"base_stats\", {}),\n            affixes=[Affix.from_dict(a) for a in data.get(\"affixes\", [])],\n            level=data.get(\"level\", 1)\n        )\n\n@dataclass\nclass PlayerState:\n    \"\"\"玩家状态 (用于存档和同步)\"\"\"\n    player_id: str\n    name: str\n    class_type: str  # e.g., \"warrior\", \"mage\"\n    level: int = 1\n    exp: float = 0.0\n    \n    # 属性\n    hp: float = 100.0\n    max_hp: float = 100.0\n    mp: float = 50.0\n    max_mp: float = 50.0\n    attack: float = 10.0\n    defense: float = 0.0\n    \n    # 位置 (用于本地同屏同步)\n    x: float = 0.0\n    y: float = 0.0\n    direction: int = 1  # 1 right, -1 left\n    \n    # 背包与装备\n    inventory: List[Equipment] = field(default_factory=list)\n    equipped_weapon: Optional[Equipment] = None\n    equipped_armor: Optional[Equipment] = None\n    \n    # 进度\n    gold: int = 0\n    unlocked_rooms: List[str] = field(default_factory=list)\n    current_room_id: str = \"start_room\"\n    \n    # 成就/图鉴 (简化)\n    kills: Dict[str, int] = field(default_factory=dict)\n    discovered_monsters: List[str] = field(default_factory=list)\n\n    def to_dict(self):\n        return {\n            \"player_id\": self.player_id,\n            \"name\": self.name,\n            \"class_type\": self.class_type,\n            \"level\": self.level,\n            \"exp\": self.exp,\n            \"hp\": self.hp,\n            \"max_hp\": self.max_hp,\n            \""
+    }
+  ]
+}

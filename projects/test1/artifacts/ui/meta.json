@@ -1,0 +1,88 @@
+{
+  "role": "ui",
+  "title": "UI/UX 设计规范",
+  "status": "done",
+  "prompt": {
+    "role": "ui",
+    "version": 1,
+    "hash": "d79973713014ba6c",
+    "path": "prompts\\roles\\ui.md"
+  },
+  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
+  "backend": "local",
+  "latency_ms": 8305,
+  "tokens": 3278,
+  "cost_usd": 0.0,
+  "files": [
+    {
+      "path": "docs/design/ui-spec.md",
+      "sha256": "486ccb3419afeb780b2112239686c0ad87aaee32731f72c55e736dbff17cd4a1",
+      "bytes": 1069,
+      "source": "runner-summary",
+      "promoted": true
+    }
+  ],
+  "code_pass": false,
+  "adjustment": "",
+  "gate": {
+    "gate_id": "G-TEST1-ui",
+    "role": "ui",
+    "status": "pass",
+    "checks": [
+      {
+        "name": "role_matches",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "status_not_blocked",
+        "ok": true,
+        "detail": "done"
+      },
+      {
+        "name": "summary_present",
+        "ok": true,
+        "detail": "summary 过短或缺失"
+      },
+      {
+        "name": "keyword:状态",
+        "ok": true,
+        "detail": "缺少必需内容"
+      },
+      {
+        "name": "keyword:any",
+        "ok": true,
+        "detail": "缺少任一预期内容：可访问/对比度/空/加载"
+      },
+      {
+        "name": "artifact",
+        "ok": true,
+        "detail": "docs/design/ui-spec.md"
+      }
+    ],
+    "evidence_ids": [],
+    "missing": [],
+    "decision_id": null,
+    "subject_hash": ""
+  },
+  "tools": null,
+  "sandbox": "direct",
+  "template": "minimal-api",
+  "run_id": "20261116-201306",
+  "finished_at": "2026-11-16 20:14:38",
+  "quality": {
+    "score": 95,
+    "grade": "A",
+    "components": {
+      "completeness": 25,
+      "gate": 30,
+      "evidence": 20,
+      "efficiency": 10,
+      "clarity": 10
+    },
+    "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
+    ]
+  }
+}

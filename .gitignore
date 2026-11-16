@@ -1,5 +1,5 @@
 # secrets
-.agentteam/
+/.agentteam/
 .env
 .env.*
 !.env.example
