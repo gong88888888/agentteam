@@ -1,0 +1,21 @@
+# secrets
+.env
+.env.*
+!.env.example
+config/config.yaml
+
+# runtime
+sim/out/
+__pycache__/
+*.pyc
+*.pyo
+data/
+workspace/
+logs/
+temp/
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

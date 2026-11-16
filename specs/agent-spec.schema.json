@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/agent-spec.schema.json",
+  "title": "Agent Specification v1",
+  "description": "修复建议1 P0-4：12 个 Agent 统一使用 9 字段规格书。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "role",
+    "tools",
+    "scope",
+    "input_contract",
+    "output_contract",
+    "examples",
+    "failure_policy",
+    "budget",
+    "prohibitions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 10
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "allow"],
+        "properties": {
+          "name": { "type": "string" },
+          "allow": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "write", "deny"],
+      "properties": {
+        "read": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "write": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deny": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "input_contract": {
+      "type": "string",
+      "pattern": "\\.json$"
+    },
+    "output_contract": {
+      "type": "string",
+      "pattern": "\\.json$"
+    },
+    "examples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["good", "bad"],
+      "properties": {
+        "good": { "type": "string" },
+        "bad": { "type": "string" }
+      }
+    },
+    "failure_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retry", "escalate_if", "on_exhaust"],
+      "properties": {
+        "retry": { "type": "string" },
+        "escalate_if": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "on_exhaust": { "type": "string" }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_tokens", "max_minutes", "max_usd"],
+      "properties": {
+        "max_tokens": { "type": "integer", "minimum": 1000 },
+        "max_minutes": { "type": "integer", "minimum": 1 },
+        "max_usd": { "type": "number", "minimum": 0 }
+      }
+    },
+    "prohibitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  }
+}

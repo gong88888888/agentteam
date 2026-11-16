@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/evidence.schema.json",
+  "title": "Tool-Signed Evidence v1",
+  "description": "修复建议1 P0-1/P0-2：门禁只接受工具或裁判签名的证据；Agent 自述只能作为 claim。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_id",
+    "kind",
+    "subject_hash",
+    "tool",
+    "tool_version",
+    "result",
+    "payload",
+    "signed_by",
+    "created_at",
+    "expires_at",
+    "baseline_fp"
+  ],
+  "properties": {
+    "evidence_id": { "type": "string", "pattern": "^EV-[0-9A-Za-z._-]+$" },
+    "kind": { "type": "string", "minLength": 1 },
+    "subject_hash": { "type": "string", "minLength": 8 },
+    "tool": { "type": "string", "minLength": 1 },
+    "tool_version": { "type": "string", "minLength": 1 },
+    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "payload": { "type": "object" },
+    "signed_by": {
+      "type": "string",
+      "pattern": "^(tool|judge):[a-z0-9._-]+$"
+    },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "expires_at": { "type": "integer", "minimum": 0 },
+    "baseline_fp": { "type": "string", "minLength": 8 },
+    "invalidated_by": { "type": ["string", "null"] }
+  }
+}

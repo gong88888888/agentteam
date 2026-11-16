@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/verdict.schema.json",
+  "title": "Judge Verdict v1",
+  "description": "外部裁判的结构化裁决；approve 必须引用确定性证据，need_evidence 必须列出具体检查。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict_id",
+    "packet_hash",
+    "decision",
+    "confidence",
+    "rubric_version",
+    "criteria",
+    "findings",
+    "required_evidence",
+    "conditions",
+    "expires_at",
+    "input_hash",
+    "judge",
+    "signature"
+  ],
+  "properties": {
+    "verdict_id": { "type": "string" },
+    "packet_hash": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "approve_with_conditions",
+        "need_evidence",
+        "reject",
+        "defer",
+        "abstain"
+      ]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rubric_version": { "type": "string" },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "score", "evidence_ids", "note"],
+        "properties": {
+          "id": { "type": "string" },
+          "score": { "type": "integer", "minimum": 0, "maximum": 2 },
+          "evidence_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "file", "evidence_ids", "remediation"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["fatal", "major", "minor", "suggestion"]
+          },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "evidence_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "remediation": { "type": "string" }
+        }
+      }
+    },
+    "required_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "subject", "command", "why"],
+        "properties": {
+          "kind": { "type": "string" },
+          "subject": { "type": "string" },
+          "command": { "type": "string" },
+          "why": { "type": "string" }
+        }
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "expires_at": { "type": "integer", "minimum": 0 },
+    "input_hash": { "type": "string" },
+    "judge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "model", "version", "prompt_hash", "temperature", "seed"],
+      "properties": {
+        "backend": { "type": "string" },
+        "model": { "type": "string" },
+        "version": { "type": "string" },
+        "prompt_hash": { "type": "string" },
+        "temperature": { "type": "number" },
+        "seed": { "type": "integer" },
+        "response_id": { "type": "string" }
+      }
+    },
+    "signature": { "type": "string", "minLength": 8 }
+  }
+}

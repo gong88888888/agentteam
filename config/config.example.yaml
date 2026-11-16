@@ -1,0 +1,84 @@
+# 复制为 config/config.yaml 使用；只允许放环境变量名，禁止写真实密钥。
+runtime:
+  out_dir: sim/out/v4
+  workspace: workspace
+  log_level: info
+
+approval:
+  mode: external_model_judge
+  fail_closed: true
+  judges:
+    j1:
+      backend: deepseekharness
+      base_url_env: DEEPSEEK_HARNESS_URL
+      api_key_env: DEEPSEEK_API_KEY
+      model: deepseek-chat
+      temperature: 0
+      seed: 42
+      timeout_s: 120
+      max_retries: 0
+    j2:
+      backend: secondary-family
+      base_url_env: SECOND_JUDGE_BASE_URL
+      api_key_env: SECOND_JUDGE_API_KEY
+      model_env: SECOND_JUDGE_MODEL
+      temperature: 0
+      timeout_s: 120
+    j3:
+      backend: deepseekharness
+      base_url_env: DEEPSEEK_HARNESS_URL
+      api_key_env: DEEPSEEK_API_KEY
+      model: deepseek-reasoner
+      temperature: 0
+      timeout_s: 180
+  policy:
+    default: [j1]
+    high_risk: [j1, j2]
+    l3_or_disagreement: [j1, j2, j3]
+    release: [j2, j3]
+  budgets:
+    per_project_usd: 50
+    per_verdict_tokens: 30000
+    warn_at: 0.8
+    hard_stop_at: 1.0
+  canary:
+    rate: 0.1
+    miss_rate_threshold: 0.10
+    action: conservative_mode
+  audit:
+    sample_rate: 0.05
+    blocking: false
+  content_isolation:
+    sanitize: true
+    max_packet_bytes: 200000
+    instruction_detection: true
+
+execution:
+  model_routing:
+    product: strong
+    arch: strong
+    frontend: strong
+    backend: strong
+    review: strong
+    security: strong
+    ui: strong
+    qa: strong
+    ops: light
+    kb: light
+    retro: light
+    pm: light
+  budget:
+    per_task_warn: 0.8
+    per_task_hard_stop: 1.0
+  sandbox:
+    write_scope_enforced: true
+    network: deny_by_default
+    command_allowlist:
+      - pytest
+      - mypy
+      - ruff
+      - eslint
+      - playwright
+      - semgrep
+      - trivy
+      - git

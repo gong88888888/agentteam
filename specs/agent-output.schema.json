@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/agent-output.schema.json",
+  "title": "Agent Output Envelope v1",
+  "description": "所有创作型 Agent 的统一输出包；claims 不参与门禁判定，证据必须引用 evidence_refs。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "role",
+    "status",
+    "artifacts",
+    "claims",
+    "evidence_refs",
+    "open_questions",
+    "summary"
+  ],
+  "properties": {
+    "task_id": { "type": "string" },
+    "role": {
+      "type": "string",
+      "enum": [
+        "pm", "product", "ui", "arch", "frontend", "backend",
+        "review", "qa", "security", "ops", "kb", "retro"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["done", "need_evidence", "blocked"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string" }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "counts_as_evidence"],
+        "properties": {
+          "claim": { "type": "string" },
+          "counts_as_evidence": { "const": false },
+          "evidence_refs": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" }
+  }
+}
