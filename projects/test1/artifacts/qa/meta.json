@@ -8,59 +8,17 @@
     "hash": "75651a34fb0a2781",
     "path": "prompts\\roles\\qa.md"
   },
-  "model": "deepseek-chat",
-  "backend": "deepseekharness",
-  "latency_ms": 24265,
-  "tokens": 17248,
-  "cost_usd": 0.01485,
+  "model": "stub",
+  "backend": "stub",
+  "latency_ms": 0,
+  "tokens": 0,
+  "cost_usd": 0.0,
   "files": [
     {
-      "path": "game/tests/qa_mapgen.mjs",
-      "sha256": "f911bbbf319e94806701ae799403ce5ad6bf4e42b977787115e00e741f873e72",
-      "bytes": 2892,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "game/tests/qa_combat.mjs",
-      "sha256": "9c269c9633c0544cab55102a3f74857b10eb2a0de918d06b45ce8e6aa016b32d",
-      "bytes": 2308,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "game/tests/qa_loot.mjs",
-      "sha256": "ccb500dc4fc3beab25e462c9835c15a7ed83b4a757225507ec9f72ee3ba29831",
-      "bytes": 2542,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "game/tests/qa_save.mjs",
-      "sha256": "28b21236b1b521ca4e222d8fb7223f8ed30aa30a4f2e6fea41876b9c736ce1fa",
-      "bytes": 1515,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "game/tests/qa_coop.mjs",
-      "sha256": "466b7ce739a558c7beebc5793c0a9698feff42f12e9672c4f87609a906686b20",
-      "bytes": 1318,
-      "source": "role",
-      "promoted": true
-    },
-    {
       "path": "tests/test-plan.md",
-      "sha256": "bbdafb3179f8dfa2164be18c1f622bfa0761085008dfbf79bfec3b13006d3961",
-      "bytes": 2960,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "docs/qa/findings.md",
-      "sha256": "73f2c46e7327fa4d2029f0ea65fa90764b44aa5dc8b7640ed280d64109e52e58",
-      "bytes": 1420,
-      "source": "role",
+      "sha256": "4e419d915b1c5f41bae67ed96722bc14f2ebdd39996b749287eeecb4f9d1494d",
+      "bytes": 345,
+      "source": "runner-summary",
       "promoted": true
     }
   ],
@@ -105,23 +63,24 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261117-142428",
-  "started_at": 1794896847.733639,
-  "started_clock": "14:27:27",
+  "run_id": "20261117-152730",
+  "started_at": 1794900450.1418004,
+  "started_clock": "15:27:30",
   "schema_repairs": [],
-  "finished_at": "2026-11-17 14:27:56",
+  "finished_at": "2026-11-17 15:27:30",
   "quality": {
-    "score": 96,
+    "score": 91,
     "grade": "A",
     "components": {
-      "completeness": 30,
+      "completeness": 25,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 8,
-      "clarity": 8
+      "efficiency": 6,
+      "clarity": 10
     },
     "issues": [
-      "4 个未决问题"
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档"
     ]
   }
 }

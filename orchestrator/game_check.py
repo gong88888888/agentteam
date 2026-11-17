@@ -87,7 +87,8 @@ def sandbox_run_chrome(chrome: str, game_dir: Path, shot: Path) -> bool:
 
 def run_game_acceptance(project_dir: str | Path, *,
                         ledger_path: str | Path | None = None,
-                        baseline_fp: str = "") -> dict[str, Any]:
+                        baseline_fp: str = "",
+                        report_name: str = "acceptance.json") -> dict[str, Any]:
     root = Path(project_dir).resolve()
     game_dir = root / "game"
     ledger = Path(ledger_path) if ledger_path else root / "evidence" / "tool-ledger.jsonl"

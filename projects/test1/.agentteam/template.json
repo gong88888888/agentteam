@@ -1,7 +1,7 @@
 {
   "template": "web-2d-game",
   "title": "Playable 2D game vertical slice",
-  "hash": "d80fc29ef44836ac",
+  "hash": "fea2d9d0c9a8aa5d",
   "copied": [],
   "skipped": [
     "game/css/style.css",

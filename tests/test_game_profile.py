@@ -40,6 +40,13 @@ class GameProfileTest(unittest.TestCase):
             req = base / "req.md"
             req.write_text(GAME_REQ, encoding="utf-8")
             project = base / "game-project"
+            (project / "docs" / "product").mkdir(parents=True, exist_ok=True)
+            (project / "docs" / "architecture").mkdir(parents=True, exist_ok=True)
+            (project / "docs" / "product" / "product-baseline.md").write_text(
+                "# Product\n\n流程、房间、职业、装备、存档、验收、非目标。\n",
+                encoding="utf-8")
+            (project / "docs" / "architecture" / "architecture.md").write_text(
+                "# Arch\n\n模块、契约、存档、测试。\n", encoding="utf-8")
             runner = ProjectRunner(
                 requirements=req, project_dir=project, offline=True,
                 roles=["backend", "frontend", "qa"], template="web-2d-game",

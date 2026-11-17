@@ -13,6 +13,7 @@
 | [specs/README.md](specs/README.md) | 任务卡/证据/决策包/裁决/Agent 规格 |
 | [eval/README.md](eval/README.md) | W2/W4 评测集、金丝雀、role/prompt/KB 评测 |
 | [PROJECT_PLAYBOOK.md](PROJECT_PLAYBOOK.md) | 选需求、启动项目、角色记录与优化路线 |
+| [PROCESS_OPTIMIZATION.md](PROCESS_OPTIMIZATION.md) | 第一次失败的复盘、六阶段流程、DoD 与 P0–P2 提升方案 |
 
 ## Windows 启动
 

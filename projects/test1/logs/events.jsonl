@@ -312,3 +312,14 @@
 {"ts": 1794897229.9271247, "clock": "14:33:49", "event": "role.finished", "role": "arch", "status": "done", "model": "deepseek-chat", "backend": "deepseekharness", "prompt": {"role": "arch", "version": 1, "hash": "fb5584fc4cae3222", "path": "prompts\\roles\\arch.md"}, "latency_ms": 26366, "files": ["docs/architecture/architecture.md"], "gate": "pass"}
 {"ts": 1794897230.7463226, "clock": "14:33:50", "event": "game.acceptance", "status": "pass", "engine": "html5-canvas", "failed": [], "evidence_ids": ["EV-000075", "EV-000076", "EV-000077", "EV-000078", "EV-000079", "EV-000080"]}
 {"ts": 1794897230.7484221, "clock": "14:33:50", "event": "project.finished", "status": "completed", "elapsed_s": 30, "errors": [], "blocked": []}
+{"ts": 1794900450.1362212, "clock": "15:27:30", "event": "template.applied", "template": "web-2d-game", "hash": "fea2d9d0c9a8aa5d", "copied": 0, "skipped": 18}
+{"ts": 1794900450.1384714, "clock": "15:27:30", "event": "process.preflight", "status": "pass", "blockers": []}
+{"ts": 1794900450.1408534, "clock": "15:27:30", "event": "project.started", "offline": true, "roles": ["qa"]}
+{"ts": 1794900450.1424544, "clock": "15:27:30", "event": "role.started", "role": "qa", "adjustment": null, "prompt": {"role": "qa", "version": 1, "hash": "75651a34fb0a2781", "path": "prompts\\roles\\qa.md"}}
+{"ts": 1794900450.1483362, "clock": "15:27:30", "event": "file.synthesized", "role": "qa", "path": "tests/test-plan.md"}
+{"ts": 1794900450.1491008, "clock": "15:27:30", "event": "quality.scored", "role": "qa", "score": 91, "grade": "A"}
+{"ts": 1794900451.0160303, "clock": "15:27:31", "event": "process.stage", "stage": "quality", "status": "pass", "failed": [], "decision_id": null}
+{"ts": 1794900451.0161917, "clock": "15:27:31", "event": "gate.pass", "role": "qa", "gate_id": "G-TEST1-qa", "failed": [], "evidence_ids": [], "decision_id": null}
+{"ts": 1794900451.0162802, "clock": "15:27:31", "event": "role.finished", "role": "qa", "status": "done", "model": "stub", "backend": "stub", "prompt": {"role": "qa", "version": 1, "hash": "75651a34fb0a2781", "path": "prompts\\roles\\qa.md"}, "latency_ms": 0, "files": ["tests/test-plan.md"], "gate": "pass"}
+{"ts": 1794900451.8172174, "clock": "15:27:31", "event": "game.acceptance", "status": "pass", "engine": "html5-canvas", "failed": [], "evidence_ids": ["EV-000135", "EV-000136", "EV-000137", "EV-000138", "EV-000139", "EV-000140"]}
+{"ts": 1794900451.8192246, "clock": "15:27:31", "event": "project.finished", "status": "completed", "elapsed_s": 0, "errors": [], "blocked": []}

@@ -89,7 +89,7 @@ def main() -> int:
         extra_note=args.note)
     result = runner.run()
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if result["status"] != "failed" else 1
+    return 0 if result["status"] == "completed" else 1
 
 
 if __name__ == "__main__":

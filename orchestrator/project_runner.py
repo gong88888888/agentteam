@@ -25,6 +25,7 @@ from .knowledge import HybridRetriever
 from .models.router import ModelRouter
 from .prompts import load_prompt
 from .quality import append_history, score_role
+from .process import definition_of_done, preflight, stage_plan, write_stages
 from .role_gates import ARTIFACT_PATHS, GateResult, evaluate_role
 from .sandbox import IsolatedWorkspace
 from .templates import apply_template, get_template
@@ -161,6 +162,11 @@ class ProjectRunner:
         self.decision_store = (DecisionStore(decision_db or (data_dir(self.cfg) / "decisions.db"))
                                if gates else None)
         self.template_record: dict[str, Any] = {}
+        self.preflight_result: dict[str, Any] = {}
+        self.stage_results: list[dict[str, Any]] = []
+        self.acceptance_runs = 0
+        self.stage_failures: list[str] = []
+        self.dod_result: dict[str, Any] = {}
         self.baseline_fp = ""
         self.requirement_text = self.requirements_path.read_text(encoding="utf-8")
         self.project_type = (detect_project_type(self.requirement_text)
@@ -183,6 +189,12 @@ class ProjectRunner:
             "template_hash": self.template_record.get("hash", ""),
             "profile": self.tool_profile,
         })
+        self.preflight_result = preflight(self.project_dir, self.project_type, self.template)
+        (self.project_dir / "state" / "preflight.json").write_text(
+            json.dumps(self.preflight_result, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8")
+        self.log("process.preflight", status=self.preflight_result["status"],
+                 blockers=[b["name"] for b in self.preflight_result["blockers"]])
         target = self.project_dir / "requirements" / "input.md"
         if self.requirements_path.resolve() != target.resolve():
             shutil.copyfile(self.requirements_path, target)
@@ -485,6 +497,10 @@ class ProjectRunner:
             statuses[role] = role_status
             state[role] = meta
             self.live_state(state, "running", None, index)
+            if role in CODE_ROLES and (role == "frontend" or "frontend" not in self.roles):
+                self.run_stage_acceptance("implementation", state)
+            if role == "qa":
+                self.run_stage_acceptance("quality", state)
             if repairs:
                 self.log("schema.repaired", role=role, repairs=repairs)
             prior.append(f"- {role}: {summary[:700]}"
@@ -528,6 +544,8 @@ class ProjectRunner:
                      engine=acceptance["engine"],
                      failed=[c["name"] for c in acceptance["checks"] if not c["ok"]],
                      evidence_ids=acceptance["evidence_ids"])
+        self.dod_result = definition_of_done(
+            self.project_dir, self.project_type, state, acceptance=acceptance)
         errors = [r for r, v in state.items()
                   if isinstance(v, dict) and v.get("status") == "error"]
         blocked = [r for r, v in state.items()
@@ -541,6 +559,8 @@ class ProjectRunner:
             status = "completed"
         if acceptance is not None and acceptance["status"] != "pass":
             status = "failed"
+        if self.dod_result.get("status") != "pass":
+            status = "failed" if acceptance is None or acceptance.get("status") != "pass" else "partial"
         self._stop_heartbeat()
         self.write_state(state, status, elapsed)
         self.write_readme(state, status)
@@ -707,6 +727,60 @@ class ProjectRunner:
                     "passed": [], "failed": [], "error": str(exc)[:500],
                     "missing": [{"kind": "tooling", "reason": str(exc)[:300],
                                  "required": True}]}
+
+    def _process_decision(self, stage: str, result: dict[str, Any]) -> str | None:
+        if not self.decision_store:
+            return None
+        decision_id = f"DEC-{re.sub(r'[^A-Za-z0-9]+', '-', self.project_dir.name).upper()}-STAGE-{stage.upper()}"[:64]
+        failed = [c for c in result.get("checks", []) if not c.get("ok")]
+        packet = {
+            "gate_id": f"STAGE-{stage}", "scope": {"project": self.project_dir.name,
+                                                   "stage": stage, "risk": "high"},
+            "baseline_fp": self.baseline_fp,
+            "deterministic_checks": failed,
+            "missing_evidence": [c.get("name") for c in failed],
+            "stage": stage, "acceptance": result.get("status"),
+        }
+        options = [
+            {"id": "A", "summary": "按失败项返工后重跑该阶段", "cost": "低", "risk": "低", "reversible": True},
+            {"id": "B", "summary": "缩小范围并记录明确豁免", "cost": "低", "risk": "中", "reversible": True},
+            {"id": "C", "summary": "阻塞交付，保留证据等待修复", "cost": "中", "risk": "低", "reversible": True},
+        ]
+        rec = self.decision_store.create(
+            decision_id=decision_id, gate_id=f"STAGE-{stage}",
+            title=f"{self.project_dir.name} · {stage} 阶段门禁未通过",
+            scope=packet["scope"], risk="high", options=options, packet=packet,
+            verdicts=[], evidence=[], recommendation="按失败项补齐后再进入下一阶段。")
+        return str(rec.get("id", decision_id)) if rec else decision_id
+
+    def run_stage_acceptance(self, stage: str, state: dict[str, Any]) -> dict[str, Any] | None:
+        if not self.gates_enabled or self.project_type != "game":
+            return None
+        try:
+            result = run_game_acceptance(
+                self.project_dir, ledger_path=self.evidence_ledger,
+                baseline_fp=self.baseline_fp,
+                report_name=f"acceptance.{stage}.json")
+        except Exception as exc:
+            result = {"status": "fail", "checks": [{"name": "stage_error", "ok": False,
+                                                     "detail": str(exc)[:300]}],
+                      "engine": "unknown", "evidence_ids": []}
+        self.acceptance_runs += 1
+        decision_id = None
+        if result["status"] != "pass":
+            decision_id = self._process_decision(stage, result)
+            self.stage_failures.append(stage)
+        row = {"stage": stage, "status": result["status"],
+               "checks": result.get("checks", []),
+               "evidence_ids": result.get("evidence_ids", []),
+               "decision_id": decision_id,
+               "at": time.strftime("%Y-%m-%d %H:%M:%S")}
+        self.stage_results.append(row)
+        write_stages(self.project_dir, self.stage_results)
+        self.log("process.stage", stage=stage, status=result["status"],
+                 failed=[c.get("name") for c in result.get("checks", []) if not c.get("ok")],
+                 decision_id=decision_id)
+        return row
 
     def run_gate(self, role: str, obj: dict[str, Any], files: list[dict[str, Any]],
                  tool_result: dict[str, Any] | None) -> GateResult | None:
@@ -946,6 +1020,15 @@ class ProjectRunner:
                         "quality_avg": round(sum(scores) / len(scores), 1) if scores else None,
                         "project_type": self.project_type,
                         "acceptance": _acceptance_summary(self.project_dir),
+                        "preflight": self.preflight_result,
+                        "dod": self.dod_result,
+                        "stages": self.stage_results,
+                        "process_metrics": {
+                            "acceptance_runs": self.acceptance_runs,
+                            "stage_failures": self.stage_failures,
+                            "false_complete_prevented": sum(
+                                1 for r in self.stage_results if r.get("status") != "pass"),
+                        },
                         "run_id": self.run_id,
                         "current_role": "",
                         "current_index": self._project_total(state),

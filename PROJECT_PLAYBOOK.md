@@ -205,6 +205,10 @@ python dashboard/serve.py --port 8765
 - `minimal-api` 是 stdlib 脚手架，用来验证证据/门禁链路；真实项目需替换依赖、测试与契约。
 - 模板脚手架中的 TODO 不算交付物；角色未写文档时，runner 会生成明确标注的 `runner-summary` 文档，便于审阅但不冒充模型产物。
 
+## 4.1 流程门禁与 DoD
+
+完整复盘与六阶段流程见 [PROCESS_OPTIMIZATION.md](PROCESS_OPTIMIZATION.md)。要点：preflight → product 深文档 → arch 契约 → implementation 阶段验收 → QA 真实测试 → final acceptance + DoD；任何阶段失败不能 `completed`，`start_project.py` 只有 completed 返回 0。
+
 ## 5. 建议的第一个真实闭环
 
 1. 选 `REQ-CSV`。

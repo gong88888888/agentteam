@@ -1,0 +1,37 @@
+{
+  "status": "pass",
+  "checks": [
+    {
+      "name": "entry",
+      "ok": true,
+      "detail": "game/index.html 存在"
+    },
+    {
+      "name": "template",
+      "ok": true,
+      "detail": "template=web-2d-game"
+    },
+    {
+      "name": "tool:node",
+      "ok": true,
+      "detail": "C:\\Program Files\\nodejs\\node.EXE"
+    },
+    {
+      "name": "doc-required:docs/product/product-baseline.md",
+      "ok": true,
+      "detail": "由 product/arch 角色产出"
+    },
+    {
+      "name": "doc-required:docs/architecture/architecture.md",
+      "ok": true,
+      "detail": "由 product/arch 角色产出"
+    },
+    {
+      "name": "playable-entry",
+      "ok": true,
+      "detail": "game/js/core.js + main.js"
+    }
+  ],
+  "blockers": [],
+  "at": 1794900450.138316
+}
