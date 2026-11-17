@@ -373,17 +373,23 @@ eval/golden/{judge,agent,revalidation,role,kb}_cases.yaml
 
 | 页面/接口 | 内容 |
 |---|---|
-| `dashboard/index.html` | W3 工作台：并行 vs 串行、KPI、甘特、冲突、契约影响图、事件流 |
+| `dashboard/index.html` | 首页：实时项目任务（角色/任务状态、泳道、Token、门禁、质量、证据）+ W3 并行/串行基线 |
 | `dashboard/decisions.html` | W4 决策收件箱：approve / conditions / reject / defer / request evidence |
 | `dashboard/projects.html` | W5 项目角色监控：角色状态、prompt、请求、输出、文件、重跑 |
 | `python dashboard/serve.py --port 8765` | 本地 HTTP 服务 |
 | `GET /api/health` | 健康检查 |
+| `GET /api/live`、`/api/live?project=<name>` | 最新/指定项目的任务动态、指标、事件流 |
 | `GET /api/decisions`、`/api/decisions/{id}`、`/api/decisions/stats` | 决策查询 |
 | `POST /api/decisions/{id}/decision` | 决策动作 + 审计 |
 | `GET /api/projects`、`/api/projects/{name}` | 项目列表/详情 |
 | `GET /api/projects/{name}/roles/{role}` | 角色明细 |
 | `GET /api/projects/{name}/file?path=...` | 文件内容（限定项目内） |
 | `POST /api/projects/{name}/roles/{role}/rerun` | 单角色调整重跑 |
+
+数据刷新：
+
+- 首页实时面板每 3 秒请求 `/api/live`，读取 `state/roles.json`、`logs/events.jsonl`、`evidence/tool-ledger.jsonl`。
+- `dashboard/build.py` 会嵌入最新项目的快照，供直接打开 `index.html` 时使用；当 `sim/w3.py`/`sim/dryrun.py` 比 `sim/out/w3` 新时自动重跑 W3，避免旧模拟数据长期不更新。
 
 ---
 
@@ -509,7 +515,8 @@ python -I specs/validate_specs.py
 | v4.1 预演 | `python -I sim/dryrun.py` | completed；1,252 min；59 任务；裁判 20 次；无 fatal |
 | W3 预演 | `python sim/w3.py --mode both` | completed；parallel 1,302 min / serial 2,815 min；2.16x |
 | W3 自检 | `python sim/w3_selfcheck.py` | 通过 |
-| 看板构建 | `python dashboard/build.py` | 生成 index.html；573/550 事件 |
+| 看板构建 | `python dashboard/build.py` | 生成 index.html；573/550 事件；嵌入 test1 实时快照 |
+| 首页实时项目 | `python dashboard/serve.py` + `GET /api/live?project=test1` | test1 completed；12/12 角色、12/12 门禁、151,094 Token、146 条证据 |
 | 离线项目 | `python start_project.py ... --offline` | pm/product/arch completed；stub 3 次调用 |
 | Windows 启动器 | `start.bat check/sim/test/eval/demo` | 全部 exit 0；菜单/参数模式可用 |
 | 设计文档开工 | `start.bat project requirements\examples\csv-export\selected.md _launcher-project-smoke offline` | 12 角色 completed；产物写入指定项目目录 |

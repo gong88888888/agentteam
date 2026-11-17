@@ -113,6 +113,9 @@ diffBtns.forEach((btn) => btn.addEventListener("click", () => setDifficulty(btn.
 startBtn.addEventListener("click", () => startGame(selectedClass, coopBox.checked, difficulty));
 coopBox.addEventListener("change", () => { coop = coopBox.checked; });
 $("panel-close").addEventListener("click", closePanel);
+$("quick-save").addEventListener("click", () => {
+  if (run) saveSlot(currentSlot);
+});
 
 function startGame(classId = selectedClass, isCoop = false, diff = 2, seed = null) {
   run = createRun(classId, isCoop, diff, seed ?? (Date.now() >>> 0));
@@ -630,6 +633,7 @@ function openPanel(kind, title, html) {
   panelTitle.textContent = title;
   panelBody.innerHTML = html;
   panel.classList.remove("hidden");
+  paused = true;
   mode = "panel";
 }
 
@@ -637,14 +641,16 @@ function closePanel() {
   const kind = panelKind;
   panel.classList.add("hidden");
   panelKind = null;
-  if (kind === "pause") paused = false;
-  if (kind === "shop" || kind === "campfire") {
+  paused = false;
+  keys.clear();
+  const terminal = kind === "victory" || kind === "gameover";
+  if (kind === "shop" || kind === "campfire" || kind === "event") {
     interactableDone = true;
     markClearedIfReady();
-    autoSave();
   }
-  if (kind === "inventory" || kind === "pause" || kind === "shop" || kind === "campfire" || kind === "quests") {
+  if (!terminal) {
     mode = "playing";
+    autoSave();
   }
 }
 
@@ -743,12 +749,14 @@ function handlePanelAction(act, target) {
     if (old) addInventory(p, old, 60);
     p.hp = Math.min(derivedStats(p).maxHp, p.hp);
     panelBody.innerHTML = renderInventory();
+    autoSave();
     showMessage(`装备 ${item.name}`, 1.5);
   }
   if (act === "decompose") {
     const item = p.inventory.splice(Number(target.dataset.index), 1)[0];
     run.gold += decomposeValue(item);
     panelBody.innerHTML = renderInventory();
+    autoSave();
   }
   if (act === "buy-item") {
     const item = shop.items[Number(target.dataset.index)];
@@ -757,12 +765,13 @@ function handlePanelAction(act, target) {
       run.gold -= price;
       shop.items.splice(Number(target.dataset.index), 1);
       panelBody.innerHTML = renderShop();
+      autoSave();
       showMessage(`购买 ${item.name}`, 1.5);
     } else showMessage("金币不足或背包已满", 1.8);
   }
   if (act === "buy-potion") {
     if (run.gold >= 10) {
-      run.gold -= 10; run.potions += 1; panelBody.innerHTML = renderShop();
+      run.gold -= 10; run.potions += 1; panelBody.innerHTML = renderShop(); autoSave();
     } else showMessage("金币不足", 1.5);
   }
   if (act === "reforge") {
@@ -772,6 +781,7 @@ function handlePanelAction(act, target) {
     run.gold -= 30;
     reforgeItem(weapon, rand);
     panelBody.innerHTML = panelKind === "campfire" ? renderCampfire() : renderShop();
+    autoSave();
     showMessage("词条已重铸", 1.5);
   }
   if (act === "rest") {
@@ -786,6 +796,7 @@ function handlePanelAction(act, target) {
     const result = tryUpgrade(weapon, run.gold);
     if (result.ok) {
       run.gold -= result.cost;
+      autoSave();
       showMessage(`武器强化到 +${weapon.upgrade}`, 1.8);
     } else showMessage(result.reason, 1.8);
     panelBody.innerHTML = renderCampfire();
@@ -823,7 +834,7 @@ function handlePanelAction(act, target) {
   }
   if (act === "claim-quest") {
     const reward = claimQuest(run, target.dataset.quest);
-    if (reward) showMessage(`领取任务奖励 +${reward} 金币`, 1.8);
+    if (reward) { autoSave(); showMessage(`领取任务奖励 +${reward} 金币`, 1.8); }
     panelBody.innerHTML = renderQuests();
   }
   if (act === "resume") closePanel();
@@ -846,7 +857,7 @@ function saveSlot(slot = currentSlot, silent = false) {
   if (!run) return;
   try {
     localStorage.setItem(`${SAVE_PREFIX}${slot}`, encodeSave(snapshot(run, slot)));
-    if (!silent) toast(`已保存到槽位 ${slot}`, 1.8);
+    if (!silent) toast(`进度已保存到槽位 ${slot} · ${new Date().toLocaleTimeString()}`, 2.2);
     renderSaveSlots();
   } catch { if (!silent) toast("存档失败：浏览器存储不可用", 2); }
 }
@@ -1103,7 +1114,11 @@ function loop(now) {
     updateHud();
   }
   render();
-  requestAnimationFrame(loop);
+  // 一键保存之外，战斗中每 15 秒自动落一次当前槽位；关闭页面前再保存一次。
+setInterval(() => { if (mode === "playing" && run) autoSave(); }, 15000);
+window.addEventListener("beforeunload", () => { if (run) saveSlot(currentSlot, true); });
+
+requestAnimationFrame(loop);
 }
 
 function handleAction(code) {
@@ -1156,6 +1171,8 @@ window.__AGENTTEAM_GAME__ = {
   attack: (index = 0, heavy = false) => attack(run.players[index], heavy),
   skill: (index = 0, slot = 1) => skill(run.players[index], slot),
   interact,
+  loadRoom,
+  openEvent,
   step: (dt) => {
     run.players.forEach((p, i) => stepPlayer(p, i, dt));
     stepEnemies(dt); stepProjectiles(dt); stepGround(dt);
@@ -1173,4 +1190,8 @@ const params = new URLSearchParams(location.search);
 if (params.get("play") && CLASSES[params.get("play")]) {
   startGame(params.get("play"), params.get("coop") === "1", Number(params.get("difficulty") || 2));
 }
+// 一键保存之外，战斗中每 15 秒自动落一次当前槽位；关闭页面前再保存一次。
+setInterval(() => { if (mode === "playing" && run) autoSave(); }, 15000);
+window.addEventListener("beforeunload", () => { if (run) saveSlot(currentSlot, true); });
+
 requestAnimationFrame(loop);

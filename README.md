@@ -63,9 +63,10 @@ python eval/run_eval.py --real
 python sim/w3.py --mode both
 python sim/w3_selfcheck.py
 
-# W3 监控工作台（静态 HTML，可离线打开）
+# 看板首页：实时项目任务 + W3 并行/串行基线
 python dashboard/build.py
 # open dashboard/index.html，或 python dashboard/serve.py --port 8765
+# 首页实时面板读取 projects/<name>/state + logs/events.jsonl + evidence/tool-ledger.jsonl
 
 # W4：角色 golden set + prompt 回归
 python prompts/build_prompts.py
@@ -190,7 +191,7 @@ python dashboard/serve.py --port 8765
 - Chrome 无头渲染截图：证明入口实际渲染。
 - `acceptance.json` 记录全部检查和签名证据；任一失败，项目状态强制 `failed`，不能靠角色摘要“完成”。
 
-test1 游戏产品已按此重跑：产品/架构角色产出深度文档并通过 `deep_brief` 门禁，12 角色门禁通过；`acceptance.json` 6/6（entry/modules/logic/smoke/qa/render），QA 27/27；第一章 5 层 × 8–12 房间 + Boss、3 职业双技能、等级/任务、装备/词条/强化、商店/篝火/事件、3 槽存档和本地双人可玩。
+test1 游戏产品已按此重跑：产品/架构角色产出深度文档并通过 `deep_brief` 门禁，12 角色门禁通过；`acceptance.json` 6/6（entry/modules/logic/smoke/qa/render），QA 27/27；第一章 5 层 × 8–12 房间 + Boss、3 职业双技能、等级/任务、装备/词条/强化、商店/篝火/事件、3 槽存档和本地双人可玩；`F5` 或右下角“保存进度”即时存档，战斗中每 15 秒自动保存。
 
 ```bash
 python start_project.py --requirements projects/test1/requirements/input.md --project-dir projects/test1-game --real --template web-2d-game --project-type game

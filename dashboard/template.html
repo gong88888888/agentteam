@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentTeam · W3 Delivery Monitor</title>
+<title>AgentTeam · Delivery Monitor</title>
 <style>
   :root {
     color-scheme: light;
@@ -182,6 +182,30 @@
   details { margin-top: 12px; }
   summary { color: var(--ink-2); cursor: pointer; font-size: 12px; }
   .footer { color: var(--muted); font-size: 12px; margin-top: 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 26px 0 12px; }
+  .section-head h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  .live-panel { margin-bottom: 16px; }
+  .live-select {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 13px; max-width: 260px;
+  }
+  .live-meta { color: var(--muted); font-size: 12px; }
+  .live-summary { color: var(--ink-2); font-size: 13px; margin-top: 6px; }
+  .live-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-top: 16px; }
+  .live-subcard { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); padding: 14px; min-width: 0; }
+  .live-subcard h3 { margin: 0; font-size: 14px; }
+  .live-gantt { max-height: 360px; background: var(--surface); }
+  .live-gantt .task-bar { min-width: 8px; height: 12px; }
+  .live-empty { color: var(--muted); font-size: 13px; padding: 18px 4px; }
+  .live-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
+  .live-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .live-status.done::before { background: var(--good); }
+  .live-status.blocked::before, .live-status.error::before { background: var(--critical); }
+  .live-status.running::before { background: var(--s1); }
+  .live-status.pending::before { background: var(--muted); }
+  .live-foot { color: var(--muted); font-size: 11px; margin-top: 10px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 1080px) { .live-grid { grid-template-columns: 1fr; } }
+
   .tooltip {
     position: fixed; z-index: 20; pointer-events: none; opacity: 0;
     transform: translate(-50%, -100%); transition: opacity .1s ease;
@@ -200,9 +224,9 @@
 <div class="page">
   <header class="topbar">
     <div>
-      <div class="eyebrow">AgentTeam · W3 Delivery Monitor</div>
-      <h1>MiniLedger 三切片并行交付</h1>
-      <p class="sub">共享文件锁 · 契约变更影响图 · 裁判与证据链 · 并行 / Serial Baseline 对比</p>
+      <div class="eyebrow">AgentTeam · Delivery Monitor</div>
+      <h1>AgentTeam 交付总览</h1>
+      <p class="sub">实时项目任务动态 · 角色门禁与工具证据 · W3 并行 / Serial 基线 · 裁判与证据链</p>
     </div>
     <div class="controls">
       <div class="segmented" id="mode-switch" role="group" aria-label="运行模式">
@@ -214,6 +238,45 @@
       <button class="icon-btn" id="theme-toggle" title="切换深浅色" aria-label="切换深浅色">◐</button>
     </div>
   </header>
+
+  <section class="card live-panel" id="live-panel">
+    <div class="card-head">
+      <div>
+        <div class="eyebrow">Live project</div>
+        <h2 style="margin:0">实时项目任务</h2>
+      </div>
+      <div class="controls">
+        <select id="live-project" class="live-select" aria-label="选择项目"></select>
+        <label class="live-meta"><input type="checkbox" id="live-auto" checked> 自动刷新</label>
+        <span class="live-meta" id="live-source">—</span>
+      </div>
+    </div>
+    <div class="live-summary" id="live-summary">正在读取项目状态…</div>
+    <div class="kpis" id="live-kpis" style="margin-top:12px"></div>
+    <div class="live-grid">
+      <div class="live-subcard">
+        <div class="card-head"><h3>角色任务泳道</h3><span class="meta" id="live-lane-meta"></span></div>
+        <div class="gantt live-gantt" id="live-gantt"></div>
+      </div>
+      <div class="live-subcard">
+        <div class="card-head"><h3>执行明细</h3><span class="meta" id="live-task-meta"></span></div>
+        <div class="table-wrap" id="live-tasks"></div>
+      </div>
+    </div>
+    <details><summary>任务事件流</summary><div class="table-wrap" id="live-events"></div></details>
+    <div class="live-foot">
+      <span id="live-foot">—</span>
+      <span>数据：projects/&lt;name&gt;/state + logs/events.jsonl + evidence/tool-ledger.jsonl</span>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">W3 simulation</div>
+      <h2>MiniLedger 三切片并行基线</h2>
+    </div>
+    <span class="meta">脚本化预演 · 不是真实项目任务</span>
+  </div>
 
   <section class="hero-row">
     <div class="card hero">
@@ -291,6 +354,14 @@
 <script>
 const DATA = __DATA_JSON__;
 const state = { mode: "parallel", eventFilter: "all" };
+const LIVE = {
+  data: DATA.live || null,
+  project: (((DATA.live || {}).project || {}).project || {}).name || "",
+  source: DATA.live ? "snapshot" : "none",
+  busy: false,
+  timer: null,
+  failureLogged: false,
+};
 
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -555,6 +626,161 @@ function renderEvents() {
   </tbody></table>`;
 }
 
+const LIVE_STATUS = {done: "完成", blocked: "阻塞", error: "错误", running: "执行中", pending: "待执行"};
+const LIVE_GATE = {pass: "通过", fail: "失败", need_evidence: "需补证", off: "关闭"};
+
+function liveStatusLabel(s) { return LIVE_STATUS[s] || s || "—"; }
+function liveStatusClass(s) { return ["done", "blocked", "error", "running", "pending"].includes(s) ? s : "pending"; }
+function liveGateLabel(s) { return LIVE_GATE[s] || s || "—"; }
+function liveBarColor(s) {
+  if (s === "done") return "var(--good)";
+  if (s === "blocked" || s === "error") return "var(--critical)";
+  if (s === "running") return "var(--s1)";
+  return "var(--muted)";
+}
+
+function renderLiveProjects() {
+  const sel = $("live-project");
+  const projects = (LIVE.data && LIVE.data.projects) || [];
+  if (!projects.length) {
+    sel.innerHTML = `<option value="">无项目</option>`;
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  if (!LIVE.project || !projects.some(p => p.name === LIVE.project)) {
+    LIVE.project = projects[0].name;
+  }
+  sel.innerHTML = projects.map(p =>
+    `<option value="${esc(p.name)}" ${p.name === LIVE.project ? "selected" : ""}>${esc(p.name)}${p.archived ? " [archived]" : ""} · ${esc(p.status)}</option>`
+  ).join("");
+}
+
+function renderLive() {
+  renderLiveProjects();
+  const d = LIVE.data;
+  if (!d || !d.project || !d.project.project) {
+    $("live-summary").textContent = "暂无项目数据。先运行 start_project.py 或 start.bat project，再刷新。";
+    $("live-kpis").innerHTML = "";
+    $("live-gantt").innerHTML = `<div class="live-empty">暂无任务</div>`;
+    $("live-tasks").innerHTML = "";
+    $("live-events").innerHTML = "";
+    $("live-foot").textContent = "—";
+    $("live-source").textContent = LIVE.source === "live" ? "实时" : "无数据";
+    return;
+  }
+  const p = d.project.project;
+  const m = d.project.metrics;
+  const evidence = m.evidence || {pass: 0, total: 0, fail: 0};
+  const tasks = (d.project.tasks || []).slice().sort((a, b) =>
+    (a.stage_index - b.stage_index) || (a.start_min - b.start_min) || String(a.role).localeCompare(String(b.role)));
+  const gateTotal = (m.gates_pass || 0) + (m.gates_fail || 0) + (m.gates_need_evidence || 0) + (m.gates_off || 0);
+  $("live-summary").innerHTML = `<strong>${esc(p.name)}</strong> · ${esc(p.project_type || "project")} · ${p.offline ? "offline stub" : "real model"} · 状态 <strong>${esc(p.status)}</strong> · 更新 ${esc(p.updated_at || "—")}`;
+  $("live-source").textContent = `${LIVE.source === "live" ? "实时" : "快照"} · ${esc(d.generated_at || "—")}`;
+  const tiles = [
+    ["项目状态", esc(p.status), `${m.roles_done}/${m.roles_total} 角色完成`],
+    ["门禁", `${m.gates_pass}/${gateTotal}`, `fail ${m.gates_fail} · need ${m.gates_need_evidence}`],
+    ["Token", fmt(m.tokens), `$${Number(m.cost_usd || 0).toFixed(4)}`],
+    ["质量均分", p.quality_avg == null ? "—" : fmt(p.quality_avg, 1), `验收 ${esc(p.acceptance_status || "—")} · DOD ${esc(p.dod_status || "—")}`],
+    ["工具证据", `${evidence.pass}/${evidence.total}`, `fail ${evidence.fail}`],
+    ["任务异常", `${m.roles_blocked + m.roles_error}`, `blocked ${m.roles_blocked} · error ${m.roles_error}`],
+  ];
+  $("live-kpis").innerHTML = tiles.map(([a, b, c]) => kpi(a, b, c)).join("");
+
+  const max = Math.max(1, Number(m.timeline_max_min) || 0);
+  const lanes = [];
+  const byStage = new Map();
+  tasks.forEach(t => {
+    if (!byStage.has(t.stage)) {
+      byStage.set(t.stage, {label: t.stage_label || t.stage, items: []});
+      lanes.push(t.stage);
+    }
+    byStage.get(t.stage).items.push(t);
+  });
+  let gantt = "";
+  for (const stage of lanes) {
+    const lane = byStage.get(stage);
+    const items = lane.items;
+    const height = Math.max(24, items.length * 22 + 6);
+    gantt += `<div class="lane"><div class="lane-title"><span>${esc(lane.label)}</span><span>${items.length} ${items.length === 1 ? "task" : "tasks"}</span></div><div class="lane-track" style="height:${height}px">`;
+    items.forEach((t, i) => {
+      const left = Math.min(100, t.start_min / max * 100);
+      const width = Math.max(1.5, (t.end_min - t.start_min) / max * 100);
+      const tip = `${t.title || t.role} · ${liveStatusLabel(t.status)} · ${fmt(t.start_min)}–${fmt(t.end_min)}m · gate ${liveGateLabel(t.gate_status)} · ${fmt(t.tokens)} tokens`;
+      gantt += `<div class="task-bar" style="left:${left}%;width:${width}%;top:${i * 22}px;background:${liveBarColor(t.status)}" data-tip="${esc(tip)}"></div>`;
+    });
+    gantt += `</div></div>`;
+  }
+  gantt += `<div class="gantt-axis"><span>0m</span><span>${fmt(max / 2)}m</span><span>${fmt(max)}m</span></div>`;
+  $("live-gantt").innerHTML = gantt || `<div class="live-empty">暂无任务</div>`;
+  $("live-lane-meta").textContent = `${tasks.length} tasks · ${fmt(max)}m`;
+
+  const rows = tasks.map(t => {
+    const files = (t.files || []).length;
+    const tools = (t.tool_passed || []).length;
+    return `<tr>
+      <td><strong>${esc(t.title || t.role)}</strong><div class="detail">${esc(t.role)} · ${esc(t.stage_label || "")}</div></td>
+      <td><span class="live-status ${liveStatusClass(t.status)}">${esc(liveStatusLabel(t.status))}</span></td>
+      <td>${esc(t.model || "—")}<div class="detail">${esc(t.backend || "")}</div></td>
+      <td class="num">${t.start_clock ? esc(t.start_clock) : "—"}<div class="detail">${t.end_clock ? esc(t.end_clock) : "—"}</div></td>
+      <td class="num">${fmt(t.duration_min, 1)}m</td>
+      <td class="num">${fmt(t.tokens)}</td>
+      <td>${esc(liveGateLabel(t.gate_status))}</td>
+      <td class="num">${t.quality_score == null ? "—" : fmt(t.quality_score)}</td>
+      <td><span class="detail">${files} files · ${tools} tools</span></td>
+    </tr>`;
+  }).join("");
+  $("live-tasks").innerHTML = `<table><thead><tr><th>角色 / 阶段</th><th>状态</th><th>模型</th><th class="num">起止</th><th class="num">耗时</th><th class="num">Token</th><th>门禁</th><th class="num">质量</th><th>产物</th></tr></thead><tbody>${rows || `<tr><td colspan="9" class="live-empty">暂无任务</td></tr>`}</tbody></table>`;
+  $("live-task-meta").textContent = `${p.run_id || "—"} · ${p.tool_profile || "basic"}`;
+
+  const events = (d.project.events || []).slice(-80).reverse();
+  $("live-events").innerHTML = `<table><thead><tr><th>时刻</th><th>事件</th><th>对象</th><th>说明</th></tr></thead><tbody>${events.map(e => {
+    const detail = Object.entries(e)
+      .filter(([k]) => !["ts", "clock", "event", "role", "prompt"].includes(k))
+      .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v).slice(0, 140) : String(v).slice(0, 140)}`)
+      .join(" · ");
+    return `<tr><td>${esc(e.clock || "")}</td><td>${esc(e.event || "")}</td><td>${esc(e.role || e.task || e.gate || "—")}</td><td class="detail">${esc(detail)}</td></tr>`;
+  }).join("") || `<tr><td colspan="4" class="live-empty">暂无事件</td></tr>`}</tbody></table>`;
+  $("live-foot").textContent = `${p.name} · ${p.requirement || ""} · ${LIVE.source === "live" ? "实时读取" : "构建快照"}`;
+}
+
+async function fetchLive(project) {
+  if (LIVE.busy || location.protocol === "file:") {
+    renderLive();
+    return;
+  }
+  LIVE.busy = true;
+  try {
+    const q = project ? `?project=${encodeURIComponent(project)}` : "";
+    const res = await fetch(`/api/live${q}`, {cache: "no-store"});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    LIVE.data = await res.json();
+    LIVE.source = "live";
+    LIVE.failureLogged = false;
+    renderLive();
+  } catch (err) {
+    LIVE.source = "snapshot";
+    renderLive();
+    if (!LIVE.failureLogged) {
+      LIVE.failureLogged = true;
+      console.warn("live project API unavailable; using build snapshot", err);
+    }
+  } finally {
+    LIVE.busy = false;
+  }
+}
+
+function syncLiveTimer() {
+  if (LIVE.timer) {
+    clearInterval(LIVE.timer);
+    LIVE.timer = null;
+  }
+  const auto = $("live-auto");
+  if (auto && auto.checked && location.protocol !== "file:") {
+    LIVE.timer = setInterval(() => fetchLive(LIVE.project), 3000);
+  }
+}
+
 function renderAll() {
   renderHeader();
   renderDuration();
@@ -579,6 +805,11 @@ $("event-filter").addEventListener("change", (e) => {
   state.eventFilter = e.target.value;
   renderEvents();
 });
+$("live-project").addEventListener("change", (e) => {
+  LIVE.project = e.target.value;
+  fetchLive(LIVE.project);
+});
+$("live-auto").addEventListener("change", syncLiveTimer);
 
 const tip = $("tooltip");
 document.addEventListener("mouseover", (e) => {
@@ -598,6 +829,11 @@ document.addEventListener("mouseout", (e) => {
 
 initTheme();
 renderAll();
+renderLive();
+if (location.protocol !== "file:") {
+  fetchLive(LIVE.project);
+  syncLiveTimer();
+}
 fetch("/api/decisions/stats").then(r => r.json()).then(s => {
   const badge = document.getElementById("decision-badge");
   if (s.pending) { badge.textContent = s.pending; badge.style.display = "inline-flex"; }

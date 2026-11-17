@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Serve the W3 dashboard, W4 decision inbox and W5 role monitor.
+"""Serve the live project task dashboard, W3 monitor, W4 decision inbox and W5 role monitor.
 
   python dashboard/serve.py --port 8765
   open http://localhost:8765/
   open http://localhost:8765/decisions.html
   open http://localhost:8765/projects.html
+
+The homepage fetches /api/live every 3 seconds; it reads the latest project's
+state/roles.json, logs/events.jsonl and evidence/tool-ledger.jsonl.
 """
 from __future__ import annotations
 
@@ -23,12 +26,15 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
 
 from orchestrator.decisions import DecisionStore  # noqa: E402
 from orchestrator.config import load_config, signing_key  # noqa: E402
 from orchestrator.evidence.store import EvidenceStore  # noqa: E402
 from orchestrator.project_runner import ProjectRunner, ROLE_MAP, ROLE_SPECS  # noqa: E402
 from orchestrator.quality import role_trend  # noqa: E402
+from live import live_payload  # noqa: E402
 
 STORE = DecisionStore(ROOT / "data" / "decisions.db")
 STORE.seed_demo()
@@ -189,6 +195,14 @@ class Handler(BaseHTTPRequestHandler):
             if not item:
                 return self._json(404, {"error": "decision not found"})
             return self._json(200, item)
+        if u.path == "/api/live":
+            project = (parse_qs(u.query).get("project") or [None])[0]
+            try:
+                return self._json(200, live_payload(project))
+            except KeyError as exc:
+                return self._json(404, {"error": str(exc)})
+            except Exception as exc:
+                return self._json(500, {"error": str(exc)[:500]})
         if u.path == "/api/projects":
             items = [_project_summary(p) for p in sorted(PROJECTS.iterdir())
                      if p.is_dir() and not p.name.startswith(("_", "."))] if PROJECTS.exists() else []

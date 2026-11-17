@@ -18,6 +18,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 W3 = ROOT / "sim" / "out" / "w3"
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+from live import live_payload  # noqa: E402
 
 
 def ensure_outputs() -> None:
@@ -30,9 +34,18 @@ def ensure_outputs() -> None:
         W3 / "serial" / "events.jsonl",
         W3 / "serial" / "impact.json",
     ]
+    sources = [ROOT / "sim" / "w3.py", ROOT / "sim" / "dryrun.py"]
     if all(p.exists() for p in needed):
-        return
-    print("W3 outputs missing; running sim/w3.py --mode both ...")
+        try:
+            src_mtime = max(p.stat().st_mtime for p in sources if p.exists())
+            out_mtime = min(p.stat().st_mtime for p in needed)
+            if out_mtime >= src_mtime:
+                return
+            print("W3 outputs are older than simulator sources; rebuilding ...")
+        except OSError:
+            pass
+    else:
+        print("W3 outputs missing; running sim/w3.py --mode both ...")
     subprocess.run([sys.executable, str(ROOT / "sim" / "w3.py"), "--mode", "both"],
                    cwd=str(ROOT), check=True)
 
@@ -49,9 +62,16 @@ def load_mode(name: str) -> dict:
 
 def main() -> None:
     ensure_outputs()
+    try:
+        live = live_payload()
+    except Exception as exc:
+        print(f"live snapshot skipped: {exc}")
+        live = {"generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "projects": [], "project": None}
     data = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "project": "MiniLedger · W3",
+        "live": live,
         "comparison": json.loads((W3 / "comparison.json").read_text(encoding="utf-8")),
         "modes": {
             "parallel": load_mode("parallel"),
@@ -68,6 +88,8 @@ def main() -> None:
     print(f"built {HERE / 'index.html'}")
     print(f"events: {len(data['modes']['parallel']['events'])} parallel / "
           f"{len(data['modes']['serial']['events'])} serial")
+    selected = (live.get("project") or {}).get("project", {}).get("name")
+    print(f"live project snapshot: {selected or 'none'}")
 
 
 if __name__ == "__main__":

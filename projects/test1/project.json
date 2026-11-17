@@ -54,40 +54,40 @@
         "name": "entry",
         "ok": true,
         "detail": "canvas#game + module entry present",
-        "evidence_id": "EV-000135"
+        "evidence_id": "EV-000147"
       },
       {
         "name": "modules",
         "ok": true,
         "detail": "js/main.js + js/core.js present",
-        "evidence_id": "EV-000136"
+        "evidence_id": "EV-000148"
       },
       {
         "name": "logic",
         "ok": true,
         "detail": "logic tests passed",
-        "evidence_id": "EV-000137"
+        "evidence_id": "EV-000149"
       },
       {
         "name": "smoke",
         "ok": true,
         "detail": "GAME SMOKE PASS {\"floors\":5,\"classes\":3,\"coopPlayers\":2,\"loot\":\"紫·蘑菇短剑\"}\n",
-        "evidence_id": "EV-000138"
+        "evidence_id": "EV-000150"
       },
       {
         "name": "qa",
         "ok": true,
-        "detail": "✔ combat 模块存在且导出 computeDamage (1.4977ms)\n✔ 伤害公式：基础伤害随攻击提升、随防御下降 (0.1899ms)\n✔ 暴击率 0 时无暴击、暴击率 1 时必暴击 (0.0824ms)\n✔ 闪避无敌帧：闪避期间不受伤 (0.0976ms)\n✔ 技能CD：冷却中不可释放，冷却结束可释放 (0.7292ms)\n✔ 精英词缀生效：护盾/加速/分裂/吸血至少可识别 (0.1418ms)\n✔ coop 模块存在且导出 getScaling (0.4556ms)\n✔ 2/3/4 人缩放系数符合产品口径 (0.306ms)\n✔ Boss 额外 +10% 血量 (0.2096ms)\n✔ 扶起 3 秒 (0.1038ms)\n✔ 掉队 3 秒传送 (0.1247ms)\n✔ items/loot 模块存在 (0.9388ms)\n✔ 装备 5 部位、2-4 词条 (0.658ms)\n✔ 品质权重近似 白40/绿30/蓝20/紫8/橙2 (3.1524ms)\n✔ Boss 保底蓝：Boss 掉落品质不低于 blue (0.2375ms)\n✔ 强化 +1~+9 失败不掉级 (0.1623ms)\n✔ mapgen 模块存在且导出 generateFloor (0.5226ms)\n✔ 同 seed + 同层号 → 房间图确定性一致 (0.6242ms)\n✔ 房间数 ∈ [8,12] 且存在 1 个 Boss 房 (0.6895ms)\n✔ 入口到 Boss 主路径连通 (0.1388ms)\n✔ 每层恰好 1 篝火、1 商店 (0.1238ms)\n✔ 宝箱房 ∈ [2,4] (0.1042ms)\n✔ 钥匙门 ≤1 且无钥匙时主路径仍可达 Boss (0.0929ms)\n✔ save 模块存在且导出 serialize/deserialize (0.4485ms)\n✔ 序列化含版本号与 CRC (0.1794ms)\n✔ 往返序列化一致 (0.2217ms)\n✔ CRC 校验失败时回退到最近篝火 (0.1055ms)\nℹ tests 27\nℹ suites 0\nℹ pass 27\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 66.3794\n",
-        "evidence_id": "EV-000139"
+        "detail": "✔ combat 模块存在且导出 computeDamage (0.4225ms)\n✔ 伤害公式：基础伤害随攻击提升、随防御下降 (0.119ms)\n✔ 暴击率 0 时无暴击、暴击率 1 时必暴击 (0.0765ms)\n✔ 闪避无敌帧：闪避期间不受伤 (0.0863ms)\n✔ 技能CD：冷却中不可释放，冷却结束可释放 (0.566ms)\n✔ 精英词缀生效：护盾/加速/分裂/吸血至少可识别 (0.1128ms)\n✔ coop 模块存在且导出 getScaling (0.453ms)\n✔ 2/3/4 人缩放系数符合产品口径 (0.1188ms)\n✔ Boss 额外 +10% 血量 (0.0721ms)\n✔ 扶起 3 秒 (0.0591ms)\n✔ 掉队 3 秒传送 (0.0561ms)\n✔ items/loot 模块存在 (1.7406ms)\n✔ 装备 5 部位、2-4 词条 (0.7173ms)\n✔ 品质权重近似 白40/绿30/蓝20/紫8/橙2 (3.3164ms)\n✔ Boss 保底蓝：Boss 掉落品质不低于 blue (0.2658ms)\n✔ 强化 +1~+9 失败不掉级 (0.1878ms)\n✔ mapgen 模块存在且导出 generateFloor (0.5059ms)\n✔ 同 seed + 同层号 → 房间图确定性一致 (0.6456ms)\n✔ 房间数 ∈ [8,12] 且存在 1 个 Boss 房 (0.9057ms)\n✔ 入口到 Boss 主路径连通 (0.1244ms)\n✔ 每层恰好 1 篝火、1 商店 (0.1334ms)\n✔ 宝箱房 ∈ [2,4] (0.0989ms)\n✔ 钥匙门 ≤1 且无钥匙时主路径仍可达 Boss (0.0842ms)\n✔ save 模块存在且导出 serialize/deserialize (0.4856ms)\n✔ 序列化含版本号与 CRC (0.1728ms)\n✔ 往返序列化一致 (0.3611ms)\n✔ CRC 校验失败时回退到最近篝火 (0.153ms)\nℹ tests 27\nℹ suites 0\nℹ pass 27\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 61.3555\n",
+        "evidence_id": "EV-000151"
       },
       {
         "name": "render",
         "ok": true,
-        "detail": "screenshot 228239 bytes",
-        "evidence_id": "EV-000140"
+        "detail": "screenshot 230491 bytes",
+        "evidence_id": "EV-000152"
       }
     ],
-    "finished_at": "2026-11-17 15:27:31"
+    "finished_at": "2026-11-17 16:27:01"
   },
   "preflight": {
     "status": "pass",

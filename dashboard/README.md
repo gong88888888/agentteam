@@ -4,6 +4,11 @@ Self-contained monitoring page for the W3 run: 3-slice parallel delivery,
 shared-file lock conflicts, contract impact graph, judge/evidence metrics, and
 parallel vs serial baseline.
 
+The homepage also starts with a **live project task panel** fed by
+`projects/<name>/state/roles.json`, `logs/events.jsonl` and
+`evidence/tool-ledger.jsonl`, so a completed development run is visible
+without rebuilding the W3 simulation.
+
 ## Build
 
 ```bash
@@ -13,8 +18,23 @@ python dashboard/build.py
 ```
 
 `dashboard/build.py` reads `sim/out/w3/{parallel,serial}` and writes
-`dashboard/index.html` with embedded JSON. The page opens offline with no CDN
-or server. `dashboard/data.json` is also written for inspection.
+`dashboard/index.html` with embedded JSON, so the page opens offline with no CDN
+or server. It also embeds a snapshot of the latest real project. W3 outputs are
+rebuilt automatically when `sim/w3.py` or `sim/dryrun.py` is newer than
+`sim/out/w3`, so the page no longer keeps an old simulation forever.
+
+## Live project panel
+
+Served by `dashboard/serve.py`:
+
+- `GET /api/live` returns the latest non-archived project and all project summaries.
+- `GET /api/live?project=<name>` returns a specific project, including archived `_name` projects.
+- Per-role task data: status, model/backend, start/end from `role.started` /
+  `role.finished`, latency, Token, cost, gate, quality, files and tool evidence.
+- KPI row: roles done/total, gates pass/fail/need-evidence, Token/cost, quality,
+  acceptance/DOD, tool evidence.
+- Auto refresh every 3 seconds while served; the selector switches projects.
+  Opening `index.html` directly shows the embedded build snapshot.
 
 ## Open
 
