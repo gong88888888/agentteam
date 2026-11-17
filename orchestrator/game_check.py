@@ -133,7 +133,7 @@ def run_game_acceptance(project_dir: str | Path, *,
             "ok": False, "detail": "缺少 smoke.mjs"}
         add("smoke", bool(smoke.get("ok")), smoke.get("stderr_tail") or smoke.get("stdout_tail", ""),
             smoke)
-        qa_files = sorted((game_dir / "tests").glob("qa_*.test.mjs"))
+        qa_files = sorted((game_dir / "tests").glob("qa_*.mjs"))
         if qa_files:
             qa = _node(sandbox, ["--test", *[f"tests/{p.name}" for p in qa_files]])
             add("qa", bool(qa.get("ok")),

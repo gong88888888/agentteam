@@ -10,14 +10,14 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 13197,
-  "tokens": 6729,
-  "cost_usd": 0.005981500000000001,
+  "latency_ms": 14915,
+  "tokens": 7155,
+  "cost_usd": 0.0066075000000000005,
   "files": [
     {
       "path": "docs/plan/project-plan.md",
-      "sha256": "4fd67fd5a0f297b6e99b4fef4b48d3539c47085f32afbeeee94c50cd89055139",
-      "bytes": 6276,
+      "sha256": "17e360d37165df51ae6f93578c9dc5b122cfc8c8ab7a5b63d221278355e9e28b",
+      "bytes": 7065,
       "source": "role",
       "promoted": true
     }
@@ -63,21 +63,23 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835381.4592793,
-  "started_clock": "21:23:01",
+  "run_id": "20261117-142428",
+  "started_at": 1794896668.5165687,
+  "started_clock": "14:24:28",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:23:18",
+  "finished_at": "2026-11-17 14:24:47",
   "quality": {
-    "score": 100,
+    "score": 98,
     "grade": "A",
     "components": {
       "completeness": 30,
       "gate": 30,
       "evidence": 20,
       "efficiency": 10,
-      "clarity": 10
+      "clarity": 8
     },
-    "issues": []
+    "issues": [
+      "4 个未决问题"
+    ]
   }
 }

@@ -10,42 +10,35 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 16670,
-  "tokens": 10307,
-  "cost_usd": 0.0088965,
+  "latency_ms": 24383,
+  "tokens": 14245,
+  "cost_usd": 0.0121115,
   "files": [
     {
       "path": "docs/ops/release-plan.md",
-      "sha256": "f4f7fc26fb019d9ad7e95aac257e9fb06b033ee23d3a2219fa9b01993fdb8b72",
-      "bytes": 4123,
+      "sha256": "48020f3e12b4489697788eebed398cb5d029482dee5a37071c6d06668b64794e",
+      "bytes": 7826,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "scripts/ops/start-local.sh",
-      "sha256": "5a478286184ce6ebf2b4d5cd177b8d777f5ecca545ceab85cee093a03386e73a",
-      "bytes": 581,
+      "path": "scripts/ops/build_snapshot.sh",
+      "sha256": "397fafe01c0d316637310e1eeff799ee241ecaa3892ee2f237c35cb0cdf5609f",
+      "bytes": 1394,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "scripts/ops/build.sh",
-      "sha256": "87b95d8b27acbdcf9bb34182b284bef98f04b14fdcf239f79d7313b38a62bda7",
-      "bytes": 1328,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "scripts/ops/backup-save.sh",
-      "sha256": "dad95c648a1be7c8a2b3b70318fa0c12c64b6b58620ce7e7077ab23bc8d30605",
-      "bytes": 864,
+      "path": "scripts/ops/backup_save.sh",
+      "sha256": "c8ab57e9ad71ca26cbd8c9efa67577c98b7c60473cd855edadb35b7b50544dd9",
+      "bytes": 1112,
       "source": "role",
       "promoted": true
     },
     {
       "path": "scripts/ops/rollback.sh",
-      "sha256": "b2a809fd2a21be296242b4778fe892221b91c8a260c16a09bfb6165824684a64",
-      "bytes": 1303,
+      "sha256": "246d540029f5a894f971498f8c9997a8de2588e440719c14ec7c50b5e73143fc",
+      "bytes": 1336,
       "source": "role",
       "promoted": true
     }
@@ -73,14 +66,9 @@
         "detail": "summary 过短或缺失"
       },
       {
-        "name": "keyword:回滚",
-        "ok": true,
-        "detail": "缺少必需内容"
-      },
-      {
         "name": "keyword:any",
         "ok": true,
-        "detail": "缺少任一预期内容：监控/灰度/演练"
+        "detail": "缺少任一预期内容：回滚/监控/灰度/演练/备份/发布/快照"
       },
       {
         "name": "artifact",
@@ -96,11 +84,11 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835578.5739872,
-  "started_clock": "21:26:18",
+  "run_id": "20261117-143210",
+  "started_at": 1794897130.1333506,
+  "started_clock": "14:32:10",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:26:39",
+  "finished_at": "2026-11-17 14:32:38",
   "quality": {
     "score": 97,
     "grade": "A",
@@ -112,7 +100,7 @@
       "clarity": 8
     },
     "issues": [
-      "4 个未决问题"
+      "7 个未决问题"
     ]
   }
 }

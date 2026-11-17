@@ -1,24 +1,28 @@
 # kb · 知识沉淀
 
 - 状态：done
-- 摘要：作为 kb 角色，将本次需求与前置产物沉淀为 knowledge/project-notes.md。关键决策：知识条目按产品定位、MVP边界、多人缩放查表、掉落与保底、房间生成不变量、存档契约、门禁与角色分工、失效条件八段组织；明确单人基准为平衡锚点，所有内容单人均可完成；门禁硬约束为基座测试与 smoke 通过且基座文件不被覆盖；标注候选知识不提升为权威、不修改基准条款。可验证内容：多人缩放数值表（2/3/4人血量1.6/2.1/2.6、伤害1.15/1.25/1.35、金币1.25/1.45/1.65、Boss+10%）、掉落权重（白40/绿30/蓝20/紫8/橙2，Boss蓝保底紫20%橙5%）、房间不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）、存档SaveEnvelope版本号+CRC32+双备份+迁移链+异常退出回篝火。信息缺口写入 open_questions，未编造证据。
+- 摘要：以 kb 角色归档第一章需求与各角色决策，产出 knowledge/project-notes.md：含项目定位与硬约束、可复用设计资产（房间生成不变量、战斗/装备/存档/双人缩放数值口径、Design Token 与品质色）、关键决策记录、踩坑与失效条件、验收指标与复用指引。仅写 knowledge/ 前缀，未修改基准条款，未将候选知识提升为权威，未删除审计记录；信息缺口写入 open_questions，未编造证据。
 
 - 门禁：pass · G-TEST1-kb
 
 ## Claims（不参与门禁）
 
-- 已将迷宫冒险家需求沉淀为可复用知识条目，覆盖产品决策、多人缩放数值、掉落权重、房间生成不变量、存档契约、门禁规则与失效条件。
+- 本次沉淀将第一章需求与各角色决策整理为可复用知识条目，写入 knowledge/project-notes.md。
+- 关键阻断为 frontend 产物路径违规、gameplay 模块落盘未证实、无基线运行证据；这些是知识条目的失效条件而非已修复事实。
+- 知识条目只做归档与索引，不修改基准条款、不提升候选知识为权威知识、不删除审计记录。
 
 ## 写入文件
 
-- `knowledge/project-notes.md` · 99e5323523b9 · role
+- `knowledge/project-notes.md` · 2e0c1eb559a6 · role
 
 ## 未决问题
 
-- 基座 game/js/core.js 与 main.js 的事件总线与状态快照 API 细节未在知识条目中固化，需集成后回填。
-- 浏览器存档介质降级方案（localStorage/IndexedDB）与 SaveEnvelope 双备份+CRC 的落地实现未验证。
-- 局域网 UDP 在 Canvas 栈不可行，P1 联机降级路径待确认。
-- frontend 未运行基线测试，QA 需补跑 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs。
+- game/js/core.js 实际暴露的模块注册/更新/渲染接口签名未提供，无法核对 S0 接口清单。
+- gameplay 模块是否已落盘到 game/js/gameplay/ 未证实。
+- hud.js 是否已从 src/frontend/game/js/ui/ 迁移到 game/js/ui/ 未证实。
+- 基线两条命令与 qa_*.mjs 的实际运行输出未提供，读档成功率>99.5%、崩溃率<0.5% 无法量化。
+- 存档存储介质与双备份+CRC 的具体实现方案未定。
+- 局域网联机（P1）范围与 Host 权威、加入码防爆破是否纳入 EA 前未最终确认。
 
 ## 门禁检查
 

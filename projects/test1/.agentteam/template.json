@@ -1,22 +1,27 @@
 {
   "template": "web-2d-game",
   "title": "Playable 2D game vertical slice",
-  "hash": "1a070816a0110d8e",
-  "copied": [
-    "acceptance.json",
-    "evidence/tool-ledger.jsonl",
+  "hash": "d80fc29ef44836ac",
+  "copied": [],
+  "skipped": [
     "game/css/style.css",
     "game/index.html",
     "game/js/core.js",
+    "game/js/gameplay/actors.js",
+    "game/js/gameplay/combat.js",
+    "game/js/gameplay/coop.js",
+    "game/js/gameplay/events.js",
+    "game/js/gameplay/items.js",
+    "game/js/gameplay/loot.js",
+    "game/js/gameplay/mapgen.js",
+    "game/js/gameplay/maze.js",
+    "game/js/gameplay/save.js",
     "game/js/main.js",
     "game/package.json",
     "game/tests/game_logic.test.mjs",
     "game/tests/smoke.mjs",
-    "game_tmp.png",
-    "menu_tmp.png",
     "play_game.bat",
     "README.md"
   ],
-  "skipped": [],
   "overwrite": false
 }

@@ -1,30 +1,32 @@
 # qa · 测试计划与用例
 
 - 状态：done
-- 摘要：作为 QA，产出 docs/qa/test-plan.md 测试计划与四组可运行逻辑测试（qa_combat_scaling / qa_loot_bucket / qa_room_invariants / qa_save_envelope），覆盖架构契约中的战斗固定步长与多人缩放查表（2/3/4人血量1.6/2.1/2.6、伤害1.15/1.25/1.35、金币1.25/1.45/1.65、Boss+10%）、掉落品质权重与Boss保底及按玩家id哈希独立分桶、房间生成不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）、存档SaveEnvelope版本号+CRC32+双备份+迁移链+异常退出回篝火。测试采用 node:test，对未就绪模块显式 skip 不伪造通过；不修改基座 game_logic.test.mjs 与 smoke.mjs。验收用例矩阵含新手10分钟首蓝装、30分钟首Boss、单局15-30分钟、读档成功率>99.5%等指标的可测化拆解。信息缺口（模块导出路径、事件总线API、存档介质、P1联机降级）已写入 open_questions，未编造证据。
+- 摘要：QA 交付：新增 game/tests/qa_mapgen.mjs、qa_combat.mjs、qa_loot.mjs、qa_save.mjs、qa_coop.mjs 五个可运行测试文件，按 arch 契约断言不变量（同种子确定性、房间数[8,12]+Boss房、主路径连通、篝火/商店各1、钥匙门≤1；伤害公式与闪避无敌帧、技能CD、精英词缀；5品质权重白40/绿30/蓝20/紫8/橙2、Boss保底蓝+紫20/橙5、2-4词条、强化+1~+9不掉级；存档版本号+CRC+双备份+异常回退篝火；2/3/4人缩放系数与Boss+10%血、扶起3秒、掉队传送）。同时产出 tests/test-plan.md 与 docs/qa/findings.md 记录关键缺陷：frontend 产物路径违规（src/frontend/game/js/ui/hud.js 不在 game/js/ui/，ESM 无法加载）、gameplay 模块落盘未证实、无基线运行证据。基座 game_logic.test.mjs 与 smoke.mjs 未修改。因无法确认 gameplay 模块实际存在，测试以契约纯函数为断言目标，若模块缺失则测试以 skip 或显式失败暴露缺口，不掩盖。
 
 - 门禁：pass · G-TEST1-qa
 
 ## Claims（不参与门禁）
 
-- 已基于产品基准与架构契约设计测试计划，覆盖战斗缩放查表、掉落分桶、房间生成不变量、存档 CRC/迁移/异常退出回篝火四类核心不变量，并补充冒烟与验收用例矩阵。
-- 新增 qa_*.mjs 测试文件，不修改基座 game_logic.test.mjs 与 smoke.mjs；测试对缺失模块做显式 skip 而非伪造通过。
+- 已读取实际 game/js 模块与基座测试，并新增可运行的 game/tests/qa_*.mjs 覆盖地图生成、战斗、装备掉落、存档、双人缩放五类契约。
+- 发现集成断裂：frontend 产物落在 src/frontend/game/js/ui/hud.js，不在 game/js/ui/，无法被 game/index.html 的 ESM 加载；gameplay 模块落盘情况需核实。
+- 基座两条命令（game_logic.test.mjs、smoke.mjs）为不可改基线，QA 未修改；新增测试为独立 qa_*.mjs，不依赖未落盘模块时以契约纯函数为断言目标。
 
 ## 写入文件
 
-- `docs/qa/test-plan.md` · b5c6fd724187 · role
-- `game/tests/qa_combat_scaling.test.mjs` · 7ae0c412ebf8 · role
-- `game/tests/qa_loot_bucket.test.mjs` · 94a84b5aec0d · role
-- `game/tests/qa_room_invariants.test.mjs` · 1561c1f614d7 · role
-- `game/tests/qa_save_envelope.test.mjs` · 6ba9a104c4f4 · role
-- `tests/test-plan.md` · cfa40176a94f · runner-summary
+- `game/tests/qa_mapgen.mjs` · f911bbbf319e · role
+- `game/tests/qa_combat.mjs` · 9c269c9633c0 · role
+- `game/tests/qa_loot.mjs` · ccb500dc4fc3 · role
+- `game/tests/qa_save.mjs` · 28b21236b1b5 · role
+- `game/tests/qa_coop.mjs` · 466b7ce739a5 · role
+- `tests/test-plan.md` · bbdafb3179f8 · role
+- `docs/qa/findings.md` · 73f2c46e7327 · role
 
 ## 未决问题
 
-- game/js/gameplay/ 下 backend 模块的实际导出名与文件路径未在摘要中给出，qa_*.mjs 采用动态 import 探测，若路径不符将 skip 并需集成方确认。
-- 基座 core.js/main.js 的事件总线 API 未实证，冒烟用例仅能验证 index.html 可加载，无法断言增量模块挂载成功。
-- 浏览器存档介质降级（localStorage vs 内存）未定，SaveEnvelope 双备份+CRC 的持久化断言需介质确认后补。
-- 局域网 UDP 在 Canvas 栈不可行，P1 联机验收用例暂标记为 out-of-scope，待架构降级方案。
+- game/js/gameplay/ 下 combat.js/classes.js/player.js/enemies.js/items.js/loot.js/inventory.js/save.js/coop.js/mapgen.js/rooms.js 是否已实际落盘？当前仅见 backend 自述，无文件清单与 sha256。
+- src/frontend/game/js/ui/hud.js 是否迁移至 game/js/ui/hud.js？迁移前 game/index.html 无法加载该 UI。
+- game/js/core.js 暴露的模块注册/更新/渲染接口签名未在可读产物中确认，QA 测试暂以契约纯函数为断言目标，接入层测试待接口确认后补。
+- 存档存储介质（localStorage / 文件）未定，save.js 的 CRC 与双备份实现细节需 arch 确认后才能写端到端读档测试。
 
 ## 门禁检查
 

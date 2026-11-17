@@ -10,50 +10,57 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 23174,
-  "tokens": 12183,
-  "cost_usd": 0.012230500000000002,
+  "latency_ms": 24265,
+  "tokens": 17248,
+  "cost_usd": 0.01485,
   "files": [
     {
-      "path": "docs/qa/test-plan.md",
-      "sha256": "b5c6fd724187fc7cf94efe65bc78147a73b1893ea6a78c24a6610b5d7d93eab6",
-      "bytes": 4983,
+      "path": "game/tests/qa_mapgen.mjs",
+      "sha256": "f911bbbf319e94806701ae799403ce5ad6bf4e42b977787115e00e741f873e72",
+      "bytes": 2892,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "game/tests/qa_combat_scaling.test.mjs",
-      "sha256": "7ae0c412ebf8fff793a608bbf3f34fa049bde7efab79028da477216226cbf862",
-      "bytes": 2229,
+      "path": "game/tests/qa_combat.mjs",
+      "sha256": "9c269c9633c0544cab55102a3f74857b10eb2a0de918d06b45ce8e6aa016b32d",
+      "bytes": 2308,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "game/tests/qa_loot_bucket.test.mjs",
-      "sha256": "94a84b5aec0d6335b7ada64faab5685b0fca0f9ad2b0d49786a184c832ab88d8",
-      "bytes": 2494,
+      "path": "game/tests/qa_loot.mjs",
+      "sha256": "ccb500dc4fc3beab25e462c9835c15a7ed83b4a757225507ec9f72ee3ba29831",
+      "bytes": 2542,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "game/tests/qa_room_invariants.test.mjs",
-      "sha256": "1561c1f614d736cf1b1a159b40faac8228c33c7e97a7922b6db5828225ae7042",
-      "bytes": 2854,
+      "path": "game/tests/qa_save.mjs",
+      "sha256": "28b21236b1b521ca4e222d8fb7223f8ed30aa30a4f2e6fea41876b9c736ce1fa",
+      "bytes": 1515,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "game/tests/qa_save_envelope.test.mjs",
-      "sha256": "6ba9a104c4f405f9e5341ee5b95f3b9e2e7ba535f5a6f82a23acdd57da8da0d5",
-      "bytes": 2286,
+      "path": "game/tests/qa_coop.mjs",
+      "sha256": "466b7ce739a558c7beebc5793c0a9698feff42f12e9672c4f87609a906686b20",
+      "bytes": 1318,
       "source": "role",
       "promoted": true
     },
     {
       "path": "tests/test-plan.md",
-      "sha256": "cfa40176a94f22f667ac19f0bf252c29be1800a5f710282b57f21d261b181dbf",
-      "bytes": 2154,
-      "source": "runner-summary",
+      "sha256": "bbdafb3179f8dfa2164be18c1f622bfa0761085008dfbf79bfec3b13006d3961",
+      "bytes": 2960,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "docs/qa/findings.md",
+      "sha256": "73f2c46e7327fa4d2029f0ea65fa90764b44aa5dc8b7640ed280d64109e52e58",
+      "bytes": 1420,
+      "source": "role",
       "promoted": true
     }
   ],
@@ -80,14 +87,9 @@
         "detail": "summary 过短或缺失"
       },
       {
-        "name": "keyword:用例",
-        "ok": true,
-        "detail": "缺少必需内容"
-      },
-      {
         "name": "keyword:any",
         "ok": true,
-        "detail": "缺少任一预期内容：异常/边界/权限"
+        "detail": "缺少任一预期内容：用例/测试/断言/不变量/测试计划/证据"
       },
       {
         "name": "artifact",
@@ -103,23 +105,22 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835532.4985614,
-  "started_clock": "21:25:32",
+  "run_id": "20261117-142428",
+  "started_at": 1794896847.733639,
+  "started_clock": "14:27:27",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:25:59",
+  "finished_at": "2026-11-17 14:27:56",
   "quality": {
-    "score": 97,
+    "score": 96,
     "grade": "A",
     "components": {
       "completeness": 30,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 9,
+      "efficiency": 8,
       "clarity": 8
     },
     "issues": [
-      "存在 runner-summary 补写的文档",
       "4 个未决问题"
     ]
   }

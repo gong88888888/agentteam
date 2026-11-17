@@ -41,6 +41,17 @@
       ],
       "port": 8782,
       "url": "http://localhost:8782"
+    },
+    {
+      "name": "dashboard-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "dashboard/serve.py",
+        "--port",
+        "8783"
+      ],
+      "port": 8783,
+      "url": "http://localhost:8783"
     }
   ]
 }

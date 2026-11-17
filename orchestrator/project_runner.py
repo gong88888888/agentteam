@@ -82,11 +82,13 @@ ROLE_MAP = {r.role: r for r in ROLE_SPECS}
 CODE_ROLES = {"backend", "frontend"}
 
 GAME_INSTRUCTIONS: dict[str, str] = {
-    "arch": "确定 HTML5 Canvas 垂直切片的模块边界、房间/战斗/存档契约；不引入 React、Python Web 服务或引擎重写。",
-    "ui": "输出游戏 HUD、菜单、像素/卡通视觉规范与 Design Token；可写 game/css 增量。",
+    "pm": "按产品文档拆出可交付切片：5 层章节、战斗、装备、房间、存档、双人、QA/验收；给出依赖顺序与每项验收命令。",
+    "product": "把需求细化为可执行产品流程：主菜单→选职业/难度→5 层房间→战斗/掉落/商店/篝火/事件→Boss→结算→存档/读档→双人复活；逐状态写输入、失败恢复、非目标和量化验收，不能只写功能清单。",
+    "arch": "确定 HTML5 Canvas 第一章的模块边界、房间/战斗/装备/存档/双人契约与测试入口；输出 ADR，不引入 React、Python Web 服务或引擎重写。",
+    "ui": "输出 HUD/主菜单/背包/商店/篝火/Boss 条/小地图/多人状态的交互规范与 Design Token；覆盖空/加载/错误/暂停状态，可写 game/css 增量。",
     "backend": "实现玩法系统增量（玩家/敌人/战斗/掉落/存档扩展），只写 game/js/gameplay/**；不写 Web API。",
     "frontend": "实现游戏 UI/HUD/菜单增量，只写 game/js/ui/** 与 game/css/**；不写 React 工程。",
-    "qa": "补充可运行切片的逻辑测试、冒烟与验收用例，写 game/tests/** 或 docs/qa/**。",
+    "qa": "先读实际 game/js 模块并运行测试；测试失败必须写入 findings/反馈，不能只写计划；新增可运行的 game/tests/qa_*.mjs 并列出证据。",
     "ops": "输出本地启动、构建、存档备份与回滚方案，写 docs/ops/** 与 scripts/**。",
 }
 
@@ -487,6 +489,14 @@ class ProjectRunner:
                 self.log("schema.repaired", role=role, repairs=repairs)
             prior.append(f"- {role}: {summary[:700]}"
                          f" | gate={gate.status if gate else 'off'}")
+            if self.project_type == "game" and role in ("pm", "product", "arch", "ui", "qa"):
+                for rel in ARTIFACT_PATHS.get(role, ()):
+                    if rel.endswith("/"):
+                        continue
+                    path = self.project_dir / rel
+                    if path.is_file():
+                        excerpt = path.read_text(encoding="utf-8", errors="replace")[:2200]
+                        prior.append(f"- {role} 文档 `{rel}` 摘要：\n{excerpt}")
             if tool_result is not None:
                 self.log("tool.evidence", role=role,
                          profile=tool_result.get("profile"),
@@ -518,8 +528,10 @@ class ProjectRunner:
                      engine=acceptance["engine"],
                      failed=[c["name"] for c in acceptance["checks"] if not c["ok"]],
                      evidence_ids=acceptance["evidence_ids"])
-        errors = [r for r, s in statuses.items() if s == "error"]
-        blocked = [r for r, s in statuses.items() if s == "blocked"]
+        errors = [r for r, v in state.items()
+                  if isinstance(v, dict) and v.get("status") == "error"]
+        blocked = [r for r, v in state.items()
+                   if isinstance(v, dict) and v.get("status") == "blocked"]
         all_statuses = [v.get("status") for v in state.values() if isinstance(v, dict)]
         if all_statuses and all(s in ("error", "blocked") for s in all_statuses):
             status = "failed"
@@ -795,6 +807,7 @@ class ProjectRunner:
 <完整文件内容>
 === END FILE ===
 最多 2 个文件，优先 1 个最关键且完整的文件；path 必须以下列前缀之一开头：{scope}。
+游戏项目的 path 必须直接以 `game/js/ui/` 或 `game/css/` 开头；不要加 `src/frontend/` 或 `src/backend/`。
 不要输出解释、不要输出 Markdown 代码块，内容直接放在 FILE 标记之间。
 """
         user = f"""# 需求

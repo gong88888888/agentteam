@@ -10,14 +10,14 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 17901,
-  "tokens": 7926,
-  "cost_usd": 0.007682,
+  "latency_ms": 20674,
+  "tokens": 12517,
+  "cost_usd": 0.010024499999999999,
   "files": [
     {
       "path": "docs/product/product-baseline.md",
-      "sha256": "a5c228cc96c2b660482d8cabb63d678a77e36ad2972fdbc8297d5d7421e3b071",
-      "bytes": 9430,
+      "sha256": "6e18af7cab41dc34d610262dd3ef9086c42968b4db003538169deb0d25326189",
+      "bytes": 9447,
       "source": "role",
       "promoted": true
     }
@@ -58,6 +58,11 @@
         "name": "artifact",
         "ok": true,
         "detail": "docs/product/product-baseline.md"
+      },
+      {
+        "name": "deep_brief",
+        "ok": true,
+        "detail": "缺少章节 []；长度 4368/4000"
       }
     ],
     "evidence_ids": [],
@@ -68,11 +73,11 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835398.7750704,
-  "started_clock": "21:23:18",
+  "run_id": "20261117-143132",
+  "started_at": 1794897092.4337153,
+  "started_clock": "14:31:32",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:23:40",
+  "finished_at": "2026-11-17 14:31:57",
   "quality": {
     "score": 97,
     "grade": "A",
@@ -84,7 +89,7 @@
       "clarity": 8
     },
     "issues": [
-      "4 个未决问题"
+      "5 个未决问题"
     ]
   }
 }

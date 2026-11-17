@@ -89,6 +89,14 @@
   .gate-check .ok { color:var(--good); }
   .gate-check .bad { color:var(--critical); }
   .gate-check .detail { color:var(--muted); font-size:11px; word-break:break-word; }
+  .acceptance-box { margin: 0 0 10px; }
+  .acceptance-details { border:1px solid var(--border); border-radius:10px; padding:7px 9px; background:var(--surface-2); font-size:11.5px; }
+  .acceptance-details summary { cursor:pointer; color:var(--ink-2); }
+  .acc-pass { color:var(--good); } .acc-fail { color:var(--critical); }
+  .acc-check { display:grid; grid-template-columns:16px 90px 1fr auto; gap:6px; padding:4px 0; border-top:1px solid var(--grid); align-items:start; }
+  .acc-check.ok > span:first-child { color:var(--good); } .acc-check.bad > span:first-child { color:var(--critical); }
+  .acc-check b { font-size:11px; }
+  .acc-check span:nth-child(3) { color:var(--muted); font-size:10.5px; word-break:break-word; }
   .role-card { border:1px solid var(--border); border-radius:11px; padding:10px 11px; margin-bottom:7px; cursor:pointer; }
   .role-card:hover { background:var(--surface-2); }
   .role-card.active { border-color:var(--s1); box-shadow:0 0 0 2px rgba(42,120,214,.12); }
@@ -147,6 +155,7 @@
     <section class="card panel">
       <div class="panel-head"><h2 id="project-title">项目角色</h2><span id="project-status"></span></div>
       <div class="meta-line" id="project-meta" style="margin:-4px 0 10px"></div>
+      <div id="acceptance-box" class="acceptance-box"></div>
       <div id="roles"></div>
       <details style="margin-top:10px"><summary style="color:var(--muted);cursor:pointer;font-size:12px">需求文件</summary>
         <pre id="requirement" style="margin-top:8px"></pre>
@@ -250,6 +259,16 @@ function renderProject(p, preferredRole = null, selectRole = true) {
     meta.push(`已更新 ${esc(prog.clock || "—")}`);
   }
   $("project-meta").innerHTML = meta.join(" · ");
+  const acc = p.acceptance;
+  $("acceptance-box").innerHTML = acc ? `
+    <details class="acceptance-details">
+      <summary>验收 <b class="acc-${esc(acc.status)}">${esc(acc.status)}</b> · ${esc(acc.engine || "")} · ${(acc.checks || []).filter(c=>c.ok).length}/${(acc.checks || []).length}</summary>
+      ${(acc.checks || []).map(c => `<div class="acc-check ${c.ok ? "ok" : "bad"}">
+        <span>${c.ok ? "✓" : "✗"}</span><b>${esc(c.name)}</b>
+        <span>${esc((c.detail || "").slice(0, 180))}</span>
+        ${c.evidence_id ? `<span class="badge">${esc(c.evidence_id)}</span>` : ""}
+      </div>`).join("")}
+    </details>` : "";
   $("requirement").textContent = p.requirement_text || "（无）";
   $("roles").innerHTML = (p.roles || []).map(r => {
     const running = r.status === "running";
@@ -330,7 +349,10 @@ async function loadRole(role) {
     const d = await api(`/api/projects/${encodeURIComponent(state.project)}/roles/${encodeURIComponent(role)}`);
     state.roleData = d;
     renderDetail();
-  } catch (err) { $("detail").innerHTML = `<div class="empty">加载角色失败：${esc(err.message)}</div>`; }
+  } catch (err) {
+    console.error("loadRole failed", err);
+    $("detail").textContent = "加载角色失败：" + (err && err.message ? err.message : String(err));
+  }
 }
 
 function sparkline(points) {

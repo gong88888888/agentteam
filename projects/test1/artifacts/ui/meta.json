@@ -10,14 +10,14 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 17473,
-  "tokens": 7914,
-  "cost_usd": 0.007276,
+  "latency_ms": 22006,
+  "tokens": 11841,
+  "cost_usd": 0.0105175,
   "files": [
     {
       "path": "docs/design/ui-spec.md",
-      "sha256": "e796c662b17c09503b355e42d1712707e77bda5a5376b43e3fd2f739e1bfc9a1",
-      "bytes": 7421,
+      "sha256": "df18155f78cff3ea75bedad8b6854816fc9ae5ae95a0bb8d4dc4fdad966ed072",
+      "bytes": 11005,
       "source": "role",
       "promoted": true
     }
@@ -63,11 +63,11 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835420.8170884,
-  "started_clock": "21:23:40",
+  "run_id": "20261117-142428",
+  "started_at": 1794896731.843187,
+  "started_clock": "14:25:31",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:24:02",
+  "finished_at": "2026-11-17 14:25:57",
   "quality": {
     "score": 99,
     "grade": "A",

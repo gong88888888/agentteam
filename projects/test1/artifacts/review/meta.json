@@ -10,15 +10,15 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 11198,
-  "tokens": 7763,
-  "cost_usd": 0.0059545,
+  "latency_ms": 4920,
+  "tokens": 11308,
+  "cost_usd": 0.00632,
   "files": [
     {
       "path": "docs/reviews/review.md",
-      "sha256": "869ae4ea535a7d69caf485423de85fcea3fd85fac7d70f12dc09ab726777eaa6",
-      "bytes": 5171,
-      "source": "role",
+      "sha256": "b8961306560999babf705fad119354d2e6a3c4580c4208a0cf57a160a8a6a9e0",
+      "bytes": 2560,
+      "source": "runner-summary",
       "promoted": true
     }
   ],
@@ -63,22 +63,24 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835517.1223516,
-  "started_clock": "21:25:17",
+  "run_id": "20261117-142428",
+  "started_at": 1794896838.7059002,
+  "started_clock": "14:27:18",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:25:32",
+  "finished_at": "2026-11-17 14:27:27",
   "quality": {
-    "score": 98,
+    "score": 93,
     "grade": "A",
     "components": {
-      "completeness": 30,
+      "completeness": 25,
       "gate": 30,
       "evidence": 20,
       "efficiency": 10,
       "clarity": 8
     },
     "issues": [
+      "没有模型-authored 交付物",
+      "存在 runner-summary 补写的文档",
       "5 个未决问题"
     ]
   }

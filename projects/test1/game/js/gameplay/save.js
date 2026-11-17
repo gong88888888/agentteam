@@ -1,94 +1,59 @@
-// 存档信封：版本号 + CRC32 + 双备份 + 迁移链（纯逻辑）
+// Save contract: CRC32, primary + backup, version migration.
 export const SAVE_VERSION = 2;
 
-export function crc32(str) {
+export function crc32(text) {
   let crc = 0xFFFFFFFF;
-  for (let i = 0; i < str.length; i++) {
-    crc ^= str.charCodeAt(i);
-    for (let j = 0; j < 8; j++) {
-      crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
-    }
+  for (let i = 0; i < text.length; i += 1) {
+    crc ^= text.charCodeAt(i);
+    for (let j = 0; j < 8; j += 1) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
   }
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-export function makeEnvelope(payload, version = SAVE_VERSION) {
-  return { version, data: payload, crc: crc32(JSON.stringify(payload)) };
+export function writeSave(store, key, payload) {
+  const body = JSON.stringify({ version: SAVE_VERSION, payload });
+  const envelope = JSON.stringify({ body, crc: crc32(body) });
+  store.setItem(key, envelope);
+  store.setItem(`${key}.bak`, envelope);
+  return envelope;
 }
 
-export function verifyEnvelope(env) {
-  if (!env || typeof env.crc !== 'number') return false;
-  const payload = env.data !== undefined ? env.data : JSON.parse(env.body || 'null');
-  return payload !== null && crc32(JSON.stringify(payload)) === env.crc;
-}
-
-// 迁移链：旧版本 -> 新版本
-export const MIGRATIONS = {
-  1: (p) => p,
-};
-
-export function migrate(env) {
-  let v;
-  let payload;
-  if (env && env.data !== undefined) {
-    if (env.crc !== undefined && !verifyEnvelope(env)) throw new Error('save corrupted (crc mismatch)');
-    v = env.version || 1;
-    payload = env.data;
-  } else if (env && typeof env.body === 'string') {
-    if (!verifyEnvelope(env)) throw new Error('save corrupted (crc mismatch)');
-    v = env.version || 1;
-    payload = JSON.parse(env.body);
-  } else if (env && env.data) {
-    v = env.version || 1;
-    payload = env.data;
-  } else {
-    v = 1;
-    payload = env || {};
-  }
-  while (v < SAVE_VERSION) {
-    const fn = MIGRATIONS[v];
-    if (!fn) throw new Error('no migration from version ' + v);
-    payload = fn(payload);
-    v++;
-  }
-  return { version: v, data: payload };
-}
-
-// 双备份写入（介质由调用方注入，浏览器用 localStorage）
-export function saveDual(storage, key, payload) {
-  const env = makeEnvelope(payload);
-  const raw = JSON.stringify(env);
-  storage.setItem(key + '.a', raw);
-  storage.setItem(key + '.b', raw);
-  return env;
-}
-
-export function loadDual(storage, key) {
-  for (const suffix of ['.a', '.b']) {
-    const raw = storage.getItem(key + suffix);
+export function readSave(store, key) {
+  for (const candidate of [key, `${key}.bak`]) {
+    const raw = store.getItem(candidate);
     if (!raw) continue;
     try {
-      const env = JSON.parse(raw);
-      if (verifyEnvelope(env)) return migrate(env).data;
-    } catch (e) { /* try next backup */ }
+      const outer = JSON.parse(raw);
+      if (crc32(outer.body) !== outer.crc) continue;
+      const data = JSON.parse(outer.body);
+      const version = Number(data.version) || 1;
+      return { version: Math.max(version, SAVE_VERSION), payload: data.payload || data };
+    } catch { /* try backup */ }
   }
   return null;
 }
 
-// QA contract aliases: envelope creation, dual-backup load and crash recovery.
-export const createEnvelope = makeEnvelope;
 
-export function loadWithBackup({ primary, backup } = {}) {
-  for (const env of [primary, backup]) {
-    if (verifyEnvelope(env)) {
-      const migrated = migrate(env);
-      return { data: migrated.data, version: migrated.version };
-    }
-  }
-  throw new Error('both save copies are corrupted');
+// QA-facing envelope API used by tests and the browser game.
+export function serialize(state) {
+  const version = Number(state.version) || SAVE_VERSION;
+  const body = { ...state, version };
+  const json = JSON.stringify(body);
+  return { version, json, crc: crc32(json) };
 }
 
-export function recoverAfterCrash(state) {
-  if (!state || !state.dirty) return null;
-  return state.lastCampfire || null;
+export function deserialize(input, expectedCrc) {
+  const json = typeof input === "string" ? input : input?.json;
+  const crc = expectedCrc ?? input?.crc;
+  if (typeof json !== "string" || crc32(json) !== crc) return null;
+  return JSON.parse(json);
+}
+
+export function loadWithFallback(corrupted, { backup = null } = {}) {
+  const recovered = deserialize(corrupted);
+  if (recovered) return recovered;
+  const fallback = backup ? deserialize(backup) : null;
+  if (fallback) return fallback;
+  if (corrupted?.lastCampfire) return { ...corrupted.lastCampfire, fallback: true };
+  return null;
 }

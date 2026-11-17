@@ -316,7 +316,7 @@ skills: []
 
 # 当前角色
 pm · 项目计划与切片
-输出项目目标、功能切片、依赖顺序、门禁与角色分工；写 docs/plan/project-plan.md。
+按产品文档拆出可交付切片：5 层章节、战斗、装备、房间、存档、双人、QA/验收；给出依赖顺序与每项验收命令。
 
 # 游戏项目约束（必须遵守）
 - 交付物是 **可运行的游戏**，入口为 `game/index.html`，不是 Web API/React 后台。
@@ -326,7 +326,7 @@ pm · 项目计划与切片
 - 必须保持 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。
 
 # 项目模板
-web-2d-game (hash 1a070816a0110d8e)
+web-2d-game (hash 22ecf6be0c109f09)
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：docs/plan/project-plan.md
 
 # 前置产物摘要

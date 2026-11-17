@@ -10,15 +10,15 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 5558,
-  "tokens": 7777,
-  "cost_usd": 0.0045245,
+  "latency_ms": 9331,
+  "tokens": 18391,
+  "cost_usd": 0.0119145,
   "files": [
     {
       "path": "docs/retro/retro.md",
-      "sha256": "4d5e53b4d1f76692e2c0dac6b7b9fd33c39caf36041900619f7ffec097496d6d",
-      "bytes": 2385,
-      "source": "runner-summary",
+      "sha256": "15dfac2dd5a4cb24a284bc6f3934d50dab836eb3ad1e0ac3ea98952f855b28ae",
+      "bytes": 6940,
+      "source": "role",
       "promoted": true
     }
   ],
@@ -63,24 +63,22 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835612.9588928,
-  "started_clock": "21:26:52",
+  "run_id": "20261117-142428",
+  "started_at": 1794896957.404157,
+  "started_clock": "14:29:17",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:27:02",
+  "finished_at": "2026-11-17 14:29:51",
   "quality": {
-    "score": 93,
+    "score": 97,
     "grade": "A",
     "components": {
-      "completeness": 25,
+      "completeness": 30,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 10,
+      "efficiency": 9,
       "clarity": 8
     },
     "issues": [
-      "没有模型-authored 交付物",
-      "存在 runner-summary 补写的文档",
       "5 个未决问题"
     ]
   }

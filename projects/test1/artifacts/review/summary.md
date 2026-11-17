@@ -1,26 +1,27 @@
 # review · 代码评审
 
 - 状态：done
-- 摘要：以 review 角色对前置产物做静态评审：产品/计划/UI/架构/backend/frontend 六份产物在范围与契约上基本自洽，MVP 边界（第一章5层、3职业、20怪、1Boss、50装备、单人+本地双人）一致，多人缩放数值与产品表一致，掉落权重与 Boss 保底一致，房间生成不变量定义清晰。主要待验证风险：(1) 增量模块与基座 core/main 的接口边界未实证，存在隐式耦合破坏基线测试的风险；(2) 浏览器存档介质降级与 SaveEnvelope 双备份+CRC 的落地方式未验证；(3) 局域网 UDP 在 Canvas 栈不可行，P1 需明确降级；(4) frontend 未运行基线测试即交付，需 QA 补跑。整改方向：由 QA 新增 qa_*.mjs 覆盖战斗缩放查表、掉落分桶、房间生成不变量、存档 CRC/迁移与异常退出回篝火；由集成方在 smoke 中验证 game/index.html 可加载增量模块且不触碰基座文件。本评审不签发门禁结论，最终以工具与裁判判定为准。
+- 摘要：以 review 角色对第一章前置产物做静态评审，不签发门禁结论。关键发现：(1) 交付路径违规——frontend 产物落在 src/frontend/game/js/ui/hud.js，违反“代码只写 game/js/gameplay|ui 增量模块”的硬约束，且无法被 game/index.html 的 ESM 加载；(2) 集成断裂风险——arch 契约要求 gameplay 为无副作用纯函数、ui 只读派发意图，但当前 ui 产物路径与契约模块表（game/js/ui/hud.js）不一致，需确认是否迁移；(3) 证据缺口——无任何产物 sha256、无基线测试运行输出，无法确认 game_logic.test.mjs 与 smoke.mjs 仍通过，故不将任何 Agent 自述计为证据；(4) 上游 product/arch/frontend 均 gate=fail，说明范围与契约尚未收口，评审结论需待其修复后复评。整改方向：将 hud.js 迁至 game/js/ui/ 并核对 import 路径；补齐 gameplay 模块落盘清单与导出签名；提供基线两条命令的实际运行记录；修复 product/arch 门禁失败项后重新提交评审。所有结论仅为 findings，不构成门禁判定。
 
 - 门禁：pass · G-TEST1-review
 
 ## Claims（不参与门禁）
 
-- 评审基于前置产物摘要与需求文档，未读取实际源码，因此所有 findings 均为待验证项，不构成门禁结论。
-- 主要风险集中在：基座文件不可覆盖约束与 gameplay/ui 增量模块的集成边界、存档介质在浏览器环境的降级、局域网 UDP 在 Canvas 栈不可行、以及基线测试是否被增量模块破坏。
+- 前置产物存在多处门禁失败（product/arch/frontend gate=fail），且 frontend 仅产出 src/frontend/game/js/ui/hud.js，路径落在 src/frontend/ 而非约束要求的 game/js/ui/，与项目运行器约束直接冲突。
+- arch 契约把逻辑层定义为无副作用纯函数模块，但 frontend 交付的 hud.js 位于 src/frontend 下，无法被 game/index.html 的 ESM 加载路径引用，存在集成断裂风险。
+- 需求要求保持 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 通过，但当前无任何 review 侧可验证的产物哈希或测试输出证据，无法确认基线仍绿。
 
 ## 写入文件
 
-- `docs/reviews/review.md` · 869ae4ea535a · role
+- `docs/reviews/review.md` · b89613065609 · runner-summary
 
 ## 未决问题
 
-- 无法访问 game/js/core.js 与 game/js/main.js 的实际导出接口，无法确认 gameplay/ui 增量模块是否真的只通过事件总线与只读快照交互。
-- 未运行 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs，无法确认基线是否仍通过。
-- 浏览器无 SQLite，存档介质降级方案（localStorage/IndexedDB）是否已在 backend 模块中落地未验证。
-- 局域网 UDP 在纯 Canvas/浏览器栈不可行，P1 联机方案是否已明确降级或推迟未确认。
-- frontend 声明未运行基线测试，UI 模块是否引入对基座文件的隐式依赖未知。
+- frontend 交付的 src/frontend/game/js/ui/hud.js 是否为误放路径？是否应迁移到 game/js/ui/hud.js？
+- game/js/gameplay/ 下 combat/classes/player/enemies/items/loot/inventory/save/coop 模块是否已实际落盘并可被 node --test 导入？
+- 基座 game/js/core.js 暴露的模块注册/更新/渲染接口具体签名是什么（S0 基线说明 artifacts/pm/baseline-notes.md 未在摘要中给出内容）？
+- 当前基线两条命令的实际运行结果与退出码是多少？
+- product 与 arch 门禁失败的具体原因是否已修复，还是仍处于未收口状态？
 
 ## 门禁检查
 

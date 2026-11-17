@@ -1,28 +1,31 @@
 import assert from "node:assert/strict";
 import {
-  CLASSES, createRun, generateDungeon, roomCleared, rollLoot,
-  mulberry32, encodeSave, decodeSave, snapshot,
+  CLASSES, createRun, generateChapter, multiplayerScale, rollLoot,
+  makeItem, encodeSave, decodeSave, snapshot, chapterProgress, mulberry32,
 } from "../js/core.js";
 
-const rooms = generateDungeon(20261116);
-assert.equal(rooms.length, 4);
-assert.equal(rooms.at(-1).boss, true);
+const chapter = generateChapter(20261117);
+assert.equal(chapter.floors.length, 5);
+assert.ok(chapter.floors.every((f) => f.rooms.at(-1).type === "boss"));
 assert.equal(Object.keys(CLASSES).length, 3);
 
-const run = createRun("swordsman", true);
+const run = createRun("swordsman", true, 2);
 assert.equal(run.players.length, 2);
 run.gold = 42;
-run.defeated = rooms[0].enemies.map((e) => e.id);
-assert.equal(roomCleared(rooms[0], run.defeated), true);
+run.cleared["1-0"] = true;
+assert.equal(chapterProgress(run).done, 1);
+assert.equal(multiplayerScale(2).hp, 1.6);
 
-const item = rollLoot(mulberry32(5));
-assert.ok(item.name && item.gold > 0);
+const item = makeItem(mulberry32(5), 2, "blue");
+assert.ok(item.affixes.length >= 2);
+const loot = rollLoot(mulberry32(6), 1, true);
+assert.ok(loot.item);
 const save = encodeSave(snapshot(run));
 assert.equal(decodeSave(save).gold, 42);
 
 console.log("GAME SMOKE PASS", JSON.stringify({
-  rooms: rooms.length,
+  floors: chapter.floors.length,
   classes: Object.keys(CLASSES).length,
   coopPlayers: run.players.length,
-  loot: item.name,
+  loot: loot.item.name,
 }));

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>迷宫冒险家 · MVP 垂直切片</title>
+<title>迷宫冒险家 · 第一章 MVP</title>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
@@ -12,55 +12,87 @@
 
   <div id="hud" class="hud">
     <div class="hud-left">
-      <div class="hud-title">迷宫冒险家 <span>MVP SLICE</span></div>
-      <div class="bar hp"><div id="hp-fill"></div><span id="hp-text">120 / 120</span></div>
-      <div class="hud-row"><span class="chip">金币 <b id="gold">0</b></span><span class="chip">房间 <b id="room">1/4</b></span></div>
+      <div class="hud-title">迷宫冒险家 <span>CHAPTER 1</span></div>
+      <div class="bar hp"><div id="hp-fill"></div><span id="hp-text">140 / 140</span></div>
+      <div class="bar mp"><div id="mp-fill"></div><span id="mp-text">40 / 40</span></div>
+      <div class="hud-row">
+        <span class="chip">等级 <b id="level">1</b></span>
+        <span class="chip">金币 <b id="gold">0</b></span>
+        <span class="chip">第 <b id="floor">1</b> 层</span>
+        <span class="chip">房间 <b id="room">1/9</b></span>
+        <span class="chip">药水 <b id="potions">2</b></span>
+        <span class="chip" id="difficulty-chip">标准</span>
+      </div>
       <div class="objective" id="objective">清空房间</div>
     </div>
     <div class="hud-right">
+      <canvas id="minimap" width="240" height="160" aria-label="小地图"></canvas>
       <div id="loot-log" class="loot-log"></div>
       <div id="p2-hud" class="p2-hud hidden">
         <div class="bar p2"><div id="p2-fill"></div><span id="p2-text">P2</span></div>
+        <div class="bar p2mp"><div id="p2-mp-fill"></div><span id="p2-mp-text">MP</span></div>
       </div>
     </div>
+    <div id="boss-hud" class="boss-hud hidden">
+      <div class="boss-name"><span class="boss-dot"></span><span id="boss-name">蘑菇王</span><span id="boss-phase">P1</span></div>
+      <div class="boss-bar"><div id="boss-fill"></div></div>
+    </div>
     <div id="message" class="message"></div>
+    <div id="interact-hint" class="interact-hint"></div>
   </div>
 
   <div id="menu" class="menu">
     <div class="menu-card">
-      <p class="eyebrow">2D SIDE-SCROLLING ROOM MAZE · LOCAL CO-OP</p>
+      <p class="eyebrow">CHAPTER 1 · 5 FLOORS · LOCAL CO-OP · HTML5 CANVAS</p>
       <h1>迷宫冒险家</h1>
-      <p class="lede">单人完整通关，朋友来了同屏打 Boss。先选职业，再进入 4 房间垂直切片。</p>
+      <p class="lede">单人完整通关第一章，朋友来了同屏打 Boss。5 层 × 8–12 房间、3 职业、装备词条、商店/篝火/事件与三段 Boss。</p>
+
+      <div class="difficulty-row">
+        <span class="label">难度</span>
+        <button class="diff-btn" data-diff="1">休闲</button>
+        <button class="diff-btn selected" data-diff="2">标准</button>
+        <button class="diff-btn" data-diff="3">挑战</button>
+      </div>
 
       <div class="classes">
         <button class="class-card selected" data-class="swordsman">
           <span class="class-icon sword">⚔</span>
           <b>剑士</b>
-          <small>近战 · 高容错<br>HP 120 / 伤害 22</small>
+          <small>近战 · 高容错<br>旋风斩 · HP 140</small>
         </button>
         <button class="class-card" data-class="mage">
           <span class="class-icon mage">✦</span>
           <b>法师</b>
-          <small>远程 · 清怪快<br>HP 86 / 伤害 30</small>
+          <small>远程 · 清怪快<br>火墙 · MP 90</small>
         </button>
         <button class="class-card" data-class="ranger">
           <span class="class-icon ranger">➹</span>
           <b>游侠</b>
-          <small>灵活 · 长射程<br>HP 96 / 伤害 18</small>
+          <small>灵活 · 长射程<br>箭雨 · 移速高</small>
         </button>
       </div>
 
-      <label class="coop"><input type="checkbox" id="coop"> 本地双人（P1 剑士/所选职业 + P2 法师）</label>
+      <label class="coop"><input type="checkbox" id="coop"> 本地双人（P1 所选职业 + P2 法师/剑士）</label>
       <button id="start" class="primary">开始冒险</button>
+      <div id="save-slots" class="save-slots"></div>
 
       <div class="controls">
-        <div><b>P1</b> A / D 移动 · W / Space 跳跃 · J 攻击</div>
-        <div><b>P2</b> ← / → 移动 · ↑ 跳跃 · K 攻击</div>
-        <div><b>系统</b> F5 存档 · F9 读档 · R 重开</div>
+        <div><b>P1</b> A/D 移动 · W/Space 跳跃 · Shift 闪避 · J 普攻 · U 重击 · K 技能 · L 药水 · E 交互</div>
+        <div><b>P2</b> ←/→ 移动 · ↑ 跳跃 · Ctrl 闪避 · / 普攻 · M 重击 · . 技能 · , 药水 · Enter 交互</div>
+        <div><b>系统</b> I 背包 · Esc 暂停 · F5 存档 · F9 读档 · R 重开</div>
       </div>
-      <p class="footnote">这是用于验证核心循环的可运行垂直切片：4 房间、3 职业、掉落品质、Boss、存档、本地双人。正式版按设计文档扩展到 5 层章节与美术资源。</p>
+      <p class="footnote">MVP 垂直切片：验证第一章 5 层、3 职业、装备/词条/强化、商店/篝火/事件、Boss、3 槽存档、本地双人。正式版再补美术、音频、局域网与 15–25 小时内容。</p>
     </div>
   </div>
+
+  <div id="panel" class="panel hidden">
+    <div class="panel-card">
+      <div class="panel-head"><h2 id="panel-title">面板</h2><button id="panel-close" class="icon-btn" aria-label="关闭">×</button></div>
+      <div id="panel-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 </div>
 <script type="module" src="./js/main.js"></script>
 </body>

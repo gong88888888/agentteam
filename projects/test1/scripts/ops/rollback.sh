@@ -1,43 +1,40 @@
 #!/usr/bin/env bash
-# 回滚：按构建清单恢复 game/，校验 sha256，保留现场。
+# ops 回滚脚本：切换到指定版本快照，不触碰玩家存档
+# 用法: bash scripts/ops/rollback.sh <version> | --rehearsal
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-ART="$ROOT/artifacts/ops"
-TS="$(date +%Y%m%d-%H%M%S)"
-LOG="$ART/logs/rollback-$TS.log"
+cd "$ROOT"
+
 TARGET="${1:-}"
-DRY="${2:-}"
-
-mkdir -p "$ART/logs"
-exec > >(tee -a "$LOG") 2>&1
-
-if [ -z "$TARGET" ]; then
-  echo "[ops] 可用构建:" >&2
-  ls -1 "$ART" | grep '^build-' || true
-  echo "[ops] 用法: rollback.sh <build-dir> [--dry-run]" >&2
-  exit 1
-fi
-
-SRC="$ART/$TARGET"
-if [ ! -d "$SRC/game" ] || [ ! -f "$SRC/manifest.sha256" ]; then
-  echo "[ops] BLOCKED: 目标构建不完整 $SRC" >&2
+if [[ -z "$TARGET" ]]; then
+  echo "[rollback] 用法: bash scripts/ops/rollback.sh <version> | --rehearsal" >&2
   exit 2
 fi
 
-if [ "$DRY" = "--dry-run" ]; then
-  echo "[ops] DRY-RUN: 将恢复 $SRC/game -> $ROOT/game"
-  ( cd "$SRC" && sha256sum -c manifest.sha256 ) || { echo "[ops] BLOCKED: 清单校验失败" >&2; exit 3; }
-  echo "[ops] DRY-RUN ok"
+if [[ "$TARGET" == "--rehearsal" ]]; then
+  echo "[rollback] 演练：检查可用快照"
+  ls -1 artifacts/ops/releases/ 2>/dev/null || { echo "[rollback] 无可用快照" >&2; exit 1; }
+  echo "[rollback] 演练通过（未切换）"
   exit 0
 fi
 
-( cd "$SRC" && sha256sum -c manifest.sha256 ) || { echo "[ops] BLOCKED: 清单校验失败" >&2; exit 3; }
-rm -rf "$ROOT/game"
-cp -R "$SRC/game" "$ROOT/game"
-echo "[ops] 回滚完成，重跑基线测试"
-if ! ( cd "$ROOT" && node --test game/tests/game_logic.test.mjs && node game/tests/smoke.mjs ); then
-  echo "[ops] BLOCKED: 回滚后基线测试失败，保留现场" >&2
-  exit 4
+SNAP="artifacts/ops/releases/$TARGET"
+if [[ ! -d "$SNAP/game" || ! -f "$SNAP/MANIFEST.sha256" ]]; then
+  echo "[rollback] 快照不完整: $SNAP" >&2
+  exit 1
 fi
-echo "[ops] 回滚 ok"
+
+# 校验快照完整性
+( cd "$SNAP" && sha256sum -c MANIFEST.sha256 --quiet ) || { echo "[rollback] 快照校验失败" >&2; exit 1; }
+
+# 切换：将当前 game 备份后替换为快照内容（不触碰存档，存档在浏览器侧）
+CUR_BACKUP="artifacts/ops/releases/_pre_rollback_$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$CUR_BACKUP"
+cp -R game "$CUR_BACKUP/game"
+rm -rf game
+cp -R "$SNAP/game" game
+
+echo "[rollback] 已回滚到 $TARGET"
+echo "[rollback] 回滚前代码备份: $CUR_BACKUP"
+echo "[rollback] 请重跑 H1/H2/H4 并记录输出"

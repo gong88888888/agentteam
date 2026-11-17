@@ -312,7 +312,7 @@ skills: []
 
 # 当前角色
 arch · 架构与契约
-确定 HTML5 Canvas 垂直切片的模块边界、房间/战斗/存档契约；不引入 React、Python Web 服务或引擎重写。
+确定 HTML5 Canvas 第一章的模块边界、房间/战斗/装备/存档/双人契约与测试入口；输出 ADR，不引入 React、Python Web 服务或引擎重写。
 
 # 游戏项目约束（必须遵守）
 - 交付物是 **可运行的游戏**，入口为 `game/index.html`，不是 Web API/React 后台。
@@ -322,19 +322,228 @@ arch · 架构与契约
 - 必须保持 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。
 
 # 项目模板
-web-2d-game (hash 1a070816a0110d8e)
+web-2d-game (hash d80fc29ef44836ac)
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：docs/architecture/architecture.md, contracts/openapi.yaml
 
 # 前置产物摘要
-- pm: 产出 docs/plan/project-plan.md：定义项目目标（单人离线完整通关优先、本地同屏差异化、局域网P1）、MVP范围（第一章5层、3职业、20怪、1 Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火）、功能切片 S0-S8 与依赖顺序、门禁规则（node --test game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，QA 只新增 qa_*.mjs，代码只写 game/js/gameplay|ui 增量模块）、角色分工（pm/arch/gameplay/ui/qa/reviewer/judge）与升级路径。所有切片以可运行 game/index.html 为交付形态，技术栈固定 Canvas + 原生 ES Modules。 | gate=pass
-- product: 产出 docs/product/product-baseline.md：定义产品定位（2D横版房间制迷宫动作冒险+轻刷装+本地多人，PC离线买断）、目标用户与场景、单局/长期循环与情绪节奏、模式矩阵与多人规则（单人基准+动态缩放、装备独立掉落、复活与存档归属）、迷宫/战斗/装备/成长/存档/UI 功能清单（标注MVP/P1/EA）、非目标清单、可量化验收标准与风险对策。关键决策：单人完整通关为第一优先级，所有内容单人均可完成，不设人数专属门与剧情；MVP范围与pm计划一致（第一章5层、3职业、20怪、1Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火），局域网联机列P1；验收绑定可运行 game/index.html 且 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过。信息缺口已写入 open_questions，未编造证据。 | gate=pass
-- ui: 作为 UI 角色，基于已批准的产品基准与项目计划，产出 docs/design/ui-spec.md：包含信息架构（主界面/角色选择/HUD/背包/地图/商店/篝火/结算/多人面板/设置）、关键交互流程（新游戏→教学→房间→Boss→结算→回城；本地同屏加入；存档提示）、像素卡通视觉规范（16px 基准网格、2x 整数缩放、描边与受击闪白）、完整 Design Token（背景/面板/文字/品质五色/血量蓝量/交互态/字号阶梯/间距/圆角/动效时长与缓动）、HUD 与各面板的布局标注（1280x720 基准、安全区、锚点、层级 z-index）、10 分钟新手引导 UI 步骤与验收标注、可访问性与低配降级（关闭震屏/减少粒子）。所有设计均不改变产品功能与核心流程，未修改技术方案与接口契约；信息缺口写入 open_questions，未编造证据。 | gate=pass
+- pm: # pm · 项目计划与切片
+
+- 状态：done
+- 摘要：产出 docs/plan/project-plan.md：以单人离线完整第一章为第一优先级，按 8 个切片（S0 基座校验→S1 房间制迷宫→S2 横版战斗→S3 装备掉落强化→S4 存档→S5 本地双人→S6 五层章节+Boss→S7 QA/验收）给出目标、范围、依赖、交付文件前缀与逐项验收命令；明确代码只写 game/js/gameplay|ui 增量模块、QA 只加 qa_*.mjs、基座测试与 smoke 为不可改基线；多人仅动态缩放且所有内容单人可完成；信息缺口（基座接口、输入层、存储方案、局域网范围）写入 open_questions，不编造证据。
+
+- 门禁：pass · G-TEST1-pm
+
+## Claims（不参与门禁）
+
+- 将需求拆为 8 个可交付切片（S0 基座校验、S1 房间/迷宫、S2 战斗、S3 装备/掉落、S4 存档、S5 本地双人、S6 章节5层+Boss、S7 QA/验收），依赖顺序为 S0→S1→S2→S3→S4→S5→S6→S7，S3 与 S4 可并行于 S2 之后。
+- 每切片给出可执行验收命令，基线为 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs，QA 新增 game/tests/qa_*.mjs。
+- 单人基准平衡、所有内容单人可完成、多人仅动态缩放，作为切片验收的硬性设计约束。
+
+## 写入文件
+
+- `docs/plan/project-plan.md` · 17e360d37165 · role
+
+## 未决问题
+
+- 基座 game/js/core.js 与 main.js 暴露的模块接口（房间/战斗/存档钩子）未在需求中给出，需代码角色在 S0 阶段确认后回填计划。
+- 本地双人输入（键盘+手柄）在 Canvas 模板中的输入抽象层是否已存在，需 S0 校验。
+- 存档持久化在浏览器环境用 localStorage 还是 IndexedDB，需 S4 前确
+- product: # product · 产品基准
+
+- 状态：done
+- 摘要：以 product 角色产出 docs/product/product-baseline.md：先列非目标（不做交易行/云存档/远程同乐/人数专属内容/反作弊/服务端权威），再以状态机细化主菜单→选职业与难度→5层房间（战斗/跳跃/宝箱/商店/篝火/事件/精英/Boss）→战斗掉落→商店篝火事件→Boss三阶段→结算→存档读档→双人复活全流程，逐状态写输入、转移条件、失败恢复与量化验收；硬约束为单人基准平衡、所有内容单人可完成、多人仅动态缩放与扶起3秒、装备独立掉落；给出新手10分钟首蓝装、30分钟首Boss、单局15-30分钟、读档成功率>99.5%等可量化指标并标注无运行证据。信息缺口（基座接口、存储介质、输入层、局域网范围、指标测量方法）写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-product
+
+## Claims（不参与门禁）
+
+- 产出 docs/product/product-baseline.md：以状态机方式定义主菜单→选职业/难度→5层房间→战斗/掉落/商店/篝火/事件→Boss→结算→存档/读档→双人复活全流程，逐状态给出输入、转移条件、失败恢复与非目标。
+- 先写非目标清单再写功能清单：明确不做交易行、云存档、远程同乐、人数专属门/剧情、反作弊、服务端权威等，防止范围蔓延。
+- 给出可量化验收标准：新手10分钟内首件蓝装、30分钟内首个精英/Boss、单局15-30分钟、读档成功率>99.5%、崩溃率<0.5%、单人通关率>35%、本地多人使用率>25%，并标注当前无运行证据。
+- 单人基准平衡为硬约束：所有Boss/装备/剧情单人可达，多人仅动态缩放（2/3/4人血量×1.6/2.1/2.6、伤害×1.15/1.25/1.35、金币×1.25/1.45/1.65、Boss额外+10%血）与扶起3秒、独立掉落。
+
+## 写入文件
+
+- `docs/product/product-baseline.md` · 6e18af7cab41 
+- ui: # ui · UI/UX 设计规范
+
+- 状态：done
+- 摘要：以单人离线第一章为基准，产出 docs/design/ui-spec.md：定义 Design Token（色彩/品质色/间距/字号/层级/动效时长）、HUD（血蓝、技能CD、金币、小地图、队友血条、Boss 条）、主菜单、背包（品质色+对比箭头+一键分解白绿）、商店、篝火、小地图、多人状态（本地同屏/局域网加入、独立掉落光柱、扶起提示）的交互规范；覆盖空/加载/错误/暂停四类状态与失败恢复文案；给出 game/css 增量样式建议（不覆盖基座），并标注可落地尺寸与状态机。多人仅动态缩放与扶起、独立掉落，不新增单人不可达 UI。信息缺口写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-ui
+
+## Claims（不参与门禁）
+
+- 已定义 HUD/主菜单/背包/商店/篝火/Boss 条/小地图/多人状态的交互规范与 Design Token，覆盖空/加载/错误/暂停状态，并给出 game/css 增量样式建议。
+
+## 写入文件
+
+- `docs/design/ui-spec.md` · df18155f78cf · role
+
+## 未决问题
+
+- 基座 game/js/core.js 暴露的 UI 钩子（HUD 绘制入口、输入事件名）未在可见摘要中给出，需 S0 基线说明确认后再对齐具体挂载点。
+- 字体资源是否随模板提供未确认；Token 中字体族以系统字体回退为主，若后续引入像素字体需补充资源路径。
+- 本地同屏 2 人 HUD 布局在 1280x720 与 1920x1080 下的最小安全边距需前端在实机确认。
+
+## 门禁检查
+
+- 全部通过
+
+- backend: # backend · 后端实现
+
+- 状态：done
+- 摘要：按 arch 契约实现第一章玩法逻辑增量：combat.js（伤害公式含攻防/暴击/品质系数、闪避无敌帧、技能CD、顿帧标记）、classes.js（剑士/法师/游侠数值与技能表）、player.js（输入意图→动作状态机）、enemies.js（4类普通怪+精英词缀+Boss三阶段骨架+仇恨选择）、items.js（5部位/5品质/2-4词条生成、强化+1~+9失败不掉级、重铸保底）、loot.js（白40/绿30/蓝20/紫8/橙2权重、Boss保底蓝+紫20/橙5、独立掉落分配）、inventory.js（背包60/仓库200/分解/对比）、save.js（版本号+CRC+双备份+异常回退篝火）、coop.js（2/3/4人缩放系数与Boss+10%血、扶起3秒、掉队传送）。全部为无副作用纯逻辑模块，不触碰 DOM/Canvas，不修改基座与契约；接入与落盘方式列入 open_questions。
+
+- 门禁：pass · G-TEST1-backend
+
+## Claims（不参与门禁）
+
+- 新增 gameplay 增量模块：combat/classes/player/enemies/items/loot/inventory/save/coop，均为无副作用纯逻辑 ES Module，可被 node --test 导入。
+- 伤害公式、闪避无敌帧、技能CD、精英词缀、掉落权重与Boss保底、强化+1~+9不掉级、重铸保底、存档版本+CRC+双备份、多人缩放系数与扶起3秒均按 arch 契约实现。
+- 未修改基座文件与契约，未引入 Web 服务/React/引擎代码。
+
+## 写入文件
+
+- `game/js/gameplay/classes.js` · d0d9459a64ea · role
+- `game/js/gameplay/combat.js` · a09dec50782c · role
+- `game/js/gameplay/player.js` · edd82d9a9738 · ro
+- frontend: # frontend · 前端实现
+
+- 状态：done
+- 摘要：代码文件已生成：game/js/ui/hud.js
+
+- 调整要求：files[].path 必须以 game/js/ui/ 或 game/css/ 开头；不要加 src/frontend 或 src/backend；写增量模块并保持契约。
+
+- 门禁：pass · G-TEST1-frontend
+
+## Claims（不参与门禁）
+
+- 新增 game/js/ui/ 下增量 UI 模块：hud.js（血蓝/技能CD/金币/小地图/队友血条/Boss条）、inventory_ui.js（品质色+对比箭头+一键分解白绿）、menu_ui.js（主菜单/暂停/结算/多人状态）、ui_state.js（只读状态适配与意图派发），全部为原生 ESM，不触碰基座 core.js/main.js/index.html。
+- UI 层遵循 arch 契约：只读 gameplay 状态快照并派发意图事件，不修改契约、不写后端、不引入 React/引擎代码；对缺失字段做防御性默认值，避免集成断裂时崩溃。
+- 新增 game/css/ui.css 增量样式，使用 ui-spec 的 Design Token（品质色白/绿/蓝/紫/橙、间距、字号、层级），不覆盖基座样式。
+- 未运行基线命令，无 sha256 产物证据；game/js/core.js 实际 UI 钩子签名与 gameplay 模块导出未证实，已写入 open_questions。
+
+## 写入文件
+
+- `game/js/ui/hud.js` · 16efa89862d8 · role
+
+## 未决问题
+
+- game/js/core.js 与 main.js 暴露的 UI 挂载点（HUD 绘制入口、输入事件名、状态快照获取方式）未在可见产物中给出，需 S0 基线说明确认后对齐 ui_state.js 的适配层。
+- gameplay 模块（player/combat/items/loot/inventory/save/coop）的实际导出签名未证实，UI
+- review: # review · 代码评审
+
+- 状态：done
+- 摘要：以 review 角色对第一章前置产物做静态评审，不签发门禁结论。关键发现：(1) 交付路径违规——frontend 产物落在 src/frontend/game/js/ui/hud.js，违反“代码只写 game/js/gameplay|ui 增量模块”的硬约束，且无法被 game/index.html 的 ESM 加载；(2) 集成断裂风险——arch 契约要求 gameplay 为无副作用纯函数、ui 只读派发意图，但当前 ui 产物路径与契约模块表（game/js/ui/hud.js）不一致，需确认是否迁移；(3) 证据缺口——无任何产物 sha256、无基线测试运行输出，无法确认 game_logic.test.mjs 与 smoke.mjs 仍通过，故不将任何 Agent 自述计为证据；(4) 上游 product/arch/frontend 均 gate=fail，说明范围与契约尚未收口，评审结论需待其修复后复评。整改方向：将 hud.js 迁至 game/js/ui/ 并核对 import 路径；补齐 gameplay 模块落盘清单与导出签名；提供基线两条命令的实际运行记录；修复 product/arch 门禁失败项后重新提交评审。所有结论仅为 findings，不构成门禁判定。
+
+- 门禁：pass · G-TEST1-review
+
+## Claims（不参与门禁）
+
+- 前置产物存在多处门禁失败（product/arch/frontend gate=fail），且 frontend 仅产出 src/frontend/game/js/ui/hud.js，路径落在 src/frontend/ 而非约束要求的 game/js/ui/，与项目运行器约束直接冲突。
+- arch 契约把逻辑层定义为无副作用纯函数模块，但 frontend 交付的 hud.js 位于 src/frontend 下，无法被 game/index.html 的 ESM 加载路径引用，存在集成断裂风险。
+- 需求要求保持
+- qa: # qa · 测试计划与用例
+
+- 状态：done
+- 摘要：QA 交付：新增 game/tests/qa_mapgen.mjs、qa_combat.mjs、qa_loot.mjs、qa_save.mjs、qa_coop.mjs 五个可运行测试文件，按 arch 契约断言不变量（同种子确定性、房间数[8,12]+Boss房、主路径连通、篝火/商店各1、钥匙门≤1；伤害公式与闪避无敌帧、技能CD、精英词缀；5品质权重白40/绿30/蓝20/紫8/橙2、Boss保底蓝+紫20/橙5、2-4词条、强化+1~+9不掉级；存档版本号+CRC+双备份+异常回退篝火；2/3/4人缩放系数与Boss+10%血、扶起3秒、掉队传送）。同时产出 tests/test-plan.md 与 docs/qa/findings.md 记录关键缺陷：frontend 产物路径违规（src/frontend/game/js/ui/hud.js 不在 game/js/ui/，ESM 无法加载）、gameplay 模块落盘未证实、无基线运行证据。基座 game_logic.test.mjs 与 smoke.mjs 未修改。因无法确认 gameplay 模块实际存在，测试以契约纯函数为断言目标，若模块缺失则测试以 skip 或显式失败暴露缺口，不掩盖。
+
+- 门禁：pass · G-TEST1-qa
+
+## Claims（不参与门禁）
+
+- 已读取实际 game/js 模块与基座测试，并新增可运行的 game/tests/qa_*.mjs 覆盖地图生成、战斗、装备掉落、存档、双人缩放五类契约。
+- 发现集成断裂：frontend 产物落在 src/frontend/game/js/ui/hud.js，不在 game/js/ui/，无法被 game/index.html 的 ESM 加载；gameplay 模块落盘情况需核实。
+- 基座两条命令（game_logic.test.mjs、smoke.mjs）为不可改基线，QA 未修改；新增测试为独立 qa_*.mjs，不依赖未落盘模块时以契约纯函数为断言目标。
+
+- security: # security · 安全与合规
+
+- 状态：done
+- 摘要：以 security 角色对第一章做威胁建模，产出 docs/security/threat-model.md（STRIDE + 资产/信任边界/风险登记/缓解/验证）。关键决策：(1) 明确信任边界为“本地进程内可信、存档文件与局域网客机不可信”，单人离线不引入服务端信任；(2) 高危项定为存档完整性（双备份+CRC+版本迁移未验证）、交付路径违规（src/frontend/... 不在 game/js/ui/，ESM 加载失败）、依赖与密钥缺失证据，按失败关闭处理，不默认通过；(3) 中危项为本地存档篡改（单机可接受，仅需损坏可恢复而非防作弊）、掉落/经济本地可改（买断单机不设反作弊，仅保证不崩溃）、局域网 P1 的 Host 权威与加入码防爆破（列为 P1 前置条件）；(4) 低危为隐私（无账号/无遥测/无支付，仅本地设置与存档）、路径穿越（存档槽 ID 需白名单 1-3）。验证方式：基线两条命令 + qa_save.mjs 的 CRC 损坏回退用例 + 人工确认 hud.js 迁移与 ESM 加载 + 依赖清单存在性检查。未运行任何扫描器、无产物 sha256，故 artifacts 为空、claims 不计为证据；信息缺口已写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-security
+
+## Claims（不参与门禁）
+
+- 第一章威胁模型已覆盖存档完整性、本地多人信任边界、掉落/经济作弊、依赖与供应链、密钥与隐私、路径与交付合规六类风险，并给出缓解与验证方式。
+- 最高风险为存档双备份+CRC 未落盘验证（读档成功率>99.5% 无证据）与 frontend 产物路径违规导致 ESM 加载失败；二者均需在合并前关闭。
+- 本项目离线单机、无网络服务、无账号与支付，攻击面显著小于在线游戏；主要残余风险为本地存档篡改与局域网 P1 阶段的 Host 权威信任。
+
+## 写入文件
+
+- `docs/security/threat-model.md`
+- ops: # ops · 发布与回滚
+
+- 状态：done
+- 摘要：以 ops 角色产出第一章 MVP 的发布与回滚方案，写入 docs/ops/release-plan.md 与 scripts/ 下的启动/构建/备份/回滚脚本骨架。关键决策：(1) 技术栈为 HTML5 Canvas + 原生 ESM，无打包步骤，构建=静态目录快照+版本号+sha256 清单；(2) 发布硬检查为基线两条命令通过 + game/index.html 可加载 + 产物路径合规（game/js/gameplay|ui 下），任一失败置 BLOCKED 并保留现场；(3) 回滚采用上一版本静态目录快照切换，玩家存档独立于代码目录，回滚不触碰存档，存档侧用双备份+CRC+异常回退篝火；(4) 发布前必须持有裁判凭证与硬检查通过，无凭证不发布生产。已知阻断：frontend 产物路径违规、gameplay 落盘未证实、无基线运行输出，故本次不签发发布凭证，artifacts 为空，缺口写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-ops
+
+## Claims（不参与门禁）
+
+- 产出 docs/ops/release-plan.md：定义本地启动、构建（无打包，静态 ESM 直出）、存档备份与回滚方案，覆盖单人离线第一章 MVP 的发布前硬检查清单。
+- 发布门禁硬检查：基线两条命令（node --test game/tests/game_logic.test.mjs、node game/tests/smoke.mjs）必须通过，且 game/index.html 可被静态服务器加载；任一失败即 BLOCKED，不发布。
+- 回滚方案为版本化静态目录快照 + 存档双备份（localStorage/IndexedDB 导出 JSON + CRC 校验），回滚不触碰玩家存档，异常退出回最近篝火。
+- 已知阻断：frontend 产物路径违规（src/frontend/game/js/ui/hud.js 不在 game/js/ui/）、gameplay 模块落
+- kb: # kb · 知识沉淀
+
+- 状态：done
+- 摘要：以 kb 角色归档第一章需求与各角色决策，产出 knowledge/project-notes.md：含项目定位与硬约束、可复用设计资产（房间生成不变量、战斗/装备/存档/双人缩放数值口径、Design Token 与品质色）、关键决策记录、踩坑与失效条件、验收指标与复用指引。仅写 knowledge/ 前缀，未修改基准条款，未将候选知识提升为权威，未删除审计记录；信息缺口写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-kb
+
+## Claims（不参与门禁）
+
+- 本次沉淀将第一章需求与各角色决策整理为可复用知识条目，写入 knowledge/project-notes.md。
+- 关键阻断为 frontend 产物路径违规、gameplay 模块落盘未证实、无基线运行证据；这些是知识条目的失效条件而非已修复事实。
+- 知识条目只做归档与索引，不修改基准条款、不提升候选知识为权威知识、不删除审计记录。
+
+## 写入文件
+
+- `knowledge/project-notes.md` · 2e0c1eb559a6 · role
+
+## 未决问题
+
+- game/js/core.js 实际暴露的模块注册/更新/渲染接口签名未提供，无法核对 S0 接口清单。
+- gameplay 模块是否已落盘到 game/js/gameplay/ 未证实。
+- hud.js 是否已从 src/frontend/game/js/ui/ 迁移到 game/js/ui/ 未证实。
+- 基线两条命令与 qa_*.mjs 的实际运行输出未提供，读档成功率>99.5%、崩溃率<0.5% 无法量化。
+- 存档存储介质与双备份+CRC 的具体实现方案未定。
+- 局域网联机（P1）范围与 Host 权威、加入码防爆破是否纳入 EA 前未最终确认。
+
+## 门禁检查
+
+- 全部通过
+
+- retro: # retro · 复盘与改进
+
+- 状态：done
+- 摘要：以 retro 角色对第一章前置产物做复盘，产出 docs/retro/retro.md（时间线、偏差、根因、行动项含 owner/deadline/verification）。关键决策：(1) 将 frontend 产物路径违规定为最高优先级系统性根因，因其同时触发 ESM 加载失败与契约不一致；(2) 将无 sha256、无基线运行输出定为证据链缺口，坚持不把任何 Agent 自述计为证据；(3) 根因归纳为交付路径校验缺失、证据链强制缺失、契约-实现对齐缺失三类，均给出可验证行动项与验证标准；(4) 不追责个人、不修改基准与职责，仅提流程/规则优化建议。信息缺口写入 open_questions，未编造证据。
+
+- 门禁：pass · G-TEST1-retro
+
+## Claims（不参与门禁）
+
+- 第一章前置链路存在系统性交付路径违规：frontend 产物落在 src/frontend/game/js/ui/hud.js，违反代码只写 game/js/gameplay|ui 硬约束，且无法被 game/index.html 的 ESM 加载，是当前最高优先级根因。
+- product、arch、frontend、ops 四个角色 gate=fail，说明范围/契约/落盘/发布门禁尚未收口；review 与 qa 已识别同一路径违规，属跨角色重复暴露的流程缺口而非单点失误。
+- 全链路无任何产物 sha256 与基线两条命令的实际运行输出，导致基线仍通过无法被证实，所有 Agent 自述均不可计为证据。
+- 根因归为三类：交付路径校验缺失、证据链缺失、契约与实现对齐缺失。
+
+## 写入文件
+
+- `docs/retro/retro.md` · 15dfac2dd5a4 · role
+
+## 未决问题
+
+- 基座 game/js/core.js 暴露的模块注册/更新/渲染接口具体签名未知，无法验证 ui 模块接入方式。
+- gameplay 模块是否已实际落盘、导出签名是否与 contracts/
 
 # 知识库引用
 （未启用或无命中）
 
 # 调整要求
-（无特别调整）
+必须实际写出 docs/architecture/architecture.md（完整章节：模块、契约、存档、测试），不要只返回摘要；files 路径必须在 docs/architecture/。
 
 # 输出要求
 只输出符合 `specs/agent-output.schema.json` 的 JSON 对象。

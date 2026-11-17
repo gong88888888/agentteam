@@ -1,24 +1,26 @@
 # pm · 项目计划与切片
 
 - 状态：done
-- 摘要：产出 docs/plan/project-plan.md：定义项目目标（单人离线完整通关优先、本地同屏差异化、局域网P1）、MVP范围（第一章5层、3职业、20怪、1 Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火）、功能切片 S0-S8 与依赖顺序、门禁规则（node --test game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，QA 只新增 qa_*.mjs，代码只写 game/js/gameplay|ui 增量模块）、角色分工（pm/arch/gameplay/ui/qa/reviewer/judge）与升级路径。所有切片以可运行 game/index.html 为交付形态，技术栈固定 Canvas + 原生 ES Modules。
+- 摘要：产出 docs/plan/project-plan.md：以单人离线完整第一章为第一优先级，按 8 个切片（S0 基座校验→S1 房间制迷宫→S2 横版战斗→S3 装备掉落强化→S4 存档→S5 本地双人→S6 五层章节+Boss→S7 QA/验收）给出目标、范围、依赖、交付文件前缀与逐项验收命令；明确代码只写 game/js/gameplay|ui 增量模块、QA 只加 qa_*.mjs、基座测试与 smoke 为不可改基线；多人仅动态缩放且所有内容单人可完成；信息缺口（基座接口、输入层、存储方案、局域网范围）写入 open_questions，不编造证据。
 
 - 门禁：pass · G-TEST1-pm
 
 ## Claims（不参与门禁）
 
-- 项目以单人离线完整通关为第一优先级，本地同屏为差异化卖点，局域网联机为P1；MVP聚焦第一章5层+3职业+存档+掉装强化。
-- 功能切片按基座→战斗→房间迷宫→掉落装备→存档→UI→本地双人→联机的依赖顺序推进，每片以逻辑测试与smoke为门禁。
+- 将需求拆为 8 个可交付切片（S0 基座校验、S1 房间/迷宫、S2 战斗、S3 装备/掉落、S4 存档、S5 本地双人、S6 章节5层+Boss、S7 QA/验收），依赖顺序为 S0→S1→S2→S3→S4→S5→S6→S7，S3 与 S4 可并行于 S2 之后。
+- 每切片给出可执行验收命令，基线为 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs，QA 新增 game/tests/qa_*.mjs。
+- 单人基准平衡、所有内容单人可完成、多人仅动态缩放，作为切片验收的硬性设计约束。
 
 ## 写入文件
 
-- `docs/plan/project-plan.md` · 4fd67fd5a0f2 · role
+- `docs/plan/project-plan.md` · 17e360d37165 · role
 
 ## 未决问题
 
-- 基座 game/js/core.js 与 main.js 已暴露的模块接口（如场景切换、输入、渲染循环）未在需求中给出，需代码角色首轮读取后回填依赖细节。
-- MVP 是否包含局域网联机需产品确认：需求写 P1/EA前补，但验收指标含本地多人使用率，建议 MVP 仅本地同屏。
-- 装备词条数值表与怪物数值表由谁产出（策划文档 vs 代码内配置）未定，建议由 pm 在 plan 中列为 docs/plan 子文档由后续角色补。
+- 基座 game/js/core.js 与 main.js 暴露的模块接口（房间/战斗/存档钩子）未在需求中给出，需代码角色在 S0 阶段确认后回填计划。
+- 本地双人输入（键盘+手柄）在 Canvas 模板中的输入抽象层是否已存在，需 S0 校验。
+- 存档持久化在浏览器环境用 localStorage 还是 IndexedDB，需 S4 前确认（影响双备份+CRC 实现）。
+- MVP 是否包含局域网联机：需求写 P1，本计划按不含局域网、仅本地同屏 2 人切片。
 
 ## 门禁检查
 

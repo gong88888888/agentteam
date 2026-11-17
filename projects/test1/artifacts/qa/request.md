@@ -305,7 +305,7 @@ QA：基于验收标准设计正常/异常/边界/权限用例，执行测试并
 
 # 当前角色
 qa · 测试计划与用例
-补充可运行切片的逻辑测试、冒烟与验收用例，写 game/tests/** 或 docs/qa/**。
+先读实际 game/js 模块并运行测试；测试失败必须写入 findings/反馈，不能只写计划；新增可运行的 game/tests/qa_*.mjs 并列出证据。
 
 # 游戏项目约束（必须遵守）
 - 交付物是 **可运行的游戏**，入口为 `game/index.html`，不是 Web API/React 后台。
@@ -315,17 +315,377 @@ qa · 测试计划与用例
 - 必须保持 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。
 
 # 项目模板
-web-2d-game (hash 1a070816a0110d8e)
+web-2d-game (hash 22ecf6be0c109f09)
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：tests/test-plan.md
 
 # 前置产物摘要
-- pm: 产出 docs/plan/project-plan.md：定义项目目标（单人离线完整通关优先、本地同屏差异化、局域网P1）、MVP范围（第一章5层、3职业、20怪、1 Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火）、功能切片 S0-S8 与依赖顺序、门禁规则（node --test game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，QA 只新增 qa_*.mjs，代码只写 game/js/gameplay|ui 增量模块）、角色分工（pm/arch/gameplay/ui/qa/reviewer/judge）与升级路径。所有切片以可运行 game/index.html 为交付形态，技术栈固定 Canvas + 原生 ES Modules。 | gate=pass
-- product: 产出 docs/product/product-baseline.md：定义产品定位（2D横版房间制迷宫动作冒险+轻刷装+本地多人，PC离线买断）、目标用户与场景、单局/长期循环与情绪节奏、模式矩阵与多人规则（单人基准+动态缩放、装备独立掉落、复活与存档归属）、迷宫/战斗/装备/成长/存档/UI 功能清单（标注MVP/P1/EA）、非目标清单、可量化验收标准与风险对策。关键决策：单人完整通关为第一优先级，所有内容单人均可完成，不设人数专属门与剧情；MVP范围与pm计划一致（第一章5层、3职业、20怪、1Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火），局域网联机列P1；验收绑定可运行 game/index.html 且 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过。信息缺口已写入 open_questions，未编造证据。 | gate=pass
-- ui: 作为 UI 角色，基于已批准的产品基准与项目计划，产出 docs/design/ui-spec.md：包含信息架构（主界面/角色选择/HUD/背包/地图/商店/篝火/结算/多人面板/设置）、关键交互流程（新游戏→教学→房间→Boss→结算→回城；本地同屏加入；存档提示）、像素卡通视觉规范（16px 基准网格、2x 整数缩放、描边与受击闪白）、完整 Design Token（背景/面板/文字/品质五色/血量蓝量/交互态/字号阶梯/间距/圆角/动效时长与缓动）、HUD 与各面板的布局标注（1280x720 基准、安全区、锚点、层级 z-index）、10 分钟新手引导 UI 步骤与验收标注、可访问性与低配降级（关闭震屏/减少粒子）。所有设计均不改变产品功能与核心流程，未修改技术方案与接口契约；信息缺口写入 open_questions，未编造证据。 | gate=pass
-- arch: 作为架构角色，基于已批准的产品基准、项目计划与 UI 规范，产出 docs/architecture/architecture.md 与 contracts/openapi.yaml（作为模块间 JSON 契约文档，非 Web 服务）。关键决策：(1) 分层为 core 基座 / gameplay 增量模块 / ui 增量模块，gameplay 与 ui 仅通过事件总线与只读状态快照交互，禁止跨层直接引用内部实现，保证基座文件不被覆盖且 node --test game_logic.test.mjs 与 smoke.mjs 基线可继续通过；(2) 定义房间契约 RoomSpec 与生成不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）；(3) 定义战斗契约（固定步长确定性 tick、伤害管线顺序、多人缩放查表、Boss+10%、装备独立掉落分桶）；(4) 定义存档契约 SaveEnvelope（版本号、双备份+CRC、迁移链、异常退出回篝火快照）；(5) 明确非目标：不引入 React、Python Web 服务、Unity/Godot，不重写引擎。信息缺口（基座 API 细节、浏览器无 SQLite 的存档介质降级、局域网 UDP 在 Canvas 栈不可行）已写入 open_questions，未编造证据。 | gate=pass
-- backend: 作为 backend 角色，在 game/js/gameplay/ 下交付可运行的玩法逻辑增量模块（纯 ES Modules、无 DOM 依赖），覆盖架构契约中的战斗、掉落、房间生成与存档四块核心不变量，供 gameplay/ui 集成层与 QA 直接调用。关键决策：(1) 战斗采用固定步长确定性 tick（默认 60Hz，dt 由调用方传入整数步），伤害管线顺序固定为 基础攻击→词条加成→暴击→防御减免→多人缩放→Boss 额外血量，保证可复现；(2) 多人缩放严格按产品表查表（2/3/4 人血量 1.6/2.1/2.6、伤害 1.15/1.25/1.35、金币 1.25/1.45/1.65，Boss 血量额外 +10%），单人恒为 1.0 基准；(3) 掉落按品质权重（白40/绿30/蓝20/紫8/橙2）与 Boss 保底（蓝保底、紫20%、橙5%）实现，装备独立分桶按玩家 id 哈希，金币材料共享；(4) 房间生成实现不变量校验：主路径连通、每层恰 1 篝火 1 商店、钥匙门≤1 且钥匙可达、种子+已探索可恢复，生成失败抛错而非静默；(5) 存档 SaveEnvelope 含版本号、CRC32 校验、双备份与迁移链，异常退出回最近篝火快照。所有模块为纯函数/类，不触碰基座文件，不写 Web API。信息缺口（基座事件总线 API、浏览器存档介质降级、局域网 UDP 不可行）已写入 open_questions，未编造证据。 | gate=pass
-- frontend: 作为 frontend 角色，基于已批准的 ui-spec 与架构契约，在授权路径内交付游戏 UI 增量模块：HUD（血蓝/技能CD/金币/小地图/队友血条）、背包（品质色/对比箭头/一键分解白绿）、地图（已探索/Boss/篝火图标）、商店、篝火、结算、多人面板（本地同屏加入/局域网房间码占位）、设置（关闭震屏/减少粒子）与 10 分钟新手引导步骤条。实现方式为原生 ES Modules + Canvas/DOM 混合渲染，仅通过事件总线与只读状态快照与 gameplay 交互，不覆盖基座文件、不写 React/后端。样式集中在 game/css/ 使用 ui-spec Design Token（16px 网格、2x 整数缩放、品质五色、受击闪白、动效时长与缓动）。所有面板对缺失字段做默认值兜底，异常状态有可见反馈。未运行 node 基线测试，故不声明通过；集成所需接口细节已写入 open_questions，未编造证据。 | gate=pass
-- review: 以 review 角色对前置产物做静态评审：产品/计划/UI/架构/backend/frontend 六份产物在范围与契约上基本自洽，MVP 边界（第一章5层、3职业、20怪、1Boss、50装备、单人+本地双人）一致，多人缩放数值与产品表一致，掉落权重与 Boss 保底一致，房间生成不变量定义清晰。主要待验证风险：(1) 增量模块与基座 core/main 的接口边界未实证，存在隐式耦合破坏基线测试的风险；(2) 浏览器存档介质降级与 SaveEnvelope 双备份+CRC 的落地方式未验证；(3) 局域网 UDP 在 Canvas 栈不可行，P1 需明确降级；(4) frontend 未运行基线测试即交付，需 QA 补跑。整改方向：由 QA 新增 qa_*.mjs 覆盖战斗缩放查表、掉落分桶、房间生成不变量、存档 CRC/迁移与异常退出回篝火；由集成方在 smoke 中验证 game/index.html 可加载增量模块且不触碰基座文件。本评审不签发门禁结论，最终以工具与裁判判定为准。 | gate=pass
+- pm: 产出 docs/plan/project-plan.md：以单人离线完整第一章为第一优先级，按 8 个切片（S0 基座校验→S1 房间制迷宫→S2 横版战斗→S3 装备掉落强化→S4 存档→S5 本地双人→S6 五层章节+Boss→S7 QA/验收）给出目标、范围、依赖、交付文件前缀与逐项验收命令；明确代码只写 game/js/gameplay|ui 增量模块、QA 只加 qa_*.mjs、基座测试与 smoke 为不可改基线；多人仅动态缩放且所有内容单人可完成；信息缺口（基座接口、输入层、存储方案、局域网范围）写入 open_questions，不编造证据。 | gate=pass
+- pm 文档 `docs/plan/project-plan.md` 摘要：
+# 迷宫冒险家 · 项目计划与切片（PM）
+
+> 定位：2D 横版房间制迷宫动作冒险 + 轻刷装 + 本地同屏。单人离线为完整主模式，多人仅动态缩放增强。
+> 交付物：可运行游戏，入口 `game/index.html`；技术栈 HTML5 Canvas + 原生 ES Modules。
+> 不可改基线：`game/js/core.js`、`game/js/main.js`、`game/index.html`、`game/tests/game_logic.test.mjs`、`game/tests/smoke.mjs`。
+
+## 0. 全局约束（所有切片适用）
+
+- 代码角色只新增/修改 `game/js/gameplay/` 或 `game/js/ui/` 下的增量 `.js` 模块，不覆盖基座文件。
+- QA 只新增 `game/tests/qa_*.mjs`，不改基座测试。
+- 每个切片合并前必须通过基线：
+  - `node --test game/tests/game_logic.test.mjs`
+  - `node game/tests/smoke.mjs`
+- 设计硬约束：单人基准平衡；所有 Boss/装备/剧情单人可获取；不设必须多人才能开的门/机关；多人只做动态缩放与协作（扶起、独立掉落）。
+- 数值口径（多人缩放，供 S5 验收）：2 人 血×1.6/伤×1.15/金×1.25；3 人 ×2.1/×1.25/×1.45；4 人 ×2.6/×1.35/×1.65；Boss 额外 +10% 血。
+
+## 1. 切片总览与依赖顺序
+
+```
+S0 基座校验
+  └─> S1 房间制迷宫
+        └─> S2 横版战斗
+              ├─> S3 装备/掉落/强化
+              └─> S4 存档
+                    └─> S5 本地双人（依赖 S2+S3+S4）
+                          └─> S6 五层章节 + Boss（依赖 S1~S5）
+                                └─> S7 QA/验收（贯穿，最终收口）
+```
+
+- S3 与 S4 可在 S2 完成后并行。
+- S5 必须在 S2/S3/S4 之后，因为双人需要战斗、独立掉落、主机世界存档。
+- S6 是内容整合切片，最后做，避免内容返工。
+- S7 从 S1 起持续补 `qa_*.mjs`，S6 后做全量验收。
+
+## 2. 切片明细
+
+### S0 · 基座校验（0.5 周）
+- 目标：确认模板可跑、模块加载方式、输入抽象、渲染循环钩子。
+- 范围：只读基座，产出接口说明到 `artifacts/pm/`。
+- 交付：`artifacts/pm/baseline-notes.md`（接口/钩子清单）。
+- 验收命令：
+  - `node --test game/tests/game_logic.test.mjs`
+  - `node game/tests/smoke.mjs`
+- 退出条件：两条命令通过，且记录 `game/js/core.js` 暴露的模块注册/更新/渲染接口。
+
+### S1 · 房间制迷宫（1.5 周）
+- 目标：8-12 房间 + Boss 房，房间模板+门连接+关键路径；固定 1 篝火 1 商店；精英房 60%；宝箱房 2-4；钥匙门每层≤1。
+- 交付模块：`game/js/gameplay/rooms.js`、`game/js/gameplay/mapgen.js`（种子可复现）。
+- 验收命令：
+  - 基线两条命令
+  - `node --test game/tests/qa_mapgen.mjs`（同种子生成一致、主路径存在、篝火/商店各 1、钥匙门≤1）
+
+### S2 · 横版战斗（2 周）
+- 目标：移动/跳跃/普攻/重击/闪避/2 技能/喝药；三职业（剑士/法师/游侠）；普通怪 4 类 + 精英词缀 + Boss 三阶段骨架；受击闪白、顿帧 80ms、轻震。
+- 交付模块：`game/js/gameplay/combat.js`、`game/js/gameplay/player.js`、`game/js/gameplay/enemies.js`、`game/js/gameplay/classes.js`。
+- 验收命令：
+  - 基线两条命令
+  - `node --test game/tests/qa_combat.mjs`（伤害公式、闪避无敌帧、技能 CD、精英词缀生效）
+
+### S3 · 装备 / 掉落 / 强化（1.5 周）
+- 目标：5 部位、5 品质权重（白40/绿30/蓝20/紫8/橙2）、Boss 保底蓝（紫20/橙5）、2-4 词条、背包 60/仓库 200、分解、强化 +1~+9 失败不掉级、重铸保底。
+- 交付模块：`game/js/gameplay/items.js`、`game/js/gameplay/loot.js`、`game/js/gameplay/inventory.js`、`game/js/ui/inventory_ui.js`。
+- 验
+- product: 产出 docs/product/product-baseline.md：以单人离线第一章为基准，定义主菜单→选职业/难度→5层房间→战斗/掉落/商店/篝火/事件→Boss→结算→存档/读档→双人复活 的逐状态产品流程，每状态含输入、失败恢复、非目标与量化验收；明确非目标清单（不做交易行/云存档/远程同乐/必须多人机关/内购），多人仅动态缩放与扶起、独立掉落，所有内容单人可完成；给出可量化验收指标（首蓝装≤10min、首精英/Boss≤30min、单局15-30min、读档成功率>99.5%、崩溃率<0.5%、本地多人使用率>25%）与 MVP 范围边界。信息缺口写入 open_questions，未编造证据。 | gate=fail
+- product 文档 `docs/product/product-baseline.md` 摘要：
+# 迷宫冒险家 · 产品基准（Product Baseline）
+
+> 角色：product · 产品架构师。本文是范围与验收基准，不做技术选型。
+> 上游：docs/plan/project-plan.md（PM 切片 S0~S7）。交付物为可运行游戏，入口 game/index.html。
+> 定位：2D 横版房间制迷宫动作冒险 + 轻刷装 + 本地同屏。单人离线为完整主模式，多人仅动态缩放增强。
+
+---
+
+## 0. 非目标清单（先写非目标，防止范围蔓延）
+
+以下内容明确不在 MVP / 本基准范围内，任何“用户可能需要”都不作为纳入理由：
+
+| 非目标 | 说明 |
+|---|---|
+| 交易行 / 玩家间交易 | 单机不做经济外部循环，仅 NPC 商店回收。 |
+| 云存档 / Steam Cloud | MVP 不做，后续可选。 |
+| 远程同乐 / 在线匹配 | 不纳入 MVP；局域网联机为 P1，EA 前补。 |
+| 必须多人才能开的门 / 机关 / 专属剧情 | 违反“单人完整可通关”原则，一律禁止。 |
+| 内购 / 付费点 | 买断制，无内购。 |
+| 第 2、3 章、无尽迷宫、图鉴、成就 | 属 EA 范围，MVP 只做第一章 5 层。 |
+| 局域网 4 人 | MVP 只做本地同屏 2 人；局域网 2-4 人为 P1。 |
+| 职业/章节 DLC | 正式版后内容。 |
+| 高难度硬核平衡 | 三档难度 + 动态缩放，以休闲可通关为基准。 |
+
+范围红线：单人模式是平衡基准；多人只做动态缩放与协作（扶起、独立掉落），不新增单人不可达内容。
+
+---
+
+## 1. 主流程状态机（逐状态：输入 / 失败恢复 / 验收）
+
+主流程：主菜单 → 选职业/难度 → 5 层房间循环 → Boss → 结算 → 存档/读档 → 双人复活。
+每个状态给出：进入条件、玩家输入、系统行为、失败/异常恢复、量化验收、非目标。
+
+### S-MAIN · 主菜单
+- 进入：启动游戏。
+- 输入：继续 / 新游戏 / 多人 / 设置 / 退出（键盘方向键+确认，手柄 A/十字键）。
+- 系统行为：读取 3 个世界槽摘要（章节、层数、角色等级、最后存档时间）；无存档时“继续”置灰。
+- 失败恢复：存档损坏 → 提示“存档损坏，已回退到备份”，加载备份槽；双备份均损坏 → 该槽标记不可用，允许新游戏，不阻塞其他槽。
+- 量化验收：主菜单到可操作 ≤ 3 秒；损坏槽不导致整体崩溃（崩溃率<0.5% 口径内）。
+- 非目标：不做账号登录、不做在线大厅。
+
+### S-CLASS · 选职业 / 难度
+- 进入：新游戏 或 新开世界槽。
+- 输入：三职业（剑士/法师/游侠）单选；三档难度（休闲/标准/挑战）单选；确认。
+- 系统行为：展示职业定位与单人友好度；难度影响怪物血量/伤害系数与掉落权重微调（口径见 §4）；写入世界槽初始状态。
+- 失败恢复：未选职业/难度时确认置灰；中途返回主菜单不产生半成品存档。
+- 量化验收：选择到进入第一层 ≤ 5 秒；三职业均可单人通关第一章（QA 冒烟各职业跑通 1 层）。
+- 非目标：不做职业自定义捏脸、不做难度中途切换（仅回城可改，见 S-SETTLE）。
+
+### S-ROOM · 5 层房间循环（核心）
+每层 = 8-12 房间 + 1 Boss 房；固定 1 篝火、1 商店；精英房概率 60%；宝箱房 2-4；钥匙门每层 ≤1。
+房间类型：战斗房 / 平台跳跃房 / 宝箱房 / 商店房 / 篝火房 / 事件房 / 精英房 / Boss 房。
+
+- 进入：从门进入房间（或读档恢复到已探索房间）。
+- 输入：移动、跳跃、普攻、重击、闪避、2 技能、喝药、交互（开门/开箱/对话/存档）。
+- 系统行为：
+  - 战斗房：2-4 波怪，清怪开门；掉落光柱即时反馈。
+  - 平台跳跃房：跳台+宝箱，轻解谜，无死亡惩罚性陷阱秒杀。
+  - 宝箱房：1-3 宝箱，概率陷阱（扣血不致死）。
+  - 商店房：买药/钥匙/随机装备。
+  - 篝火房：回血、存档、复活队友、快速回城。
+  - 事件房：赌装备、诅咒/祝福、NPC 委托。
+  - 精英房：精英怪 + 高品质掉落。
+  - 钥匙门：钥匙由精英怪/事件房给，保证不卡死（无钥匙时主路径仍可通 Boss）。
+- 失败恢复：
+  - 单人死亡 → 回最近篝火，消耗复活币（无币则回城结算，不丢已获装备）。
+  - 掉队（同屏）→ 3 秒自动传送到队友身边。
+  - 房间加载失败 → 回退到上一个已存档房间，不丢档。
+- 量化验收：
+  - 同种子生成一致、主路径存在、篝火/商店各 1、钥匙门 ≤1（QA 地图生成测试）。
+  - 单层通关时长落在单局 15-30 分钟区间内（第一章 5 层合计 2-4 小时）。
+  - 前 3 分钟必出首次掉落；5-8 分钟遇精英；10-15 分钟遇 Boss（情绪节奏验收）。
+- 非目标：不做必须多人协作的机关；不做房间内实时 PVP。
+
+### S-COMBAT · 战斗与掉落（房间内子状态）
+- 输入：普攻/重击/闪避/技能/喝药；手柄键盘混用（本地同屏）。
+- 系统行为：受击闪白、顿帧 80ms、轻震、掉
+- ui: 以单人离线第一章为基准，产出 docs/design/ui-spec.md：定义 Design Token（色彩/品质色/间距/字号/层级/动效时长）、HUD（血蓝、技能CD、金币、小地图、队友血条、Boss 条）、主菜单、背包（品质色+对比箭头+一键分解白绿）、商店、篝火、小地图、多人状态（本地同屏/局域网加入、独立掉落光柱、扶起提示）的交互规范；覆盖空/加载/错误/暂停四类状态与失败恢复文案；给出 game/css 增量样式建议（不覆盖基座），并标注可落地尺寸与状态机。多人仅动态缩放与扶起、独立掉落，不新增单人不可达 UI。信息缺口写入 open_questions，未编造证据。 | gate=pass
+- ui 文档 `docs/design/ui-spec.md` 摘要：
+# 迷宫冒险家 · UI/UX 设计规范（UI Spec）
+
+> 角色：ui · UI/UX 设计师。上游：docs/product/product-baseline.md、docs/plan/project-plan.md。
+> 交付物为可运行游戏，入口 game/index.html；技术栈 HTML5 Canvas + 原生 ES Modules。
+> 本文只定义信息架构、交互流程、Design Token 与可落地标注，不改变产品功能与核心流程。
+> 硬约束：单人基准平衡；所有 Boss/装备/剧情单人可获取；不设必须多人才能开的门/机关；多人仅动态缩放与协作（扶起、独立掉落）。
+
+---
+
+## 0. 设计原则
+
+1. **单人优先**：所有界面在 1 人状态下信息完整、无空位占位；多人元素（队友血条、扶起提示）仅在人数≥2 时出现。
+2. **掉落有反馈**：品质色 + 光柱 + 拾取飘字，前 3 分钟必出首次掉落（对齐产品验收）。
+3. **低门槛**：主菜单到可操作 ≤3 秒；新手 10 分钟内教会移动/打怪/捡装/回城/存档。
+4. **低配可跑**：动效以 CSS/Canvas 轻量实现，无重滤镜；60 帧目标下 UI 不阻塞渲染。
+5. **可落地**：每个界面给出尺寸、层级、状态与交互标注，前端可直接实现。
+
+---
+
+## 1. Design Token
+
+### 1.1 色彩
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `--c-bg-0` | `#0e1116` | 最底层背景 |
+| `--c-bg-1` | `#161b22` | 面板背景 |
+| `--c-bg-2` | `#1f2630` | 卡片/行背景 |
+| `--c-border` | `#2d3644` | 面板描边 |
+| `--c-text-1` | `#e6edf3` | 主文字 |
+| `--c-text-2` | `#9aa7b4` | 次要文字 |
+| `--c-text-disabled` | `#5a6673` | 置灰文字 |
+| `--c-accent` | `#f2b544` | 主强调（金币/选中） |
+| `--c-hp` | `#e5484d` | 生命条 |
+| `--c-mp` | `#3b82f6` | 法力条 |
+| `--c-xp` | `#22c55e` | 经验条 |
+| `--c-danger` | `#ef4444` | 危险/错误 |
+| `--c-success` | `#22c55e` | 成功/可交互 |
+| `--c-warning` | `#f59e0b` | 警告/诅咒 |
+
+### 1.2 品质色（装备）
+
+| 品质 | Token | 值 | 光柱 |
+|---|---|---|---|
+| 白 | `--q-white` | `#c9d1d9` | 无 |
+| 绿 | `--q-green` | `#3fb950` | 弱 |
+| 蓝 | `--q-blue` | `#58a6ff` | 中 |
+| 紫 | `--q-purple` | `#bc8cff` | 强 |
+| 橙 | `--q-orange` | `#f0883e` | 最强 + 脉冲 |
+
+### 1.3 间距 / 圆角 / 字号
+
+| Token | 值 |
+|---|---|
+| `--sp-1` | 4px |
+| `--sp-2` | 8px |
+| `--sp-3` | 12px |
+| `--sp-4` | 16px |
+| `--sp-6` | 24px |
+| `--sp-8` | 32px |
+| `--radius-s` | 4px |
+| `--radius-m` | 8px |
+| `--radius-l` | 12px |
+| `--fs-xs` | 12px |
+| `--fs-s` | 14px |
+| `--fs-m` | 16px |
+| `--fs-l` | 20px |
+| `--fs-xl` | 28px |
+| `--font-ui` | `system-ui, "Microsoft YaHei", sans-serif` |
+| `--font-num` | `ui-monospace, monospace` |
+
+### 1.4 层级（z-index）
+
+| 层 | 值 | 内容 |
+|---|---|---|
+| 世界 | 0 | Canvas 游戏世界 |
+| HUD | 100 | 血蓝/技能/金币/小地图 |
+| 提示 | 200 | 飘字/拾取提示/扶起提示 |
+| 面板 | 300 | 背包/商店/篝火/暂停 |
+| 弹窗 | 400 | 确认框/错误框 |
+| 加载 | 500 | 加载遮罩 |
+
+### 1.5 动效时长
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `--t-fast` | 120ms | 按钮反馈/悬停 |
+| `--t-mid` | 200ms | 面板开合 |
+| `--t-slow` | 320ms | 结算/过场 |
+| `--t-toast` | 
+- arch: 产出第一章架构文档与契约：确定 Canvas+ESM 分层（core 基座 / gameplay 逻辑 / ui 表现），定义房间生成（种子可复现、主路径、篝火商店各1、钥匙门≤1）、战斗（伤害公式、闪避无敌帧、技能CD、精英词缀）、装备（5品质权重、Boss保底蓝、2-4词条、强化+1~+9不掉级、重铸保底）、存档（版本号+双备份+CRC、异常回退篝火）、双人（动态缩放系数、扶起3秒、独立掉落）五类契约与不变量；给出测试入口 game/tests/qa_*.mjs 与基线命令；不引入 React/Python/引擎重写，代码仅落 game/js/gameplay|ui 增量模块。信息缺口写入 open_questions。 | gate=fail
+- arch 文档 `docs/architecture/architecture.md` 摘要：
+# 迷宫冒险家 · 第一章技术架构（ADR 汇总）
+
+> 角色：arch。上游：docs/plan/project-plan.md、docs/product/product-baseline.md、docs/design/ui-spec.md。
+> 交付物：可运行游戏，入口 game/index.html；技术栈固定 HTML5 Canvas + 原生 ES Modules。
+> 硬约束：不引入 React / Python Web 服务 / Unity·Godot；不覆盖基座 game/js/core.js、game/js/main.js、game/index.html、game/tests/game_logic.test.mjs、game/tests/smoke.mjs；代码只写 game/js/gameplay|ui 增量模块；QA 只加 game/tests/qa_*.mjs。
+
+---
+
+## ADR-001 技术栈与分层
+
+- 决策：HTML5 Canvas 2D 渲染 + 原生 ES Modules 逻辑；无构建步骤，浏览器直接加载。
+- 分层：
+  - 基座层（只读）：`game/js/core.js`（循环/注册/渲染钩子）、`game/js/main.js`（启动）、`game/index.html`。
+  - 逻辑层 `game/js/gameplay/`：纯函数 + 状态对象，不直接触碰 DOM/Canvas，可被 node --test 导入。
+  - 表现层 `game/js/ui/`：读取逻辑层状态渲染到 Canvas/DOM，不反向修改逻辑。
+- 理由：逻辑与渲染解耦，使 `node --test` 可无浏览器测试；符合“不重写引擎”约束。
+- 后果：所有 gameplay 模块必须无副作用导入（不访问 window/document），随机数通过注入 seed 的 PRNG。
+
+## ADR-002 模块边界（第一章）
+
+| 模块 | 路径 | 职责 | 依赖 |
+|---|---|---|---|
+| mapgen | game/js/gameplay/mapgen.js | 种子→房间图（类型/连接/主路径/钥匙门） | prng |
+| rooms | game/js/gameplay/rooms.js | 房间状态机（进入/清怪/开门/宝箱/篝火） | mapgen |
+| combat | game/js/gameplay/combat.js | 伤害公式、无敌帧、顿帧、命中判定 | classes |
+| player | game/js/gameplay/player.js | 玩家状态、输入意图→动作 | combat, classes |
+| enemies | game/js/gameplay/enemies.js | 普通怪4类+精英词缀+Boss三阶段骨架 | combat |
+| classes | game/js/gameplay/classes.js | 剑士/法师/游侠数值与技能表 | — |
+| items | game/js/gameplay/items.js | 部位/品质/词条生成与强化重铸 | prng |
+| loot | game/js/gameplay/loot.js | 掉落权重、Boss保底、独立掉落分配 | items |
+| inventory | game/js/gameplay/inventory.js | 背包60/仓库200、分解、装备对比 | items |
+| save | game/js/gameplay/save.js | 存档序列化/版本迁移/双备份/CRC | — |
+| coop | game/js/gameplay/coop.js | 人数缩放、扶起、掉队传送 | combat |
+| hud | game/js/ui/hud.js | 血蓝/CD/金币/小地图/队友血条 | 逻辑层只读 |
+| inventory_ui | game/js/ui/inventory_ui.js | 背包/商店/篝火面板 | inventory |
+| menu_ui | game/js/ui/menu_ui.js | 主菜单/选职业难度/暂停 | save |
+
+- 禁止：gameplay 模块 import ui 模块；ui 模块不得写 gameplay 状态（只读+派发意图事件）。
+
+## ADR-003 房间生成契约（S1）
+
+不变量（可测试）：
+1. 同 seed + 同层号 → 完全相同的房间图（确定性）。
+2. 房间数 ∈ [8,12]，另有 1 个 Boss 房。
+3. 入口到 Boss 存在唯一主路径（连通性检查通过）。
+4. 每层恰好 1 个篝火房、1 个商店房。
+5. 宝箱房数量 ∈ [2,4]；精英房概率 60%（由 seed 决定）。
+6. 钥匙门 ≤1；且无钥匙时主路径仍可达 Boss（钥匙门只锁支路）。
+
+接口（纯函数）：
+```js
+// mapgen.js
+generateFloor({ seed, floorIndex, chapter }) -> FloorGraph
+// FloorG
+- arch 文档 `contracts/openapi.yaml` 摘要：
+# 说明：本项目为离线单机游戏，无 HTTP 服务。
+# 本文件以 OpenAPI 3.0 结构描述“模块间契约”（逻辑层纯函数接口），
+# 供代码角色与 QA 对齐签名；不表示存在网络 API。
+openapi: 3.0.3
+info:
+  title: Maze Adventurer - Module Contracts (in-process, no HTTP)
+  version: 1.0.0
+  description: >
+    第一章逻辑层契约。所有接口为 ES Module 纯函数，可在 node --test 下直接导入。
+    不引入任何 Web 服务；此文件仅作接口契约文档。
+paths: {}
+components:
+  schemas:
+    FloorGraph:
+      type: object
+      required: [seed, floorIndex, rooms, mainPath, bossRoomId]
+      properties:
+        seed: { type: integer }
+        floorIndex: { type: integer, minimum: 1, maximum: 5 }
+        rooms:
+          type: array
+          items:
+            type: object
+            required: [id, type, doors, cleared]
+            properties:
+              id: { type: string }
+              type:
+                type: string
+                enum: [combat, platform, treasure, shop, campfire, event, elite, boss]
+              doors: { type: array, items: { type: string } }
+              cleared: { type: boolean }
+        mainPath: { type: array, items: { type: string } }
+        bossRoomId: { type: string }
+        keyDoor:
+          type: object
+          nullable: true
+          properties:
+            roomId: { type: string }
+            keySourceRoomId: { type: string }
+    Item:
+      type: object
+      required: [id, slot, quality, affixes, enhanceLevel]
+      properties:
+        id: { type: string }
+        slot:
+          type: string
+          enum: [weapon, helmet, armor, boots, accessory]
+        quality:
+          type: string
+          enum: [white, green, blue, purple, orange]
+        affixes:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              value: { type: number }
+        enhanceLevel: { type: integer, minimum: 0, maximum: 9 }
+        classRestrict:
+          type: string
+          nullable: true
+          enum: [warrior, mage, ranger, null]
+    SaveData:
+      type: object
+      required: [version, worldSlot, seed, floorIndex, player, inventory, gold, crc]
+      properties:
+        version: { type: integer }
+        worldSlot: { type: integer, minimum: 1, maximum: 3 }
+
+- backend: 按 arch 契约实现第一章玩法逻辑增量：combat.js（伤害公式含攻防/暴击/品质系数、闪避无敌帧、技能CD、顿帧标记）、classes.js（剑士/法师/游侠数值与技能表）、player.js（输入意图→动作状态机）、enemies.js（4类普通怪+精英词缀+Boss三阶段骨架+仇恨选择）、items.js（5部位/5品质/2-4词条生成、强化+1~+9失败不掉级、重铸保底）、loot.js（白40/绿30/蓝20/紫8/橙2权重、Boss保底蓝+紫20/橙5、独立掉落分配）、inventory.js（背包60/仓库200/分解/对比）、save.js（版本号+CRC+双备份+异常回退篝火）、coop.js（2/3/4人缩放系数与Boss+10%血、扶起3秒、掉队传送）。全部为无副作用纯逻辑模块，不触碰 DOM/Canvas，不修改基座与契约；接入与落盘方式列入 open_questions。 | gate=pass
+- frontend: 代码文件已生成：src/frontend/game/js/ui/hud.js | gate=fail
+- review: 以 review 角色对第一章前置产物做静态评审，不签发门禁结论。关键发现：(1) 交付路径违规——frontend 产物落在 src/frontend/game/js/ui/hud.js，违反“代码只写 game/js/gameplay|ui 增量模块”的硬约束，且无法被 game/index.html 的 ESM 加载；(2) 集成断裂风险——arch 契约要求 gameplay 为无副作用纯函数、ui 只读派发意图，但当前 ui 产物路径与契约模块表（game/js/ui/hud.js）不一致，需确认是否迁移；(3) 证据缺口——无任何产物 sha256、无基线测试运行输出，无法确认 game_logic.test.mjs 与 smoke.mjs 仍通过，故不将任何 Agent 自述计为证据；(4) 上游 product/arch/frontend 均 gate=fail，说明范围与契约尚未收口，评审结论需待其修复后复评。整改方向：将 hud.js 迁至 game/js/ui/ 并核对 import 路径；补齐 gameplay 模块落盘清单与导出签名；提供基线两条命令的实际运行记录；修复 product/arch 门禁失败项后重新提交评审。所有结论仅为 findings，不构成门禁判定。 | gate=pass
 
 # 知识库引用
 （未启用或无命中）

@@ -1,156 +1,133 @@
+# 说明：本项目为离线单机游戏，无 HTTP 服务。
+# 本文件以 OpenAPI 3.0 结构描述“模块间契约”（逻辑层纯函数接口），
+# 供代码角色与 QA 对齐签名；不表示存在网络 API。
 openapi: 3.0.3
 info:
-  title: 迷宫冒险家 · 模块间 JSON 契约（文档用，非 Web 服务）
-  version: 0.1.0
+  title: Maze Adventurer - Module Contracts (in-process, no HTTP)
+  version: 1.0.0
   description: >
-    本文件仅作为 gameplay/ui/存档之间的 JSON 消息契约文档，用于契约评审与 lint。
-    项目为离线 Canvas 游戏，不启动任何 HTTP 服务；路径语义映射为模块事件与存档结构。
-paths:
-  /events/room-enter:
-    post:
-      summary: 进入房间事件
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RoomEnterEvent'
-      responses:
-        '204': { description: 已广播 }
-  /events/room-cleared:
-    post:
-      summary: 房间清空事件
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RoomClearedEvent'
-      responses:
-        '204': { description: 已广播 }
-  /events/combat-hit:
-    post:
-      summary: 命中事件
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CombatHitEvent'
-      responses:
-        '204': { description: 已广播 }
-  /events/loot-drop:
-    post:
-      summary: 掉落事件（按玩家分桶）
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LootDropEvent'
-      responses:
-        '204': { description: 已广播 }
-  /save/envelope:
-    get:
-      summary: 读取存档封装
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SaveEnvelope'
-    put:
-      summary: 写入存档封装（双备份+CRC）
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SaveEnvelope'
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SaveResult'
+    第一章逻辑层契约。所有接口为 ES Module 纯函数，可在 node --test 下直接导入。
+    不引入任何 Web 服务；此文件仅作接口契约文档。
+paths: {}
 components:
   schemas:
-    RoomType:
-      type: string
-      enum: [combat, platform, treasure, shop, campfire, event, elite, boss]
-    RoomEnterEvent:
+    FloorGraph:
       type: object
-      required: [roomId, type]
+      required: [seed, floorIndex, rooms, mainPath, bossRoomId]
       properties:
-        roomId: { type: string }
-        type: { $ref: '#/components/schemas/RoomType' }
-    RoomClearedEvent:
+        seed: { type: integer }
+        floorIndex: { type: integer, minimum: 1, maximum: 5 }
+        rooms:
+          type: array
+          items:
+            type: object
+            required: [id, type, doors, cleared]
+            properties:
+              id: { type: string }
+              type:
+                type: string
+                enum: [combat, platform, treasure, shop, campfire, event, elite, boss]
+              doors: { type: array, items: { type: string } }
+              cleared: { type: boolean }
+        mainPath: { type: array, items: { type: string } }
+        bossRoomId: { type: string }
+        keyDoor:
+          type: object
+          nullable: true
+          properties:
+            roomId: { type: string }
+            keySourceRoomId: { type: string }
+    Item:
       type: object
-      required: [roomId]
+      required: [id, slot, quality, affixes, enhanceLevel]
       properties:
-        roomId: { type: string }
-    CombatHitEvent:
-      type: object
-      required: [targetId, dmg, crit]
-      properties:
-        targetId: { type: string }
-        dmg: { type: integer, minimum: 1 }
-        crit: { type: boolean }
-    LootDropEvent:
-      type: object
-      required: [playerId, itemId, quality]
-      properties:
-        playerId: { type: string }
-        itemId: { type: string }
-        quality:
+        id: { type: string }
+        slot:
           type: string
-          enum: [white, green, blue, purple, orange]
-    ItemSave:
-      type: object
-      required: [itemId, quality, affixes]
-      properties:
-        itemId: { type: string }
+          enum: [weapon, helmet, armor, boots, accessory]
         quality:
           type: string
           enum: [white, green, blue, purple, orange]
         affixes:
           type: array
-          items: { type: string }
-    PlayerSave:
+          minItems: 2
+          maxItems: 4
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              value: { type: number }
+        enhanceLevel: { type: integer, minimum: 0, maximum: 9 }
+        classRestrict:
+          type: string
+          nullable: true
+          enum: [warrior, mage, ranger, null]
+    SaveData:
       type: object
-      required: [classId, level, gold, bag, equipped]
+      required: [version, worldSlot, seed, floorIndex, player, inventory, gold, crc]
       properties:
-        classId: { type: string, enum: [warrior, mage, ranger] }
-        level: { type: integer, minimum: 1, maximum: 30 }
+        version: { type: integer }
+        worldSlot: { type: integer, minimum: 1, maximum: 3 }
+        seed: { type: integer }
+        floorIndex: { type: integer }
+        exploredRooms: { type: array, items: { type: string } }
+        bossState: { type: object }
+        player: { type: object }
+        inventory: { type: object }
         gold: { type: integer, minimum: 0 }
-        bag:
-          type: array
-          items: { $ref: '#/components/schemas/ItemSave' }
-        equipped:
-          type: object
-          additionalProperties: { $ref: '#/components/schemas/ItemSave' }
-    SaveEnvelope:
-      type: object
-      required: [version, slot, worldSeed, floorIndex, roomsExplored, bossDefeated, player, stash, quests, settings, crc]
-      properties:
-        version: { type: integer, minimum: 1 }
-        slot: { type: integer, enum: [0, 1, 2] }
-        worldSeed: { type: integer }
-        floorIndex: { type: integer, minimum: 0 }
-        roomsExplored:
-          type: array
-          items: { type: string }
-        bossDefeated:
-          type: array
-          items: { type: string }
-        player: { $ref: '#/components/schemas/PlayerSave' }
-        stash:
-          type: array
-          items: { $ref: '#/components/schemas/ItemSave' }
-        quests:
-          type: array
-          items: { type: object }
-        settings:
-          type: object
+        quests: { type: array, items: { type: object } }
+        settings: { type: object }
         crc: { type: string }
-    SaveResult:
+    CoopScale:
       type: object
-      required: [ok]
+      required: [hpMul, dmgMul, goldMul]
       properties:
-        ok: { type: boolean }
-        usedBackup: { type: boolean }
+        hpMul: { type: number }
+        dmgMul: { type: number }
+        goldMul: { type: number }
+  x-module-contracts:
+    mapgen:
+      generateFloor:
+        input: { seed: integer, floorIndex: integer, chapter: integer }
+        output: FloorGraph
+        invariants:
+          - deterministic_by_seed
+          - rooms_between_8_and_12
+          - exactly_one_campfire
+          - exactly_one_shop
+          - treasure_between_2_and_4
+          - key_door_at_most_1_and_not_on_main_path
+    combat:
+      computeDamage:
+        input: { atk: number, skillMul: number, def: number, crit: boolean, elemMul: number }
+        output: { dmg: integer }
+        invariants: [min_1, crit_mul_1_5]
+      isInvincible:
+        input: { now: number, dodgeAt: number }
+        output: { invincible: boolean }
+        invariants: [window_300ms, cooldown_800ms]
+    loot:
+      rollDrop:
+        input: { source: string, seed: integer }
+        output: Item
+        invariants:
+          - normal_weights_40_30_20_8_2
+          - boss_min_blue
+          - boss_purple_20_orange_5
+    save:
+      serialize:
+        input: { state: object }
+        output: SaveData
+      deserialize:
+        input: { raw: string }
+        output: { ok: boolean, data: SaveData, fallback: boolean }
+        invariants: [crc_check, fallback_to_backup, no_crash_on_corrupt]
+    coop:
+      scaleForPlayers:
+        input: { players: integer }
+        output: CoopScale
+        invariants:
+          - p2_1_6_1_15_1_25
+          - p3_2_1_1_25_1_45
+          - p4_2_6_1_35_1_65
+          - boss_extra_hp_10pct

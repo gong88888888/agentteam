@@ -10,35 +10,70 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 15147,
-  "tokens": 8772,
-  "cost_usd": 0.008112000000000001,
+  "latency_ms": 23318,
+  "tokens": 16691,
+  "cost_usd": 0.0146675,
   "files": [
     {
+      "path": "game/js/gameplay/classes.js",
+      "sha256": "d0d9459a64eadcdfa6690ca4313ce791ffae3674be82134f543b6f9e79fc3205",
+      "bytes": 1716,
+      "source": "role",
+      "promoted": true
+    },
+    {
       "path": "game/js/gameplay/combat.js",
-      "sha256": "9a7d377e94d969e12b9fb115f88cc5bc1c98d7ea932ffe34bc32b230604c823a",
-      "bytes": 2173,
+      "sha256": "a09dec50782c9af5362947b2c71b17c2b9305f0ce4e6a20fbf4e9f697d57fa13",
+      "bytes": 1377,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/player.js",
+      "sha256": "edd82d9a973820c6caba7122dac99079f91579606f13abe20b870cd05a8822d8",
+      "bytes": 1786,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/enemies.js",
+      "sha256": "4ce188f6e4046efc7ecfd904d72e153278e9246ab89d02bee48745d02959b9a6",
+      "bytes": 1980,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/items.js",
+      "sha256": "283bcc0c3d86cbc16e44c9ca5bc71f16e0be6d9faf968d0f7cb5576a21a74192",
+      "bytes": 2329,
       "source": "role",
       "promoted": true
     },
     {
       "path": "game/js/gameplay/loot.js",
-      "sha256": "b70331dce5198ba2133880899f162bbcb5c04d0017b86415b224d1b4ee69a931",
-      "bytes": 1667,
+      "sha256": "28340cb508905b7b0ed50de1d5c3925c14cfe4c5474b5a5a85d33b42da6a484c",
+      "bytes": 943,
       "source": "role",
       "promoted": true
     },
     {
-      "path": "game/js/gameplay/roomgen.js",
-      "sha256": "71b6f67375424916747ec74a403c02792846c9c2e2a3c7f901c55fae3deba47a",
-      "bytes": 2404,
+      "path": "game/js/gameplay/inventory.js",
+      "sha256": "fd09ea2293e4b103ae7974b26d9d1b8e4732c58aedd49534ee000aed661708a0",
+      "bytes": 1521,
       "source": "role",
       "promoted": true
     },
     {
       "path": "game/js/gameplay/save.js",
-      "sha256": "09af372f8e0c0238c5f6bcf3e54a506e41307ac33031a62cfc716420de1cbf31",
-      "bytes": 1694,
+      "sha256": "06daa5bee473e9baf9f667d1348d81be56256fcaaf8f0588db2178e52cebb865",
+      "bytes": 1458,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/coop.js",
+      "sha256": "5b8dfc64acd42b4aa3559122677cdae035bde939f0d7cd274a416c7c625cb878",
+      "bytes": 1262,
       "source": "role",
       "promoted": true
     }
@@ -89,21 +124,23 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835468.1066008,
-  "started_clock": "21:24:28",
+  "run_id": "20261117-142428",
+  "started_at": 1794896783.7187536,
+  "started_clock": "14:26:23",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:24:47",
+  "finished_at": "2026-11-17 14:26:51",
   "quality": {
-    "score": 79,
+    "score": 76,
     "grade": "B",
     "components": {
       "completeness": 30,
       "gate": 30,
       "evidence": 0,
-      "efficiency": 9,
-      "clarity": 10
+      "efficiency": 8,
+      "clarity": 8
     },
-    "issues": []
+    "issues": [
+      "4 个未决问题"
+    ]
   }
 }

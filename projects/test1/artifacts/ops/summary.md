@@ -1,29 +1,33 @@
 # ops · 发布与回滚
 
 - 状态：done
-- 摘要：作为 ops，基于已批准的产品基准、架构契约与 QA 计划，产出 docs/ops/release-plan.md（发布/回滚/监控/演练方案）、scripts/ops/start-local.sh（本地启动静态服务并打开 game/index.html）、scripts/ops/build.sh（构建产物打包+基座文件哈希基线校验+基线测试门禁）、scripts/ops/backup-save.sh（存档导出/双备份/CRC 校验占位）、scripts/ops/rollback.sh（按发布清单回滚到上一版本并保留现场）。关键决策：(1) 发布门禁硬检查为 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 通过且基座文件哈希未变，任一失败即 BLOCKED；(2) 生产发布必须持有裁判凭证，脚本不绕过；(3) 存档备份采用导出+双份+CRC 校验，异常退出回最近篝火快照；(4) 回滚以版本清单为准，回滚后保留现场日志。所有脚本仅写 scripts/ 与 artifacts/ops/，不触碰 game/ 基座与业务代码。未实际运行脚本与基线测试，故不声明通过；信息缺口已写入 open_questions，未编造证据。
+- 摘要：以 ops 角色产出第一章 MVP 的发布与回滚方案，写入 docs/ops/release-plan.md 与 scripts/ 下的启动/构建/备份/回滚脚本骨架。关键决策：(1) 技术栈为 HTML5 Canvas + 原生 ESM，无打包步骤，构建=静态目录快照+版本号+sha256 清单；(2) 发布硬检查为基线两条命令通过 + game/index.html 可加载 + 产物路径合规（game/js/gameplay|ui 下），任一失败置 BLOCKED 并保留现场；(3) 回滚采用上一版本静态目录快照切换，玩家存档独立于代码目录，回滚不触碰存档，存档侧用双备份+CRC+异常回退篝火；(4) 发布前必须持有裁判凭证与硬检查通过，无凭证不发布生产。已知阻断：frontend 产物路径违规、gameplay 落盘未证实、无基线运行输出，故本次不签发发布凭证，artifacts 为空，缺口写入 open_questions，未编造证据。
 
 - 门禁：pass · G-TEST1-ops
 
 ## Claims（不参与门禁）
 
-- 交付发布计划、本地启动/构建脚本、存档备份与回滚方案，覆盖单人离线+本地同屏MVP，局域网P1降级说明。
-- 生产发布前置硬检查：node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，且基座文件未被修改；未实际运行，故不声明通过。
+- 产出 docs/ops/release-plan.md：定义本地启动、构建（无打包，静态 ESM 直出）、存档备份与回滚方案，覆盖单人离线第一章 MVP 的发布前硬检查清单。
+- 发布门禁硬检查：基线两条命令（node --test game/tests/game_logic.test.mjs、node game/tests/smoke.mjs）必须通过，且 game/index.html 可被静态服务器加载；任一失败即 BLOCKED，不发布。
+- 回滚方案为版本化静态目录快照 + 存档双备份（localStorage/IndexedDB 导出 JSON + CRC 校验），回滚不触碰玩家存档，异常退出回最近篝火。
+- 已知阻断：frontend 产物路径违规（src/frontend/game/js/ui/hud.js 不在 game/js/ui/）、gameplay 模块落盘未证实、无基线运行输出，故本次不签发发布凭证，artifacts 为空。
 
 ## 写入文件
 
-- `docs/ops/release-plan.md` · f4f7fc26fb01 · role
-- `scripts/ops/start-local.sh` · 5a478286184c · role
-- `scripts/ops/build.sh` · 87b95d8b27ac · role
-- `scripts/ops/backup-save.sh` · dad95c648a1b · role
-- `scripts/ops/rollback.sh` · b2a809fd2a21 · role
+- `docs/ops/release-plan.md` · 48020f3e12b4 · role
+- `scripts/ops/build_snapshot.sh` · 397fafe01c0d · role
+- `scripts/ops/backup_save.sh` · c8ab57e9ad71 · role
+- `scripts/ops/rollback.sh` · 246d540029f5 · role
 
 ## 未决问题
 
-- 基座 game/js/core.js 与 main.js 的模块加载/事件总线 API 细节未实证，脚本中的静态检查仅做文件存在与哈希比对，无法验证运行时集成。
-- 浏览器存档介质（localStorage/IndexedDB）与 SaveEnvelope 双备份+CRC 的落地方式未验证，备份脚本按 localStorage 键名占位，需集成后确认键名。
-- 局域网 UDP 在 Canvas 栈不可行，P1 联机发布流程未定义，需架构给出降级方案后再补发布步骤。
-- CI/构建环境未提供，scripts/ 下脚本为本地可执行方案，未在真实环境运行，不声明通过。
+- game/js/core.js 与 main.js 的模块注册/更新/渲染接口签名未提供，无法确认 game/index.html 的 ESM 加载链是否完整。
+- gameplay 模块（combat/classes/player/enemies/items/loot/inventory/save/coop）是否已实际落盘到 game/js/gameplay/ 未证实，构建前需核实。
+- hud.js 是否已从 src/frontend/game/js/ui/ 迁移到 game/js/ui/ 未证实，未迁移则 ESM 加载失败，发布硬检查不通过。
+- 存档持久化介质（localStorage vs IndexedDB）与双备份+CRC 具体实现未定，备份/回滚脚本需据此对齐。
+- 基线两条命令与 qa_*.mjs 的实际运行输出未提供，读档成功率>99.5%、崩溃率<0.5% 无法量化验证。
+- 本地静态服务器端口与启动方式（如 python -m http.server 或 node 静态服务）未在模板中确认，需 S0 校验后回填。
+- 局域网联机（P1）不在本次发布范围，其 Host 权威与加入码防爆破是否纳入 EA 前未最终确认。
 
 ## 门禁检查
 

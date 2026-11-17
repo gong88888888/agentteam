@@ -10,27 +10,20 @@
   },
   "model": "deepseek-chat",
   "backend": "deepseekharness",
-  "latency_ms": 21619,
-  "tokens": 9321,
-  "cost_usd": 0.0092525,
+  "latency_ms": 26366,
+  "tokens": 14745,
+  "cost_usd": 0.012746500000000001,
   "files": [
     {
       "path": "docs/architecture/architecture.md",
-      "sha256": "eeecff685ea67d44480aa3aa3b8d0877ddf7501be2fcc87b1ba666dfa43c7536",
-      "bytes": 7299,
-      "source": "role",
-      "promoted": true
-    },
-    {
-      "path": "contracts/openapi.yaml",
-      "sha256": "3821d40cdc915f41bf6113a24b70cc3e0ab350dc3ea8a0dbf5e554b692178d9c",
-      "bytes": 4658,
+      "sha256": "8e0a070a1a5c4b9d6edb33f287c0436ee23d712ad6bc3625a23996e0bf118894",
+      "bytes": 13333,
       "source": "role",
       "promoted": true
     }
   ],
   "code_pass": false,
-  "adjustment": "",
+  "adjustment": "必须实际写出 docs/architecture/architecture.md（完整章节：模块、契约、存档、测试），不要只返回摘要；files 路径必须在 docs/architecture/。",
   "gate": {
     "gate_id": "G-TEST1-arch",
     "role": "arch",
@@ -60,6 +53,11 @@
         "name": "artifact",
         "ok": true,
         "detail": "docs/architecture/architecture.md"
+      },
+      {
+        "name": "deep_brief",
+        "ok": true,
+        "detail": "缺少章节 []；长度 8758/2500"
       }
     ],
     "evidence_ids": [],
@@ -70,21 +68,23 @@
   "tools": null,
   "sandbox": "direct",
   "template": "web-2d-game",
-  "run_id": "20261116-212301",
-  "started_at": 1794835442.3964162,
-  "started_clock": "21:24:02",
+  "run_id": "20261117-143319",
+  "started_at": 1794897199.4621875,
+  "started_clock": "14:33:19",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 21:24:28",
+  "finished_at": "2026-11-17 14:33:49",
   "quality": {
-    "score": 99,
+    "score": 97,
     "grade": "A",
     "components": {
       "completeness": 30,
       "gate": 30,
       "evidence": 20,
       "efficiency": 9,
-      "clarity": 10
+      "clarity": 8
     },
-    "issues": []
+    "issues": [
+      "5 个未决问题"
+    ]
   }
 }

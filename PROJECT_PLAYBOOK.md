@@ -96,11 +96,11 @@ python start_project.py \
 - 入口 `game/index.html` + Canvas/ES Module。
 - 逻辑 `node --test game/tests/game_logic.test.mjs`。
 - 冒烟 `node game/tests/smoke.mjs`。
-- QA `game/tests/qa_*.test.mjs`。
+- QA `game/tests/qa_*.mjs`（27 项契约测试），并作为验收门禁执行。
 - Chrome 无头渲染截图。
 - 结果写入 `acceptance.json` 和签名证据账本；任一失败项目强制 `failed`。
 
-模板提供 4 房间、3 职业、本地双人、Boss、掉落、HUD、存档的 HTML5 Canvas 垂直切片；正式版再迁移 Unity/Godot 并补美术/音频/5 层章节/局域网。
+模板提供第一章 5 层 × 8–12 房间 + Boss、3 职业/技能、装备词条/强化、商店/篝火/事件、3 槽存档和本地双人的 HTML5 Canvas 垂直切片；正式版再迁移 Unity/Godot 并补美术/音频/局域网。
 
 ```bash
 python start_project.py --requirements projects/test1/requirements/input.md   --project-dir projects/test1-game --real --template web-2d-game --project-type game

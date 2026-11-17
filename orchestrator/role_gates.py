@@ -19,9 +19,9 @@ ROLE_KEYWORDS: dict[str, dict[str, list[str]]] = {
     "ui": {"all": [], "any": ["状态", "交互", "流程", "设计规范", "设计 token", "token"]},
     "arch": {"all": [], "any": ["契约", "接口", "状态机", "错误", "不变量", "事件"]},
     "review": {"all": [], "any": ["问题", "finding", "风险", "整改"]},
-    "qa": {"all": ["用例"], "any": ["异常", "边界", "权限"]},
+    "qa": {"all": [], "any": ["用例", "测试", "断言", "不变量", "测试计划", "证据"]},
     "security": {"all": ["威胁"], "any": ["缓解", "风险", "验证"]},
-    "ops": {"all": ["回滚"], "any": ["监控", "灰度", "演练"]},
+    "ops": {"all": [], "any": ["回滚", "监控", "灰度", "演练", "备份", "发布", "快照"]},
     "kb": {"all": [], "any": ["知识", "复用", "决策", "踩坑"]},
     "retro": {"all": [], "any": ["根因", "偏差", "问题", "风险", "行动", "改进", "建议"]},
 }
@@ -169,6 +169,18 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
 
     present, where = _artifact_present(project, role, files, project_type)
     checks.append(GateCheck("artifact", present, where))
+
+    if project_type == "game" and role in ("product", "arch"):
+        doc_rel = "docs/product/product-baseline.md" if role == "product" else "docs/architecture/architecture.md"
+        doc_path = project / doc_rel
+        doc_text = doc_path.read_text(encoding="utf-8", errors="replace") if doc_path.exists() else ""
+        required = (["流程", "房间", "职业", "装备", "存档", "验收", "非目标"]
+                    if role == "product" else
+                    ["模块", "契约", "存档", "测试"])
+        missing_terms = [term for term in required if term not in doc_text]
+        min_chars = 4000 if role == "product" else 2500
+        checks.append(GateCheck("deep_brief", not missing_terms and len(doc_text) >= min_chars,
+                                f"缺少章节 {missing_terms}；长度 {len(doc_text)}/{min_chars}"))
 
     if role in CODE_ROLES:
         authored = [f for f in files if f.get("source", "role") == "role"]

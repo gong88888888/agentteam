@@ -1,69 +1,355 @@
-// HUD：血蓝、技能CD、金币、小地图、队友血条
-import { TOKENS } from './ui-tokens.js';
-import { el, clamp, safeNum } from './ui-dom.js';
+/**
+ * game/js/ui/hud.js
+ * 第一章 MVP · HUD 渲染模块（原生 ESM，无框架依赖）
+ *
+ * 职责（严格只读）：
+ *  - 从 ui_state 提供的只读快照渲染：血蓝、技能CD、金币、小地图、队友血条、Boss条。
+ *  - 不修改 gameplay 状态、不写存档、不派发 gameplay 意图（意图由 ui_state 统一派发）。
+ *  - 所有字段读取带防御性默认值，gameplay 字段缺失时不崩溃。
+ *
+ * 集成约定：
+ *  - 由 core.js 的渲染循环调用 Hud.render(ctx, snapshot, layout)。
+ *  - snapshot 结构见 ui_state.js 的 normalizeSnapshot()。
+ *  - 不直接访问 DOM 之外的全局状态；不引入引擎代码。
+ */
 
-export function createHud(root, bus) {
-  const wrap = el('div', { class: 'ui-hud', attrs: { role: 'status', 'aria-live': 'polite' } });
-  const hpBar = el('div', { class: 'bar bar-hp' }, [el('div', { class: 'bar-fill' })]);
-  const mpBar = el('div', { class: 'bar bar-mp' }, [el('div', { class: 'bar-fill' })]);
-  const gold = el('div', { class: 'hud-gold', text: '0' });
-  const skills = el('div', { class: 'hud-skills' });
-  const party = el('div', { class: 'hud-party' });
-  const minimap = el('canvas', { class: 'hud-minimap', attrs: { width: 128, height: 96, 'aria-label': '小地图' } });
-  wrap.append(hpBar, mpBar, gold, skills, party, minimap);
-  root.appendChild(wrap);
+const QUALITY_COLORS = Object.freeze({
+  white: '#e8e8e8',
+  green: '#4caf50',
+  blue: '#3d8bfd',
+  purple: '#a855f7',
+  orange: '#f59e0b',
+});
 
-  const ctx = minimap.getContext('2d');
-  let last = {};
+const DEFAULT_LAYOUT = Object.freeze({
+  width: 1280,
+  height: 720,
+  padding: 16,
+  barWidth: 220,
+  barHeight: 18,
+  minimapSize: 140,
+  teammateBarWidth: 160,
+  teammateBarHeight: 12,
+  bossBarWidth: 520,
+  bossBarHeight: 16,
+});
 
-  function renderSkills(list) {
-    skills.textContent = '';
-    for (const s of Array.isArray(list) ? list : []) {
-      const cd = clamp(safeNum(s.cd, 0), 0, 1);
-      const cell = el('div', { class: 'skill', text: s.name || '?' });
-      cell.style.setProperty('--cd', String(cd));
-      skills.appendChild(cell);
-    }
-  }
+const SKILL_SLOT_SIZE = 44;
+const SKILL_SLOT_GAP = 8;
 
-  function renderParty(list) {
-    party.textContent = '';
-    for (const p of Array.isArray(list) ? list : []) {
-      const row = el('div', { class: 'party-row' }, [
-        el('span', { class: 'party-name', text: p.name || 'P' }),
-        el('div', { class: 'bar bar-hp small' }, [el('div', { class: 'bar-fill' })])
-      ]);
-      const fill = row.querySelector('.bar-fill');
-      fill.style.width = `${clamp(safeNum(p.hpRatio, 1), 0, 1) * 100}%`;
-      party.appendChild(row);
-    }
-  }
-
-  function renderMinimap(rooms) {
-    ctx.clearRect(0, 0, minimap.width, minimap.height);
-    ctx.fillStyle = TOKENS.color.bg;
-    ctx.fillRect(0, 0, minimap.width, minimap.height);
-    for (const r of Array.isArray(rooms) ? rooms : []) {
-      if (!r.explored) continue;
-      ctx.fillStyle = r.type === 'boss' ? TOKENS.color.danger : r.type === 'campfire' ? TOKENS.color.gold : TOKENS.color.panelAlt;
-      ctx.fillRect(safeNum(r.x, 0), safeNum(r.y, 0), 10, 8);
-    }
-  }
-
-  function update(snap) {
-    last = snap || {};
-    const hp = clamp(safeNum(last.hpRatio, 1), 0, 1);
-    const mp = clamp(safeNum(last.mpRatio, 1), 0, 1);
-    hpBar.firstChild.style.width = `${hp * 100}%`;
-    mpBar.firstChild.style.width = `${mp * 100}%`;
-    gold.textContent = String(safeNum(last.gold, 0));
-    renderSkills(last.skills);
-    renderParty(last.party);
-    renderMinimap(last.rooms);
-  }
-
-  const off = bus.on('state:update', update);
-  update(bus.getSnapshot());
-
-  return { update, destroy() { off && off(); wrap.remove(); } };
+function num(v, fallback = 0) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
+
+function clamp01(v) {
+  const n = num(v, 0);
+  if (n < 0) return 0;
+  if (n > 1) return 1;
+  return n;
+}
+
+function safeArray(v) {
+  return Array.isArray(v) ? v : [];
+}
+
+function resolveLayout(layout) {
+  const base = DEFAULT_LAYOUT;
+  const l = layout && typeof layout === 'object' ? layout : {};
+  return {
+    width: num(l.width, base.width),
+    height: num(l.height, base.height),
+    padding: num(l.padding, base.padding),
+    barWidth: num(l.barWidth, base.barWidth),
+    barHeight: num(l.barHeight, base.barHeight),
+    minimapSize: num(l.minimapSize, base.minimapSize),
+    teammateBarWidth: num(l.teammateBarWidth, base.teammateBarWidth),
+    teammateBarHeight: num(l.teammateBarHeight, base.teammateBarHeight),
+    bossBarWidth: num(l.bossBarWidth, base.bossBarWidth),
+    bossBarHeight: num(l.bossBarHeight, base.bossBarHeight),
+  };
+}
+
+function drawBar(ctx, x, y, w, h, ratio, fillColor, bgColor, borderColor) {
+  ctx.save();
+  ctx.fillStyle = bgColor || 'rgba(0,0,0,0.55)';
+  ctx.fillRect(x, y, w, h);
+  const r = clamp01(ratio);
+  if (r > 0) {
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(x, y, w * r, h);
+  }
+  if (borderColor) {
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  }
+  ctx.restore();
+}
+
+function drawText(ctx, text, x, y, opts) {
+  const o = opts || {};
+  ctx.save();
+  ctx.font = o.font || '12px system-ui, sans-serif';
+  ctx.fillStyle = o.color || '#ffffff';
+  ctx.textAlign = o.align || 'left';
+  ctx.textBaseline = o.baseline || 'top';
+  if (o.shadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
+  }
+  ctx.fillText(String(text == null ? '' : text), x, y);
+  ctx.restore();
+}
+
+function renderPlayerVitals(ctx, player, layout) {
+  const p = player || {};
+  const { padding, barWidth, barHeight } = layout;
+  const x = padding;
+  let y = padding;
+
+  const hp = num(p.hp, 0);
+  const maxHp = Math.max(1, num(p.maxHp, 1));
+  drawBar(ctx, x, y, barWidth, barHeight, hp / maxHp, '#e5484d', 'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.25)');
+  drawText(ctx, `HP ${Math.max(0, Math.round(hp))}/${Math.round(maxHp)}`, x + 6, y + 2, {
+    font: '11px system-ui, sans-serif',
+    shadow: true,
+  });
+  y += barHeight + 4;
+
+  const mp = num(p.mp, 0);
+  const maxMp = Math.max(1, num(p.maxMp, 1));
+  drawBar(ctx, x, y, barWidth, barHeight, mp / maxMp, '#3d8bfd', 'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.25)');
+  drawText(ctx, `MP ${Math.max(0, Math.round(mp))}/${Math.round(maxMp)}`, x + 6, y + 2, {
+    font: '11px system-ui, sans-serif',
+    shadow: true,
+  });
+  y += barHeight + 6;
+
+  const level = num(p.level, 1);
+  const name = typeof p.name === 'string' && p.name ? p.name : '冒险家';
+  drawText(ctx, `Lv.${level} ${name}`, x, y, { font: '12px system-ui, sans-serif', shadow: true });
+  y += 18;
+
+  const gold = num(p.gold, 0);
+  drawText(ctx, `金币 ${gold}`, x, y, { font: '12px system-ui, sans-serif', color: '#f5d76e', shadow: true });
+}
+
+function renderSkills(ctx, player, layout) {
+  const p = player || {};
+  const skills = safeArray(p.skills);
+  const { width, padding } = layout;
+  const total = skills.length;
+  if (total === 0) return;
+
+  const totalWidth = total * SKILL_SLOT_SIZE + (total - 1) * SKILL_SLOT_GAP;
+  let x = width / 2 - totalWidth / 2;
+  const y = layout.height - padding - SKILL_SLOT_SIZE;
+
+  for (let i = 0; i < total; i += 1) {
+    const s = skills[i] || {};
+    const cd = Math.max(0, num(s.cooldownRemaining, 0));
+    const cdMax = Math.max(0, num(s.cooldown, 0));
+    const ready = cd <= 0;
+
+    ctx.save();
+    ctx.fillStyle = ready ? 'rgba(30,30,40,0.85)' : 'rgba(20,20,26,0.9)';
+    ctx.fillRect(x, y, SKILL_SLOT_SIZE, SKILL_SLOT_SIZE);
+    ctx.strokeStyle = ready ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, SKILL_SLOT_SIZE - 1, SKILL_SLOT_SIZE - 1);
+
+    if (!ready && cdMax > 0) {
+      const ratio = clamp01(cd / cdMax);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(x, y, SKILL_SLOT_SIZE, SKILL_SLOT_SIZE * ratio);
+      drawText(ctx, cd.toFixed(1), x + SKILL_SLOT_SIZE / 2, y + SKILL_SLOT_SIZE / 2, {
+        font: '12px system-ui, sans-serif',
+        align: 'center',
+        baseline: 'middle',
+        shadow: true,
+      });
+    }
+
+    const key = typeof s.key === 'string' ? s.key : String(i + 1);
+    drawText(ctx, key, x + 3, y + 2, { font: '10px system-ui, sans-serif', color: '#cfcfcf' });
+    ctx.restore();
+
+    x += SKILL_SLOT_SIZE + SKILL_SLOT_GAP;
+  }
+}
+
+function renderMinimap(ctx, snapshot, layout) {
+  const rooms = safeArray(snapshot && snapshot.minimap && snapshot.minimap.rooms);
+  const { width, padding, minimapSize } = layout;
+  const x = width - padding - minimapSize;
+  const y = padding;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(x, y, minimapSize, minimapSize);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, minimapSize - 1, minimapSize - 1);
+
+  if (rooms.length === 0) {
+    drawText(ctx, '未探索', x + minimapSize / 2, y + minimapSize / 2, {
+      font: '11px system-ui, sans-serif',
+      align: 'center',
+      baseline: 'middle',
+      color: 'rgba(255,255,255,0.5)',
+    });
+    ctx.restore();
+    return;
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const r of rooms) {
+    const rx = num(r && r.x, 0);
+    const ry = num(r && r.y, 0);
+    if (rx < minX) minX = rx;
+    if (ry < minY) minY = ry;
+    if (rx > maxX) maxX = rx;
+    if (ry > maxY) maxY = ry;
+  }
+  const spanX = Math.max(1, maxX - minX);
+  const spanY = Math.max(1, maxY - minY);
+  const inner = minimapSize - 16;
+  const cell = Math.max(4, Math.min(inner / (spanX + 1), inner / (spanY + 1)));
+
+  for (const r of rooms) {
+    const room = r || {};
+    const rx = num(room.x, 0);
+    const ry = num(room.y, 0);
+    const px = x + 8 + ((rx - minX) / spanX) * (inner - cell);
+    const py = y + 8 + ((ry - minY) / spanY) * (inner - cell);
+
+    let color = 'rgba(120,120,130,0.6)';
+    if (room.type === 'boss') color = '#e5484d';
+    else if (room.type === 'campfire') color = '#f59e0b';
+    else if (room.type === 'shop') color = '#3d8bfd';
+    else if (room.type === 'elite') color = '#a855f7';
+    else if (room.explored) color = 'rgba(200,200,210,0.85)';
+
+    ctx.fillStyle = color;
+    ctx.fillRect(px, py, cell, cell);
+
+    if (room.current) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px - 1, py - 1, cell + 2, cell + 2);
+    }
+  }
+  ctx.restore();
+}
+
+function renderTeammates(ctx, snapshot, layout) {
+  const teammates = safeArray(snapshot && snapshot.teammates);
+  if (teammates.length === 0) return;
+
+  const { padding, teammateBarWidth, teammateBarHeight } = layout;
+  let y = padding + 96;
+  const x = padding;
+
+  for (const t of teammates) {
+    const tm = t || {};
+    const hp = num(tm.hp, 0);
+    const maxHp = Math.max(1, num(tm.maxHp, 1));
+    const name = typeof tm.name === 'string' && tm.name ? tm.name : '队友';
+    const down = tm.down === true;
+
+    drawBar(
+      ctx,
+      x,
+      y,
+      teammateBarWidth,
+      teammateBarHeight,
+      hp / maxHp,
+      down ? '#7a7a7a' : '#4caf50',
+      'rgba(0,0,0,0.55)',
+      'rgba(255,255,255,0.2)'
+    );
+    drawText(ctx, down ? `${name} 倒地` : name, x + 4, y - 1, {
+      font: '10px system-ui, sans-serif',
+      shadow: true,
+    });
+    y += teammateBarHeight + 6;
+  }
+}
+
+function renderBossBar(ctx, snapshot, layout) {
+  const boss = snapshot && snapshot.boss;
+  if (!boss || boss.active !== true) return;
+
+  const { width, height, padding, bossBarWidth, bossBarHeight } = layout;
+  const hp = num(boss.hp, 0);
+  const maxHp = Math.max(1, num(boss.maxHp, 1));
+  const x = width / 2 - bossBarWidth / 2;
+  const y = height - padding - bossBarHeight - 40;
+
+  const name = typeof boss.name === 'string' && boss.name ? boss.name : 'Boss';
+  const phase = num(boss.phase, 1);
+
+  drawText(ctx, `${name}  P${phase}`, width / 2, y - 16, {
+    font: '13px system-ui, sans-serif',
+    align: 'center',
+    shadow: true,
+  });
+  drawBar(ctx, x, y, bossBarWidth, bossBarHeight, hp / maxHp, '#e5484d', 'rgba(0,0,0,0.6)', 'rgba(255,255,255,0.3)');
+}
+
+function renderLootPillars(ctx, snapshot, layout) {
+  const pillars = safeArray(snapshot && snapshot.lootPillars);
+  if (pillars.length === 0) return;
+
+  const { width, height } = layout;
+  for (const p of pillars) {
+    const item = p || {};
+    const sx = num(item.screenX, NaN);
+    const sy = num(item.screenY, NaN);
+    if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue;
+    if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+
+    const quality = typeof item.quality === 'string' ? item.quality : 'white';
+    const color = QUALITY_COLORS[quality] || QUALITY_COLORS.white;
+
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 2, sy - 28, 4, 28);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+export const Hud = {
+  /**
+   * 渲染整屏 HUD。
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {object} snapshot 只读状态快照（见 ui_state.normalizeSnapshot）
+   * @param {object} [layout] 布局覆盖（分辨率/安全边距）
+   */
+  render(ctx, snapshot, layout) {
+    if (!ctx || typeof ctx.fillRect !== 'function') return;
+    const l = resolveLayout(layout);
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+
+    ctx.save();
+    renderLootPillars(ctx, snap, l);
+    renderPlayerVitals(ctx, snap.player, l);
+    renderTeammates(ctx, snap, l);
+    renderMinimap(ctx, snap, l);
+    renderSkills(ctx, snap.player, l);
+    renderBossBar(ctx, snap, l);
+    ctx.restore();
+  },
+
+  QUALITY_COLORS,
+  DEFAULT_LAYOUT,
+};
+
+export default Hud;

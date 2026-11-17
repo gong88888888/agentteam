@@ -185,11 +185,11 @@ python dashboard/serve.py --port 8765
 - `game/js/core.js` / `game/js/main.js`：可运行基座。
 - `node --test game/tests/game_logic.test.mjs`：纯逻辑。
 - `node game/tests/smoke.mjs`：冒烟。
-- `game/tests/qa_*.test.mjs`：QA 验收。
+- `game/tests/qa_*.mjs`：QA 验收（群怪/掉落/存档/双人契约）。
 - Chrome 无头渲染截图：证明入口实际渲染。
 - `acceptance.json` 记录全部检查和签名证据；任一失败，项目状态强制 `failed`，不能靠角色摘要“完成”。
 
-test1 游戏产品已按此重跑：12 角色门禁通过，`acceptance.json` 6/6（entry/modules/logic/smoke/qa/render），引擎 `html5-canvas`，可点监控页“打开游戏”直接玩。
+test1 游戏产品已按此重跑：产品/架构角色产出深度文档并通过 `deep_brief` 门禁，12 角色门禁通过；`acceptance.json` 6/6（entry/modules/logic/smoke/qa/render），QA 27/27；第一章 5 层 × 8–12 房间 + Boss、3 职业双技能、等级/任务、装备/词条/强化、商店/篝火/事件、3 槽存档和本地双人可玩。
 
 ```bash
 python start_project.py --requirements projects/test1/requirements/input.md --project-dir projects/test1-game --real --template web-2d-game --project-type game
