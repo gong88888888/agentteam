@@ -8,16 +8,51 @@
     "hash": "75651a34fb0a2781",
     "path": "prompts\\roles\\qa.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 5022,
-  "tokens": 5930,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 23174,
+  "tokens": 12183,
+  "cost_usd": 0.012230500000000002,
   "files": [
     {
+      "path": "docs/qa/test-plan.md",
+      "sha256": "b5c6fd724187fc7cf94efe65bc78147a73b1893ea6a78c24a6610b5d7d93eab6",
+      "bytes": 4983,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/tests/qa_combat_scaling.test.mjs",
+      "sha256": "7ae0c412ebf8fff793a608bbf3f34fa049bde7efab79028da477216226cbf862",
+      "bytes": 2229,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/tests/qa_loot_bucket.test.mjs",
+      "sha256": "94a84b5aec0d6335b7ada64faab5685b0fca0f9ad2b0d49786a184c832ab88d8",
+      "bytes": 2494,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/tests/qa_room_invariants.test.mjs",
+      "sha256": "1561c1f614d736cf1b1a159b40faac8228c33c7e97a7922b6db5828225ae7042",
+      "bytes": 2854,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/tests/qa_save_envelope.test.mjs",
+      "sha256": "6ba9a104c4f405f9e5341ee5b95f3b9e2e7ba535f5a6f82a23acdd57da8da0d5",
+      "bytes": 2286,
+      "source": "role",
+      "promoted": true
+    },
+    {
       "path": "tests/test-plan.md",
-      "sha256": "582ebe3ff134a5f4b42da94ceec7a6c5429c29ed46332017110521740747f7ab",
-      "bytes": 1504,
+      "sha256": "cfa40176a94f22f667ac19f0bf252c29be1800a5f710282b57f21d261b181dbf",
+      "bytes": 2154,
       "source": "runner-summary",
       "promoted": true
     }
@@ -57,7 +92,7 @@
       {
         "name": "artifact",
         "ok": true,
-        "detail": "tests/test-plan.md"
+        "detail": "game/tests/"
       }
     ],
     "evidence_ids": [],
@@ -67,25 +102,25 @@
   },
   "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-202614",
-  "started_at": 1794832262.7971656,
-  "started_clock": "20:31:02",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835532.4985614,
+  "started_clock": "21:25:32",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 20:31:19",
+  "finished_at": "2026-11-16 21:25:59",
   "quality": {
-    "score": 95,
+    "score": 97,
     "grade": "A",
     "components": {
-      "completeness": 25,
+      "completeness": 30,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 10,
-      "clarity": 10
+      "efficiency": 9,
+      "clarity": 8
     },
     "issues": [
-      "没有模型-authored 交付物",
-      "存在 runner-summary 补写的文档"
+      "存在 runner-summary 补写的文档",
+      "4 个未决问题"
     ]
   }
 }

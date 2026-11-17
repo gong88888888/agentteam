@@ -84,9 +84,27 @@ python start_project.py \
 | `--sandbox` | 关 | 代码角色在临时副本/worktree 写入，门禁通过才提升 |
 | `--stop-on-gate` | 关 | 任一门禁未通过即停止后续角色 |
 | `--no-gates` / `--no-quality` | 开 | 关闭门禁或质量分（不推荐） |
+| `--project-type` | auto | `game` / `web`；auto 根据需求关键词判断 |
 | `--merge` | 关 | 保留未运行角色的记录，用于单角色重跑 |
 | `--decision-db` | `data/decisions.db` | 门禁升级写入的决策库 |
 | `--stop-on-error` / `--force` | 关 | 角色失败即停 / 允许写非空目录 |
+
+### 游戏项目（game profile）
+
+游戏需求自动使用 `web-2d-game` 模板，并在角色结束后执行**项目级验收**，不依赖角色自述：
+
+- 入口 `game/index.html` + Canvas/ES Module。
+- 逻辑 `node --test game/tests/game_logic.test.mjs`。
+- 冒烟 `node game/tests/smoke.mjs`。
+- QA `game/tests/qa_*.test.mjs`。
+- Chrome 无头渲染截图。
+- 结果写入 `acceptance.json` 和签名证据账本；任一失败项目强制 `failed`。
+
+模板提供 4 房间、3 职业、本地双人、Boss、掉落、HUD、存档的 HTML5 Canvas 垂直切片；正式版再迁移 Unity/Godot 并补美术/音频/5 层章节/局域网。
+
+```bash
+python start_project.py --requirements projects/test1/requirements/input.md   --project-dir projects/test1-game --real --template web-2d-game --project-type game
+```
 
 ## 3. 查看角色工作记录
 

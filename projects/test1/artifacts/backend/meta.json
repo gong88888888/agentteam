@@ -8,21 +8,42 @@
     "hash": "c57160acc7ae1330",
     "path": "prompts\\roles\\backend.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 16082,
-  "tokens": 8197,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 15147,
+  "tokens": 8772,
+  "cost_usd": 0.008112000000000001,
   "files": [
     {
-      "path": "src/backend/services/dungeon_generator.py",
-      "sha256": "d22462f961c85ea75d9c045ffff75feb108ea74de4f3a8f69975bba1e1067b0c",
-      "bytes": 8569,
+      "path": "game/js/gameplay/combat.js",
+      "sha256": "9a7d377e94d969e12b9fb115f88cc5bc1c98d7ea932ffe34bc32b230604c823a",
+      "bytes": 2173,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/loot.js",
+      "sha256": "b70331dce5198ba2133880899f162bbcb5c04d0017b86415b224d1b4ee69a931",
+      "bytes": 1667,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/roomgen.js",
+      "sha256": "71b6f67375424916747ec74a403c02792846c9c2e2a3c7f901c55fae3deba47a",
+      "bytes": 2404,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "game/js/gameplay/save.js",
+      "sha256": "09af372f8e0c0238c5f6bcf3e54a506e41307ac33031a62cfc716420de1cbf31",
+      "bytes": 1694,
       "source": "role",
       "promoted": true
     }
   ],
-  "code_pass": true,
+  "code_pass": false,
   "adjustment": "",
   "gate": {
     "gate_id": "G-TEST1-backend",
@@ -47,7 +68,7 @@
       {
         "name": "artifact",
         "ok": true,
-        "detail": "src/backend/"
+        "detail": "game/js/gameplay/"
       },
       {
         "name": "files_written",
@@ -55,70 +76,31 @@
         "detail": "代码角色没有写出文件"
       },
       {
-        "name": "evidence:compile",
+        "name": "game_artifact",
         "ok": true,
-        "detail": "pass"
-      },
-      {
-        "name": "evidence:unit",
-        "ok": true,
-        "detail": "pass"
-      },
-      {
-        "name": "evidence_subject",
-        "ok": true,
-        "detail": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573"
+        "detail": "游戏角色必须在 game/ 下写出增量模块"
       }
     ],
-    "evidence_ids": [
-      "EV-000010",
-      "EV-000011"
-    ],
+    "evidence_ids": [],
     "missing": [],
     "decision_id": null,
-    "subject_hash": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573"
+    "subject_hash": ""
   },
-  "tools": {
-    "profile": "basic",
-    "subject_hash": "dda8eabbc41c323a402e7529c706acef59a2c9c9169873c988b02cc68df19573",
-    "ledger": "D:\\agentteam\\projects\\test1\\evidence\\tool-ledger.jsonl",
-    "passed": [
-      "compile",
-      "unit"
-    ],
-    "failed": [],
-    "missing": [],
-    "evidence": [
-      {
-        "evidence_id": "EV-000010",
-        "kind": "compile",
-        "result": "pass",
-        "tool": "python",
-        "tool_version": "3.13.15"
-      },
-      {
-        "evidence_id": "EV-000011",
-        "kind": "unit",
-        "result": "pass",
-        "tool": "unittest",
-        "tool_version": "3.13.15"
-      }
-    ]
-  },
+  "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-203245",
-  "started_at": 1794832414.4565408,
-  "started_clock": "20:33:34",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835468.1066008,
+  "started_clock": "21:24:28",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 20:34:15",
+  "finished_at": "2026-11-16 21:24:47",
   "quality": {
-    "score": 99,
-    "grade": "A",
+    "score": 79,
+    "grade": "B",
     "components": {
       "completeness": 30,
       "gate": 30,
-      "evidence": 20,
+      "evidence": 0,
       "efficiency": 9,
       "clarity": 10
     },

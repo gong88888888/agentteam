@@ -1,47 +1,46 @@
 {
-  "task_id": "T-OPS-01",
+  "task_id": "T-OPS-1",
   "role": "ops",
   "status": "done",
-  "artifacts": [
-    {
-      "path": "docs/ops/release-plan.md",
-      "sha256": "e99a18c428cb38d5f260853678922e03"
-    }
-  ],
+  "artifacts": [],
   "claims": [
     {
-      "claim": "已根据需求文档生成《迷宫冒险家》MVP阶段发布计划，明确单人离线为基准，本地同屏为增强。",
+      "claim": "交付发布计划、本地启动/构建脚本、存档备份与回滚方案，覆盖单人离线+本地同屏MVP，局域网P1降级说明。",
       "counts_as_evidence": false
     },
     {
-      "claim": "针对评审指出的技术栈冲突（React vs Unity/Godot），在发布流程中增加了引擎集成验证门禁。",
-      "counts_as_evidence": false
-    },
-    {
-      "claim": "针对存档风险，定义了WAL预写日志与双备份校验的发布前检查项。",
-      "counts_as_evidence": false
-    },
-    {
-      "claim": "MVP阶段排除远程联机，仅包含本地同屏2人，降低网络同步复杂度与发布风险。",
+      "claim": "生产发布前置硬检查：node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，且基座文件未被修改；未实际运行，故不声明通过。",
       "counts_as_evidence": false
     }
   ],
-  "evidence_refs": [
-    "docs/plan/project-plan.md",
-    "docs/product/product-baseline.md",
-    "docs/design/ui-spec.md",
-    "tests/test-plan.md"
-  ],
+  "evidence_refs": [],
   "open_questions": [
-    "引擎选型最终确认：Unity还是Godot？这将决定构建工具链（Build Pipeline）的具体配置。",
-    "React前端组件在MVP中的具体用途：是用于编辑器工具、UI预览还是其他非运行时模块？需明确集成点以避免重构。",
-    "本地同屏的输入映射表是否已定稿？需确保键盘/手柄混用在发布前完成兼容性测试。"
+    "基座 game/js/core.js 与 main.js 的模块加载/事件总线 API 细节未实证，脚本中的静态检查仅做文件存在与哈希比对，无法验证运行时集成。",
+    "浏览器存档介质（localStorage/IndexedDB）与 SaveEnvelope 双备份+CRC 的落地方式未验证，备份脚本按 localStorage 键名占位，需集成后确认键名。",
+    "局域网 UDP 在 Canvas 栈不可行，P1 联机发布流程未定义，需架构给出降级方案后再补发布步骤。",
+    "CI/构建环境未提供，scripts/ 下脚本为本地可执行方案，未在真实环境运行，不声明通过。"
   ],
-  "summary": "ops角色已完成《迷宫冒险家》MVP阶段（12周）的发布与运维规划。核心决策包括：1. 确立以单人离线完整通关为基准的发布标准，所有多人功能作为非侵入式增强；2. 针对评审发现的技术栈冲突（React代码与Unity/Godot引擎），在构建流程中增加集成验证门禁，防止后期重构成本；3. 针对存档风险，定义WAL预写日志与双备份校验为发布前必检项；4. MVP范围锁定第一章5层、3职业、本地双人同步，排除远程联机以降低网络同步复杂度。输出文件为docs/ops/release-plan.md，包含构建、灰度（EA阶段）、监控与回滚策略。",
+  "summary": "作为 ops，基于已批准的产品基准、架构契约与 QA 计划，产出 docs/ops/release-plan.md（发布/回滚/监控/演练方案）、scripts/ops/start-local.sh（本地启动静态服务并打开 game/index.html）、scripts/ops/build.sh（构建产物打包+基座文件哈希基线校验+基线测试门禁）、scripts/ops/backup-save.sh（存档导出/双备份/CRC 校验占位）、scripts/ops/rollback.sh（按发布清单回滚到上一版本并保留现场）。关键决策：(1) 发布门禁硬检查为 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 通过且基座文件哈希未变，任一失败即 BLOCKED；(2) 生产发布必须持有裁判凭证，脚本不绕过；(3) 存档备份采用导出+双份+CRC 校验，异常退出回最近篝火快照；(4) 回滚以版本清单为准，回滚后保留现场日志。所有脚本仅写 scripts/ 与 artifacts/ops/，不触碰 game/ 基座与业务代码。未实际运行脚本与基线测试，故不声明通过；信息缺口已写入 open_questions，未编造证据。",
   "files": [
     {
       "path": "docs/ops/release-plan.md",
-      "content": "# 《迷宫冒险家》MVP 发布计划\n\n## 1. 概述\n本项目为2D横版房间制迷宫动作冒险游戏，定位为PC Windows平台，离线优先。MVP阶段聚焦于单人完整体验与本地同屏多人增强。\n\n## 2. MVP 范围 (12周)\n- **内容**：第一章“蘑菇林迷宫”（5层），3个职业（剑士、法师、游侠），20种怪物，1个Boss，50件装备。\n- **功能**：单机完整通关、本地同屏2人、存档系统、背包/强化/商店、篝火机制。\n- **排除**：远程联机、无尽模式、图鉴/成就系统（EA阶段补充）。\n\n## 3. 构建与发布流程\n\n### 3.1 构建环境\n- **引擎选型待定**：需确认 Unity 或 Godot，以决定 CI/CD 工具链。\n- **依赖管理**：ScriptableObject (Unity) 或 ResourceLoader (Godot) 配置化。\n- **静态检查**：代码规范、资源命名规范、内存泄漏扫描。\n\n### 3.2 门禁要求 (Gate Check)\n1. **技术栈一致性**：验证 React 前端组件与游戏引擎的集成路径，确保无重大重构风险。\n2. **存档完整性**：验证 WAL 预写日志与双备份机制，确保异常退出后数据可恢复。\n3. **本地多人兼容性**：验证键盘/手柄混用输入映射，确保同屏镜头缩放逻辑正常。\n4. **性能基准**：GTX750/集显下稳定 60 FPS，房间加载 < 2s。\n\n### 3.3 发布策略\n- **Alpha (内部)**：功能完整，无平衡性要求。重点验证存档与本地多人同步。\n- **Beta (封闭测试)**：内容完整，开始数值调优。邀请核心玩家测试掉落体验与难度曲线。\n- **EA (抢先体验)**：3章+局域网联机+无尽模式。面向公众开放，收集反馈。\n\n## 4. 监控与回滚\n\n### 4.1 监控指标\n- **崩溃率**：< 0.5%。\n- **读档成功率**：> 99.5%。\n- **单人通关率**：> 35%。\n- **本地多人使用率**：> 25%。\n\n### 4.2 回滚方案\n- **自动回滚**：若构建失败或门禁未通过，自动触发回滚至上一稳定版本。\n- **手动回滚**：EA阶段若出现严重Bug（如存档损坏、无法联机），立即暂停更新，发布热修复补丁或回退至前一版本。\n- **数据兼容**：存档系统需支持版本迁移，确保新版本能读取旧版存档。\n\n## 5. 风险与对策\n- **技术栈冲突**：早期介入引擎选型，明确 React 组件用途（如编辑器工具），避免运行时集成难题。\n- **内容量不足**：通过房间模板组合、词条随机化、无尽模式延长生命周期。\n- **存档风险**：实施 WAL + CRC 校验，确保数据原子性与完整性。\n\n## 6. 验收标准\n- 新手10分钟内获得第一件蓝装。\n- 30分钟内击败首个精英/Boss。\n- 单局时长15-30分钟。\n- 全流程15-25小时。\n"
+      "content": "# 迷宫冒险家 · 发布与回滚方案（ops）\n\n> 角色：ops。范围：本地启动、构建、存档备份、回滚、监控与演练。\n> 约束：交付物为可运行游戏，入口 `game/index.html`；技术栈 HTML5 Canvas + 原生 ES Modules；不覆盖基座文件。\n> 本文件为方案与流程定义，未在真实环境运行脚本，不声明门禁通过。\n\n## 1. 发布对象与形态\n\n- 交付形态：静态站点目录（`game/`），入口 `game/index.html`，无后端、无强制联网。\n- 运行方式：本地静态服务器（`python3 -m http.server` 或 `npx serve`）打开 `game/index.html`；ES Modules 需 HTTP 协议，禁止 `file://` 直接打开。\n- 发布单元：`game/` 全量目录 + `docs/` 文档 + `scripts/` 运维脚本。\n\n## 2. 环境与前置\n\n| 项 | 要求 |\n|---|---|\n| Node | >= 18（运行基线测试） |\n| 浏览器 | Chrome/Edge 最新版，支持 ES Modules |\n| 静态服务 | 本地 8080 端口 |\n| 裁判凭证 | 生产发布必须持有有效裁判凭证（judge 签发），缺失即 BLOCKED |\n\n## 3. 发布门禁（硬检查，任一失败即 BLOCKED）\n\n1. `node --test game/tests/game_logic.test.mjs` 通过。\n2. `node game/tests/smoke.mjs` 通过。\n3. 基座文件哈希与基线一致（`game/js/core.js`、`game/js/main.js`、`game/index.html`、`game/tests/game_logic.test.mjs`、`game/tests/smoke.mjs` 未被修改）。\n4. 增量模块仅位于 `game/js/gameplay/`、`game/js/ui/`、`game/css/`、`game/tests/qa_*.mjs`。\n5. 裁判凭证有效。\n\n> 门禁由 `scripts/ops/build.sh` 执行 1-3 项；4-5 项由人工/裁判确认。脚本不绕过裁判凭证。\n\n## 4. 本地启动流程\n\n1. 执行 `scripts/ops/start-local.sh`（启动静态服务并打印入口 URL）。\n2. 浏览器打开 `http://localhost:8080/game/index.html`。\n3. 冒烟检查：主界面可加载、新游戏可进入、房间可切换、存档可写入。\n\n## 5. 构建流程\n\n1. 执行 `scripts/ops/build.sh`：\n   - 校验基座文件哈希基线（`artifacts/ops/baseline.sha256`，首次运行生成）。\n   - 运行基线测试（game_logic + smoke）。\n   - 打包 `game/` 到 `artifacts/ops/build-<timestamp>/`，生成 `manifest.json`（文件列表+sha256）。\n2. 构建失败：保留日志到 `artifacts/ops/logs/`，置 BLOCKED，不发布。\n\n## 6. 存档备份方案\n\n- 存档介质：浏览器 localStorage/IndexedDB（键名待集成确认，见 open_questions）。\n- 备份策略：\n  1. 导出当前存档 JSON（SaveEnvelope：版本号+CRC32+双备份）。\n  2. 双份保存：`artifacts/ops/saves/<slot>-<timestamp>.json` 与 `.bak`。\n  3. CRC 校验：导出后重算 CRC32 与存档内记录比对，不一致即告警。\n- 异常退出：回最近篝火快照（由 gameplay 存档模块保证，ops 只做导出与校验）。\n- 脚本：`scripts/ops/backup-save.sh`（占位实现，键名与导出方式待集成确认）。\n\n## 7. 回滚方案\n\n- 触发条件：发布后出现崩溃、读档失败、基线测试回归、监控越界。\n- 回滚步骤：\n  1. 执行 `scripts/ops/rollback.sh <target-version>`。\n  2. 从 `artifacts/ops/build-<target>/` 恢复 `game/` 目录（按 manifest 校验 sha256）。\n  3. 恢复后重跑基线测试，失败则保留现场并升级。\n  4. 保留回滚现场日志到 `artifacts/ops/logs/rollback-<timestamp>.log`。\n- 回滚不可用：置 BLOCKED，保留现场，升级。\n\n## 8. 监控与演练\n\n- 监控指标（本地/离线，人工观察）：启动成功率、读档成功率（目标 >99.5%）、崩溃率（目标 <0.5%）、房间加载 <2s、60 帧。\n- 回滚演练：每次发布前在 `artifacts/ops/` 演练一次回滚（`scripts/ops/rollback.sh --dry-run`），记录耗时与结果。\n- 演练失败：不发布，升级。\n\n## 9. 失败处理\n\n- 发布异常：先回滚，同类失败不重复重试。\n- 升级条件：发布异常、回滚不可用、监控越界、凭证缺失。\n- 耗尽：置 BLOCKED，保留现场。\n\n## 10. 非目标\n\n- 不引入后端服务、React、Unity/Godot。\n- 不修改基座文件与业务代码。\n- 不写密钥与凭据。\n"
+    },
+    {
+      "path": "scripts/ops/start-local.sh",
+      "content": "#!/usr/bin/env bash\n# 本地启动：静态服务 + 入口提示。不修改任何 game/ 文件。\nset -euo pipefail\n\nROOT=\"$(cd \"$(dirname \"$0\")/../..\" && pwd)\"\nPORT=\"${PORT:-8080}\"\n\nif [ ! -f \"$ROOT/game/index.html\" ]; then\n  echo \"[ops] ERROR: game/index.html 不存在\" >&2\n  exit 1\nfi\n\necho \"[ops] 启动静态服务: http://localhost:${PORT}/game/index.html\"\necho \"[ops] 按 Ctrl+C 停止\"\ncd \"$ROOT\"\nif command -v python3 >/dev/null 2>&1; then\n  exec python3 -m http.server \"$PORT\"\nelse\n  echo \"[ops] ERROR: 未找到 python3，请安装或改用 npx serve\" >&2\n  exit 1\nfi\n"
+    },
+    {
+      "path": "scripts/ops/build.sh",
+      "content": "#!/usr/bin/env bash\n# 构建：基座哈希基线校验 + 基线测试门禁 + 打包。任一失败即 BLOCKED。\nset -euo pipefail\n\nROOT=\"$(cd \"$(dirname \"$0\")/../..\" && pwd)\"\nART=\"$ROOT/artifacts/ops\"\nBASE=\"$ART/baseline.sha256\"\nTS=\"$(date +%Y%m%d-%H%M%S)\"\nOUT=\"$ART/build-$TS\"\nLOG=\"$ART/logs/build-$TS.log\"\n\nmkdir -p \"$ART/logs\"\nexec > >(tee -a \"$LOG\") 2>&1\n\necho \"[ops] build start $TS\"\n\n# 1. 基座文件哈希基线\nBASEFILES=(\n  \"game/js/core.js\"\n  \"game/js/main.js\"\n  \"game/index.html\"\n  \"game/tests/game_logic.test.mjs\"\n  \"game/tests/smoke.mjs\"\n)\nif [ ! -f \"$BASE\" ]; then\n  echo \"[ops] 生成基座哈希基线\"\n  ( cd \"$ROOT\" && sha256sum \"${BASEFILES[@]}\" ) > \"$BASE\"\nfi\nif ! ( cd \"$ROOT\" && sha256sum -c \"$BASE\" ); then\n  echo \"[ops] BLOCKED: 基座文件被修改\" >&2\n  exit 2\nfi\n\n# 2. 基线测试门禁\nif ! ( cd \"$ROOT\" && node --test game/tests/game_logic.test.mjs ); then\n  echo \"[ops] BLOCKED: game_logic 测试失败\" >&2\n  exit 3\nfi\nif ! ( cd \"$ROOT\" && node game/tests/smoke.mjs ); then\n  echo \"[ops] BLOCKED: smoke 失败\" >&2\n  exit 4\nfi\n\n# 3. 打包\nmkdir -p \"$OUT\"\ncp -R \"$ROOT/game\" \"$OUT/game\"\n( cd \"$OUT\" && find game -type f -print0 | sort -z | xargs -0 sha256sum ) > \"$OUT/manifest.sha256\"\necho \"[ops] build ok -> $OUT\"\necho \"[ops] 注意：生产发布仍需裁判凭证，脚本不绕过。\"\n"
+    },
+    {
+      "path": "scripts/ops/backup-save.sh",
+      "content": "#!/usr/bin/env bash\n# 存档备份：导出 + 双份 + CRC 校验（占位，键名待集成确认）。\nset -euo pipefail\n\nROOT=\"$(cd \"$(dirname \"$0\")/../..\" && pwd)\"\nOUT=\"$ROOT/artifacts/ops/saves\"\nTS=\"$(date +%Y%m%d-%H%M%S)\"\nSLOT=\"${1:-slot1}\"\n\nmkdir -p \"$OUT\"\nSRC=\"$OUT/$SLOT-$TS.json\"\n\n# 占位：实际导出需从浏览器 localStorage/IndexedDB 读取 SaveEnvelope。\n# 集成后替换为真实导出命令；此处不伪造存档内容。\nif [ ! -f \"$SRC\" ]; then\n  echo \"[ops] WARN: 未找到导出源 $SRC，请先由集成层导出存档\" >&2\n  echo \"[ops] 备份流程已就绪，等待真实存档文件\" >&2\n  exit 0\nfi\n\ncp \"$SRC\" \"$SRC.bak\"\nif command -v cksum >/dev/null 2>&1; then\n  cksum \"$SRC\" > \"$SRC.crc\"\n  cksum \"$SRC.bak\" >> \"$SRC.crc\"\n  echo \"[ops] 双备份完成: $SRC / $SRC.bak\"\nelse\n  echo \"[ops] WARN: 无 cksum，跳过 CRC\" >&2\nfi\n"
+    },
+    {
+      "path": "scripts/ops/rollback.sh",
+      "content": "#!/usr/bin/env bash\n# 回滚：按构建清单恢复 game/，校验 sha256，保留现场。\nset -euo pipefail\n\nROOT=\"$(cd \"$(dirname \"$0\")/../..\" && pwd)\"\nART=\"$ROOT/artifacts/ops\"\nTS=\"$(date +%Y%m%d-%H%M%S)\"\nLOG=\"$ART/logs/rollback-$TS.log\"\nTARGET=\"${1:-}\"\nDRY=\"${2:-}\"\n\nmkdir -p \"$ART/logs\"\nexec > >(tee -a \"$LOG\") 2>&1\n\nif [ -z \"$TARGET\" ]; then\n  echo \"[ops] 可用构建:\" >&2\n  ls -1 \"$ART\" | grep '^build-' || true\n  echo \"[ops] 用法: rollback.sh <build-dir> [--dry-run]\" >&2\n  exit 1\nfi\n\nSRC=\"$ART/$TARGET\"\nif [ ! -d \"$SRC/game\" ] || [ ! -f \"$SRC/manifest.sha256\" ]; then\n  echo \"[ops] BLOCKED: 目标构建不完整 $SRC\" >&2\n  exit 2\nfi\n\nif [ \"$DRY\" = \"--dry-run\" ]; then\n  echo \"[ops] DRY-RUN: 将恢复 $SRC/game -> $ROOT/game\"\n  ( cd \"$SRC\" && sha256sum -c manifest.sha256 ) || { echo \"[ops] BLOCKED: 清单校验失败\" >&2; exit 3; }\n  echo \"[ops] DRY-RUN ok\"\n  exit 0\nfi\n\n( cd \"$SRC\" && sha256sum -c manifest.sha256 ) || { echo \"[ops] BLOCKED: 清单校验失败\" >&2; exit 3; }\nrm -rf \"$ROOT/game\"\ncp -R \"$SRC/game\" \"$ROOT/game\"\necho \"[ops] 回滚完成，重跑基线测试\"\nif ! ( cd \"$ROOT\" && node --test game/tests/game_logic.test.mjs && node game/tests/smoke.mjs ); then\n  echo \"[ops] BLOCKED: 回滚后基线测试失败，保留现场\" >&2\n  exit 4\nfi\necho \"[ops] 回滚 ok\"\n"
     }
   ]
 }

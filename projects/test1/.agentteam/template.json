@@ -1,19 +1,22 @@
 {
-  "template": "minimal-api",
-  "title": "Minimal stdlib API",
-  "hash": "0a227e36d8eb8929",
-  "copied": [],
-  "skipped": [
-    "contracts/openapi.yaml",
-    "docs/architecture/architecture.md",
-    "docs/product/product-baseline.md",
-    "README.md",
-    "src/__init__.py",
-    "src/backend/__init__.py",
-    "src/backend/app.py",
-    "src/frontend/index.html",
-    "tests/test_app.py",
-    "tools/semgrep.yml"
+  "template": "web-2d-game",
+  "title": "Playable 2D game vertical slice",
+  "hash": "1a070816a0110d8e",
+  "copied": [
+    "acceptance.json",
+    "evidence/tool-ledger.jsonl",
+    "game/css/style.css",
+    "game/index.html",
+    "game/js/core.js",
+    "game/js/main.js",
+    "game/package.json",
+    "game/tests/game_logic.test.mjs",
+    "game/tests/smoke.mjs",
+    "game_tmp.png",
+    "menu_tmp.png",
+    "play_game.bat",
+    "README.md"
   ],
+  "skipped": [],
   "overwrite": false
 }

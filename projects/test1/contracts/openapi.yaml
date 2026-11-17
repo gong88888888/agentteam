@@ -1,19 +1,156 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
-  title: Minimal API scaffold
+  title: 迷宫冒险家 · 模块间 JSON 契约（文档用，非 Web 服务）
   version: 0.1.0
+  description: >
+    本文件仅作为 gameplay/ui/存档之间的 JSON 消息契约文档，用于契约评审与 lint。
+    项目为离线 Canvas 游戏，不启动任何 HTTP 服务；路径语义映射为模块事件与存档结构。
 paths:
-  /health:
-    get:
-      summary: Liveness probe
+  /events/room-enter:
+    post:
+      summary: 进入房间事件
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomEnterEvent'
       responses:
-        "200":
-          description: Service is alive
+        '204': { description: 已广播 }
+  /events/room-cleared:
+    post:
+      summary: 房间清空事件
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomClearedEvent'
+      responses:
+        '204': { description: 已广播 }
+  /events/combat-hit:
+    post:
+      summary: 命中事件
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatHitEvent'
+      responses:
+        '204': { description: 已广播 }
+  /events/loot-drop:
+    post:
+      summary: 掉落事件（按玩家分桶）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LootDropEvent'
+      responses:
+        '204': { description: 已广播 }
+  /save/envelope:
+    get:
+      summary: 读取存档封装
+      responses:
+        '200':
           content:
             application/json:
               schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
+                $ref: '#/components/schemas/SaveEnvelope'
+    put:
+      summary: 写入存档封装（双备份+CRC）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveEnvelope'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveResult'
+components:
+  schemas:
+    RoomType:
+      type: string
+      enum: [combat, platform, treasure, shop, campfire, event, elite, boss]
+    RoomEnterEvent:
+      type: object
+      required: [roomId, type]
+      properties:
+        roomId: { type: string }
+        type: { $ref: '#/components/schemas/RoomType' }
+    RoomClearedEvent:
+      type: object
+      required: [roomId]
+      properties:
+        roomId: { type: string }
+    CombatHitEvent:
+      type: object
+      required: [targetId, dmg, crit]
+      properties:
+        targetId: { type: string }
+        dmg: { type: integer, minimum: 1 }
+        crit: { type: boolean }
+    LootDropEvent:
+      type: object
+      required: [playerId, itemId, quality]
+      properties:
+        playerId: { type: string }
+        itemId: { type: string }
+        quality:
+          type: string
+          enum: [white, green, blue, purple, orange]
+    ItemSave:
+      type: object
+      required: [itemId, quality, affixes]
+      properties:
+        itemId: { type: string }
+        quality:
+          type: string
+          enum: [white, green, blue, purple, orange]
+        affixes:
+          type: array
+          items: { type: string }
+    PlayerSave:
+      type: object
+      required: [classId, level, gold, bag, equipped]
+      properties:
+        classId: { type: string, enum: [warrior, mage, ranger] }
+        level: { type: integer, minimum: 1, maximum: 30 }
+        gold: { type: integer, minimum: 0 }
+        bag:
+          type: array
+          items: { $ref: '#/components/schemas/ItemSave' }
+        equipped:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/ItemSave' }
+    SaveEnvelope:
+      type: object
+      required: [version, slot, worldSeed, floorIndex, roomsExplored, bossDefeated, player, stash, quests, settings, crc]
+      properties:
+        version: { type: integer, minimum: 1 }
+        slot: { type: integer, enum: [0, 1, 2] }
+        worldSeed: { type: integer }
+        floorIndex: { type: integer, minimum: 0 }
+        roomsExplored:
+          type: array
+          items: { type: string }
+        bossDefeated:
+          type: array
+          items: { type: string }
+        player: { $ref: '#/components/schemas/PlayerSave' }
+        stash:
+          type: array
+          items: { $ref: '#/components/schemas/ItemSave' }
+        quests:
+          type: array
+          items: { type: object }
+        settings:
+          type: object
+        crc: { type: string }
+    SaveResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+        usedBackup: { type: boolean }

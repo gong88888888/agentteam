@@ -8,17 +8,17 @@
     "hash": "d79973713014ba6c",
     "path": "prompts\\roles\\ui.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 4337,
-  "tokens": 9137,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 17473,
+  "tokens": 7914,
+  "cost_usd": 0.007276,
   "files": [
     {
       "path": "docs/design/ui-spec.md",
-      "sha256": "d041b4b982f92dfa174157c6df80f82d669ac717c3142ef2d3cd03970a1f63c4",
-      "bytes": 1379,
-      "source": "runner-summary",
+      "sha256": "e796c662b17c09503b355e42d1712707e77bda5a5376b43e3fd2f739e1bfc9a1",
+      "bytes": 7421,
+      "source": "role",
       "promoted": true
     }
   ],
@@ -62,29 +62,22 @@
   },
   "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-203709",
-  "started_at": 1794832629.5450954,
-  "started_clock": "20:37:09",
-  "schema_repairs": [
-    "claims:string->object",
-    "claims:string->object",
-    "claims:string->object"
-  ],
-  "finished_at": "2026-11-16 20:37:19",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835420.8170884,
+  "started_clock": "21:23:40",
+  "schema_repairs": [],
+  "finished_at": "2026-11-16 21:24:02",
   "quality": {
-    "score": 95,
+    "score": 99,
     "grade": "A",
     "components": {
-      "completeness": 25,
+      "completeness": 30,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 10,
+      "efficiency": 9,
       "clarity": 10
     },
-    "issues": [
-      "没有模型-authored 交付物",
-      "存在 runner-summary 补写的文档"
-    ]
+    "issues": []
   }
 }

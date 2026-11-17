@@ -66,7 +66,7 @@ class StubBackend:
                 "summary": summary,
             }
             if "项目运行器约束" in text and role in ("backend", "frontend"):
-                obj["files"] = [self._project_file(role)]
+                obj["files"] = [self._project_file(role, "游戏项目约束" in text)]
         if self.mode == "schema_error":
             content = '{"not": "a verdict"'
         else:
@@ -76,7 +76,25 @@ class StubBackend:
                           response_id="stub")
 
     @staticmethod
-    def _project_file(role: str) -> dict[str, str]:
+    def _project_file(role: str, game: bool = False) -> dict[str, str]:
+        if game and role == "backend":
+            return {
+                "path": "game/js/gameplay/stub_systems.js",
+                "content": (
+                    "export function cooldownMultiplier(level = 1) {\n"
+                    "  return Math.max(0.5, 1 - level * 0.05);\n"
+                    "}\n"
+                ),
+            }
+        if game and role == "frontend":
+            return {
+                "path": "game/js/ui/stub_hud.js",
+                "content": (
+                    "export function hpPercent(hp, maxHp) {\n"
+                    "  return Math.max(0, Math.min(100, (hp / maxHp) * 100));\n"
+                    "}\n"
+                ),
+            }
         if role == "backend":
             return {
                 "path": "src/backend/service.py",

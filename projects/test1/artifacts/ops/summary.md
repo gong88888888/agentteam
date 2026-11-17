@@ -1,26 +1,29 @@
 # ops · 发布与回滚
 
 - 状态：done
-- 摘要：ops角色已完成《迷宫冒险家》MVP阶段（12周）的发布与运维规划。核心决策包括：1. 确立以单人离线完整通关为基准的发布标准，所有多人功能作为非侵入式增强；2. 针对评审发现的技术栈冲突（React代码与Unity/Godot引擎），在构建流程中增加集成验证门禁，防止后期重构成本；3. 针对存档风险，定义WAL预写日志与双备份校验为发布前必检项；4. MVP范围锁定第一章5层、3职业、本地双人同步，排除远程联机以降低网络同步复杂度。输出文件为docs/ops/release-plan.md，包含构建、灰度（EA阶段）、监控与回滚策略。
+- 摘要：作为 ops，基于已批准的产品基准、架构契约与 QA 计划，产出 docs/ops/release-plan.md（发布/回滚/监控/演练方案）、scripts/ops/start-local.sh（本地启动静态服务并打开 game/index.html）、scripts/ops/build.sh（构建产物打包+基座文件哈希基线校验+基线测试门禁）、scripts/ops/backup-save.sh（存档导出/双备份/CRC 校验占位）、scripts/ops/rollback.sh（按发布清单回滚到上一版本并保留现场）。关键决策：(1) 发布门禁硬检查为 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 通过且基座文件哈希未变，任一失败即 BLOCKED；(2) 生产发布必须持有裁判凭证，脚本不绕过；(3) 存档备份采用导出+双份+CRC 校验，异常退出回最近篝火快照；(4) 回滚以版本清单为准，回滚后保留现场日志。所有脚本仅写 scripts/ 与 artifacts/ops/，不触碰 game/ 基座与业务代码。未实际运行脚本与基线测试，故不声明通过；信息缺口已写入 open_questions，未编造证据。
 
 - 门禁：pass · G-TEST1-ops
 
 ## Claims（不参与门禁）
 
-- 已根据需求文档生成《迷宫冒险家》MVP阶段发布计划，明确单人离线为基准，本地同屏为增强。
-- 针对评审指出的技术栈冲突（React vs Unity/Godot），在发布流程中增加了引擎集成验证门禁。
-- 针对存档风险，定义了WAL预写日志与双备份校验的发布前检查项。
-- MVP阶段排除远程联机，仅包含本地同屏2人，降低网络同步复杂度与发布风险。
+- 交付发布计划、本地启动/构建脚本、存档备份与回滚方案，覆盖单人离线+本地同屏MVP，局域网P1降级说明。
+- 生产发布前置硬检查：node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，且基座文件未被修改；未实际运行，故不声明通过。
 
 ## 写入文件
 
-- `docs/ops/release-plan.md` · 7cd212c428b9 · role
+- `docs/ops/release-plan.md` · f4f7fc26fb01 · role
+- `scripts/ops/start-local.sh` · 5a478286184c · role
+- `scripts/ops/build.sh` · 87b95d8b27ac · role
+- `scripts/ops/backup-save.sh` · dad95c648a1b · role
+- `scripts/ops/rollback.sh` · b2a809fd2a21 · role
 
 ## 未决问题
 
-- 引擎选型最终确认：Unity还是Godot？这将决定构建工具链（Build Pipeline）的具体配置。
-- React前端组件在MVP中的具体用途：是用于编辑器工具、UI预览还是其他非运行时模块？需明确集成点以避免重构。
-- 本地同屏的输入映射表是否已定稿？需确保键盘/手柄混用在发布前完成兼容性测试。
+- 基座 game/js/core.js 与 main.js 的模块加载/事件总线 API 细节未实证，脚本中的静态检查仅做文件存在与哈希比对，无法验证运行时集成。
+- 浏览器存档介质（localStorage/IndexedDB）与 SaveEnvelope 双备份+CRC 的落地方式未验证，备份脚本按 localStorage 键名占位，需集成后确认键名。
+- 局域网 UDP 在 Canvas 栈不可行，P1 联机发布流程未定义，需架构给出降级方案后再补发布步骤。
+- CI/构建环境未提供，scripts/ 下脚本为本地可执行方案，未在真实环境运行，不声明通过。
 
 ## 门禁检查
 

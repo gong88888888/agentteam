@@ -8,17 +8,17 @@
     "hash": "029edc5b6957ee1a",
     "path": "prompts\\roles\\security.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 9350,
-  "tokens": 5060,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 14629,
+  "tokens": 8745,
+  "cost_usd": 0.0069064999999999994,
   "files": [
     {
       "path": "docs/security/threat-model.md",
-      "sha256": "a0850f933945ec6adea6792222a4607f2c4ebde56c2952f78288b3c9d60c8627",
-      "bytes": 1031,
-      "source": "runner-summary",
+      "sha256": "a34ff7aee8c13e91304cf5b2a84712a3d61dff4cee273670fe208b2f09725728",
+      "bytes": 6444,
+      "source": "role",
       "promoted": true
     }
   ],
@@ -67,25 +67,24 @@
   },
   "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-202614",
-  "started_at": 1794832279.7017803,
-  "started_clock": "20:31:19",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835559.843326,
+  "started_clock": "21:25:59",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 20:31:29",
+  "finished_at": "2026-11-16 21:26:18",
   "quality": {
-    "score": 95,
+    "score": 98,
     "grade": "A",
     "components": {
-      "completeness": 25,
+      "completeness": 30,
       "gate": 30,
       "evidence": 20,
       "efficiency": 10,
-      "clarity": 10
+      "clarity": 8
     },
     "issues": [
-      "没有模型-authored 交付物",
-      "存在 runner-summary 补写的文档"
+      "4 个未决问题"
     ]
   }
 }

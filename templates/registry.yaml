@@ -1,4 +1,14 @@
 templates:
+  - id: web-2d-game
+    title: Playable 2D game vertical slice
+    description: >-
+      HTML5 Canvas side-scrolling room game with 3 classes, local co-op, boss,
+      loot, HUD and save/load. Used by the game project profile and verified by
+      node tests, a headless smoke and a Chrome render.
+    kind: game
+    engine: html5-canvas
+    roles: [pm, product, ui, arch, backend, frontend, review, qa, security, ops, kb, retro]
+    evidence_profile: game
   - id: minimal-api
     title: Minimal stdlib API
     description: >-

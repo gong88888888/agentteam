@@ -19,6 +19,7 @@ import jsonschema
 from .config import data_dir, load_config, load_schema
 from .decisions import DecisionStore
 from .evidence.signing import sha256_hex
+from .game_check import detect_project_type, run_game_acceptance
 from .judge.backend import parse_json_object
 from .knowledge import HybridRetriever
 from .models.router import ModelRouter
@@ -80,6 +81,40 @@ ROLE_SPECS: list[RoleSpec] = [
 ROLE_MAP = {r.role: r for r in ROLE_SPECS}
 CODE_ROLES = {"backend", "frontend"}
 
+GAME_INSTRUCTIONS: dict[str, str] = {
+    "arch": "确定 HTML5 Canvas 垂直切片的模块边界、房间/战斗/存档契约；不引入 React、Python Web 服务或引擎重写。",
+    "ui": "输出游戏 HUD、菜单、像素/卡通视觉规范与 Design Token；可写 game/css 增量。",
+    "backend": "实现玩法系统增量（玩家/敌人/战斗/掉落/存档扩展），只写 game/js/gameplay/**；不写 Web API。",
+    "frontend": "实现游戏 UI/HUD/菜单增量，只写 game/js/ui/** 与 game/css/**；不写 React 工程。",
+    "qa": "补充可运行切片的逻辑测试、冒烟与验收用例，写 game/tests/** 或 docs/qa/**。",
+    "ops": "输出本地启动、构建、存档备份与回滚方案，写 docs/ops/** 与 scripts/**。",
+}
+
+GAME_SCOPES: dict[str, tuple[str, ...]] = {
+    "arch": ("docs/architecture/", "contracts/", "artifacts/arch/"),
+    "ui": ("game/css/", "docs/design/", "artifacts/ui/"),
+    "backend": ("game/js/gameplay/", "artifacts/backend/"),
+    "frontend": ("game/js/ui/", "game/css/", "artifacts/frontend/"),
+    "qa": ("game/tests/", "tests/", "docs/qa/", "artifacts/qa/"),
+    "ops": ("docs/ops/", "scripts/", "artifacts/ops/"),
+}
+
+
+def _acceptance_summary(project_dir: Path) -> dict[str, Any] | None:
+    path = project_dir / "acceptance.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return {
+        "status": data.get("status"),
+        "engine": data.get("engine"),
+        "checks": [{"name": c.get("name"), "ok": c.get("ok"),
+                    "detail": c.get("detail"), "evidence_id": c.get("evidence_id")}
+                   for c in data.get("checks", [])],
+        "finished_at": data.get("finished_at"),
+    }
+
 
 class ProjectRunner:
     def __init__(self, *, requirements: str | Path, project_dir: str | Path,
@@ -90,7 +125,7 @@ class ProjectRunner:
                  tool_profile: str = "basic", gates: bool = True,
                  sandbox: bool = False, decision_db: str | Path | None = None,
                  stop_on_gate: bool = False, quality: bool = True,
-                 run_id: str = "") -> None:
+                 run_id: str = "", project_type: str = "auto") -> None:
         self.requirements_path = Path(requirements)
         if not self.requirements_path.exists():
             raise FileNotFoundError(f"需求文件不存在：{self.requirements_path}")
@@ -126,6 +161,8 @@ class ProjectRunner:
         self.template_record: dict[str, Any] = {}
         self.baseline_fp = ""
         self.requirement_text = self.requirements_path.read_text(encoding="utf-8")
+        self.project_type = (detect_project_type(self.requirement_text)
+                             if project_type in ("auto", "", None) else project_type)
 
     # ---------- workspace ----------
     def prepare(self) -> None:
@@ -165,6 +202,7 @@ class ProjectRunner:
             "template": self.template,
             "template_hash": self.template_record.get("hash", ""),
             "tool_profile": self.tool_profile,
+            "project_type": self.project_type,
             "run_id": self.run_id,
             "current_role": "",
             "current_index": 0,
@@ -181,6 +219,11 @@ class ProjectRunner:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     # ---------- context ----------
+    def role_scope(self, role: str) -> tuple[str, ...]:
+        if self.project_type == "game" and role in GAME_SCOPES:
+            return GAME_SCOPES[role]
+        return ROLE_MAP[role].scope
+
     def kb_context(self) -> str:
         if not self.use_kb:
             return ""
@@ -203,18 +246,29 @@ class ProjectRunner:
             return ""
 
     def user_message(self, spec: RoleSpec, prior: list[str], kb: str) -> str:
-        scope = ", ".join(spec.scope)
+        scope = ", ".join(self.role_scope(spec.role))
         expected = ARTIFACT_PATHS.get(spec.role, ())
         template = (f"{self.template_record.get('template')} "
                     f"(hash {self.template_record.get('hash')})"
                     if self.template_record else "none")
+        game_note = ""
+        instruction = GAME_INSTRUCTIONS.get(spec.role, spec.instruction) if self.project_type == "game" else spec.instruction
+        if self.project_type == "game":
+            game_note = """
+# 游戏项目约束（必须遵守）
+- 交付物是 **可运行的游戏**，入口为 `game/index.html`，不是 Web API/React 后台。
+- 技术栈固定为 HTML5 Canvas + 原生 ES Modules（模板已提供）；不要生成 Python Web 服务、Flask、React 工程或 Unity/Godot 代码。
+- 代码角色只写 `game/js/gameplay/` 或 `game/js/ui/` 下的增量 `.js` 模块；不要覆盖基座文件 `game/js/core.js`、`game/js/main.js`、`game/index.html`、`game/tests/game_logic.test.mjs`、`game/tests/smoke.mjs`。
+- QA 只新增 `game/tests/qa_*.mjs`；基座逻辑测试与 smoke 是验收基线，不得修改。
+- 必须保持 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。
+"""
         return f"""# 项目需求
 {self.requirement_text}
 
 # 当前角色
 {spec.role} · {spec.title}
-{spec.instruction}
-
+{instruction}
+{game_note}
 # 项目模板
 {template}
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：{', '.join(expected) or '按角色约定'}
@@ -237,13 +291,18 @@ class ProjectRunner:
 
     def system_message(self, role: str) -> str:
         p = load_prompt(role)
+        scope = ", ".join(self.role_scope(role))
+        game_note = ""
+        if self.project_type == "game":
+            game_note = ("\n这是游戏项目：只产出 game/ 下的增量模块与文档，不生成 Web 后端/React/引擎工程；"
+                         "保持 game/tests 的逻辑测试与 smoke 通过。")
         return p.text + f"""
 
 ## 项目运行器约束
-你正在项目目录 `{self.project_dir.name}` 中作为 {role} 工作。
+你正在项目目录 `{self.project_dir.name}` 中作为 {role} 工作。{game_note}
 项目需求文档已经完整放在 user 消息中；不要因为缺少“额外附件、上一轮对话或具体代码路径”而返回 blocked。
 先基于现有需求完成本角色的交付物；信息缺口写入 open_questions，不要编造证据。
-输出只能是 JSON；如需写文件，files[].path 必须落在 `{', '.join(ROLE_MAP[role].scope)}`。
+输出只能是 JSON；如需写文件，files[].path 必须落在 `{scope}`。
 不得写项目目录之外，不得写密钥；不确定时写 open_questions，不要编造证据。
 """
 
@@ -358,7 +417,8 @@ class ProjectRunner:
             if self.sandbox_enabled and role in CODE_ROLES and raw_files:
                 with IsolatedWorkspace(self.project_dir, role) as ws:
                     files = self.write_files(role, raw_files, root=ws.path)
-                    tool_result = self.run_tools(ws.path, role, files)
+                    tool_result = (None if self.project_type == "game"
+                                   else self.run_tools(ws.path, role, files))
                     gate = self.run_gate(role, obj, files, tool_result)
                     if gate is not None and gate.status == "pass":
                         promoted = ws.promote([f["path"] for f in files])
@@ -370,7 +430,7 @@ class ProjectRunner:
                             f["promoted"] = False
             else:
                 files = self.write_files(role, raw_files)
-                if role in CODE_ROLES:
+                if role in CODE_ROLES and self.project_type != "game":
                     tool_result = self.run_tools(self.project_dir, role, files)
                 files += self.synthesize_docs(role, spec, obj, files)
                 gate = self.run_gate(role, obj, files, tool_result)
@@ -449,6 +509,15 @@ class ProjectRunner:
                 break
 
         elapsed = int(time.time() - started_all)
+        acceptance = None
+        if self.project_type == "game":
+            acceptance = run_game_acceptance(
+                self.project_dir, ledger_path=self.evidence_ledger,
+                baseline_fp=self.baseline_fp)
+            self.log("game.acceptance", status=acceptance["status"],
+                     engine=acceptance["engine"],
+                     failed=[c["name"] for c in acceptance["checks"] if not c["ok"]],
+                     evidence_ids=acceptance["evidence_ids"])
         errors = [r for r, s in statuses.items() if s == "error"]
         blocked = [r for r, s in statuses.items() if s == "blocked"]
         all_statuses = [v.get("status") for v in state.values() if isinstance(v, dict)]
@@ -458,6 +527,8 @@ class ProjectRunner:
             status = "partial"
         else:
             status = "completed"
+        if acceptance is not None and acceptance["status"] != "pass":
+            status = "failed"
         self._stop_heartbeat()
         self.write_state(state, status, elapsed)
         self.write_readme(state, status)
@@ -608,8 +679,8 @@ class ProjectRunner:
 
     def run_tools(self, code_root: Path, role: str,
                   files: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-        scope = next((p.rstrip("/") for p in ROLE_MAP[role].scope
-                      if p.startswith("src/")), "src")
+        scope = next((p.rstrip("/") for p in self.role_scope(role)
+                      if p.startswith(("src/", "game/"))), "src")
         paths = [str(f.get("path", "")) for f in (files or [])
                  if str(f.get("path", "")).endswith(".py")]
         try:
@@ -633,7 +704,8 @@ class ProjectRunner:
             role, obj, project_dir=self.project_dir, files=files,
             tool_result=tool_result, profile=self.tool_profile,
             decision_store=self.decision_store,
-            project_name=self.project_dir.name, baseline_fp=self.baseline_fp)
+            project_name=self.project_dir.name, baseline_fp=self.baseline_fp,
+            project_type=self.project_type)
         return gate
 
     def stash_files(self, role: str, files: list[dict[str, Any]],
@@ -792,12 +864,20 @@ class ProjectRunner:
     # ---------- files ----------
     def write_files(self, role: str, files: list[dict[str, Any]],
                     *, root: Path | None = None) -> list[dict[str, Any]]:
-        scope = ROLE_MAP[role].scope
+        scope = self.role_scope(role)
         base = (root or self.project_dir).resolve()
+        protected = {
+            "game/index.html", "game/js/core.js", "game/js/main.js",
+            "game/tests/game_logic.test.mjs", "game/tests/smoke.mjs",
+            "game/css/style.css",
+        } if self.project_type == "game" else set()
         written: list[dict[str, Any]] = []
         for f in files:
             path = str(f.get("path", "")).replace("\\", "/").lstrip("/")
             content = str(f.get("content", ""))
+            if path in protected:
+                self.log("file.rejected", role=role, path=path, reason="protected game baseline")
+                continue
             if not path or ".." in Path(path).parts:
                 self.log("file.rejected", role=role, path=path, reason="path traversal")
                 continue
@@ -851,6 +931,8 @@ class ProjectRunner:
                         "tool_profile": self.tool_profile,
                         "gates": gates,
                         "quality_avg": round(sum(scores) / len(scores), 1) if scores else None,
+                        "project_type": self.project_type,
+                        "acceptance": _acceptance_summary(self.project_dir),
                         "run_id": self.run_id,
                         "current_role": "",
                         "current_index": self._project_total(state),
@@ -888,7 +970,15 @@ class ProjectRunner:
             f"- 事件账本：`logs/events.jsonl`",
             f"- 状态：`state/roles.json`",
             "", "## 角色执行记录", "", *rows, "",
-            "> 这是角色产出记录，不是生产验收；代码/文档仍需门禁、证据与裁判。",
-            "",
         ]
+        if self.project_type == "game":
+            lines += [
+                "## 运行游戏", "",
+                "- Windows：双击 `play_game.bat`，或 `cd game && python -m http.server 8787`",
+                "- 浏览器打开 `http://localhost:8787/`（或监控页的“打开游戏”）",
+                "- 验收记录：`acceptance.json`（入口/模块/逻辑/冒烟/QA/渲染）",
+                "- 玩法：P1 WASD + Space + J；P2 方向键 + K；F5 存档、F9 读档",
+                "",
+            ]
+        lines += ["> 这是角色产出记录，不是生产验收；代码/文档仍需门禁、证据与裁判。", ""]
         (self.project_dir / "README.md").write_text("\n".join(lines), encoding="utf-8")

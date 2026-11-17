@@ -72,7 +72,8 @@ python dashboard/serve.py --port 8765
 
 页面内容：
 
-- 项目列表与状态；需求原文可展开；模板、证据 profile、门禁计数与质量均值。
+- 项目列表与状态；需求原文可展开；项目类型、验收状态/引擎、模板、证据 profile、门禁计数与质量均值。
+- 游戏项目验收通过时显示“打开游戏”，通过 `/game/<project>/` 直接运行 `game/index.html`。
 - 实时进度：运行中项目显示 pulse、当前角色/序号、运行时长；页面每 2 秒轮询，`state/progress.json` 心跳每 3 秒刷新。截图见 `projects_live.png`。
 - 角色卡片：状态、门禁、质量分/等级、模型、耗时、Token、写出文件、沙箱/调整标记。
 - 详情页签：摘要、**门禁**、**质量**、输出 JSON、System Prompt、实际请求、Meta、文件。
@@ -88,6 +89,7 @@ API：
 - `GET /api/projects/{name}/roles/{role}`
 - `GET /api/projects/{name}/file?path=src/backend/...`（找不到时回退到 `artifacts/*/sandbox/`）
 - `GET /api/projects/{name}/evidence`（签名账本记录 + `chain_ok`）
+- `GET /game/{name}/...`（游戏静态入口；仅限项目内 `game/`，默认 `index.html`）
 - `POST /api/projects/{name}/roles/{role}/rerun` `{note, offline, sandbox, profile}`
 
 重跑写入新的 `request.md`、`meta.json`（含 `adjustment/gate/tools/quality`）、`quality/history.jsonl`、`evidence/tool-ledger.jsonl` 与 `logs/events.jsonl`；已有其他角色记录保留。门禁未通过会自动在决策收件箱创建 `DEC-<project>-<role>`。

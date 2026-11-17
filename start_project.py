@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 from orchestrator.config import load_config  # noqa: E402
 from orchestrator.project_runner import ProjectRunner  # noqa: E402
+from orchestrator.game_check import detect_project_type  # noqa: E402
 
 
 def main() -> int:
@@ -43,7 +44,9 @@ def main() -> int:
     p.add_argument("--force", action="store_true",
                    help="允许写入已存在的非空项目目录")
     p.add_argument("--template", default=None,
-                   help="项目模板 ID（默认新目录用 minimal-api，已有目录用 none）")
+                   help="项目模板 ID（新目录默认 web-2d-game/minimal-api，已有目录用 none）")
+    p.add_argument("--project-type", default="auto", choices=("auto", "game", "web"),
+                   help="项目类型；auto 根据需求关键词判断")
     p.add_argument("--tool-profile", default="basic", choices=("basic", "standard", "full"),
                    help="工具证据 profile；standard/full 需要 semgrep/trivy")
     p.add_argument("--no-gates", action="store_true", help="关闭角色门禁（不推荐）")
@@ -65,9 +68,13 @@ def main() -> int:
         print(json.dumps({"error": f"项目目录非空：{project_dir}；加 --force 覆盖写入"},
                          ensure_ascii=False, indent=2))
         return 2
+    requirement_text = Path(args.requirements).read_text(encoding="utf-8", errors="replace")
+    project_type = (detect_project_type(requirement_text)
+                    if args.project_type == "auto" else args.project_type)
     template = args.template
     if template is None:
-        template = "none" if exists_nonempty else "minimal-api"
+        template = "none" if exists_nonempty else (
+            "web-2d-game" if project_type == "game" else "minimal-api")
     roles = [r.strip() for r in args.roles.split(",")] if args.roles else None
     cfg = load_config(args.config)
     runner = ProjectRunner(
@@ -77,7 +84,7 @@ def main() -> int:
         tool_profile=args.tool_profile, gates=not args.no_gates,
         sandbox=args.sandbox, decision_db=args.decision_db,
         stop_on_gate=args.stop_on_gate, quality=not args.no_quality,
-        merge_state=args.merge)
+        merge_state=args.merge, project_type=project_type)
     result = runner.run()
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] != "failed" else 1

@@ -8,17 +8,17 @@
     "hash": "11bdc73b9f9e300c",
     "path": "prompts\\roles\\pm.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 4584,
-  "tokens": 8055,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 13197,
+  "tokens": 6729,
+  "cost_usd": 0.005981500000000001,
   "files": [
     {
       "path": "docs/plan/project-plan.md",
-      "sha256": "a2d81a25e9ef71fec5b213ab8e1962468b94de9b26d93e7539262ff6f2e9006e",
-      "bytes": 1347,
-      "source": "runner-summary",
+      "sha256": "4fd67fd5a0f297b6e99b4fef4b48d3539c47085f32afbeeee94c50cd89055139",
+      "bytes": 6276,
+      "source": "role",
       "promoted": true
     }
   ],
@@ -62,25 +62,22 @@
   },
   "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-203245",
-  "started_at": 1794832365.1915748,
-  "started_clock": "20:32:45",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835381.4592793,
+  "started_clock": "21:23:01",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 20:33:02",
+  "finished_at": "2026-11-16 21:23:18",
   "quality": {
-    "score": 95,
+    "score": 100,
     "grade": "A",
     "components": {
-      "completeness": 25,
+      "completeness": 30,
       "gate": 30,
       "evidence": 20,
       "efficiency": 10,
       "clarity": 10
     },
-    "issues": [
-      "没有模型-authored 交付物",
-      "存在 runner-summary 补写的文档"
-    ]
+    "issues": []
   }
 }

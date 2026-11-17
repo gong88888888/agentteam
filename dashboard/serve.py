@@ -96,6 +96,8 @@ def _project_summary(p: Path) -> dict:
             "current_index": project.get("current_index", 0),
             "total_roles": project.get("total_roles", len(roles)),
             "progress": progress,
+            "project_type": project.get("project_type", "web"),
+            "acceptance": project.get("acceptance"),
             "template": project.get("template", "none"),
             "template_hash": project.get("template_hash", ""),
             "tool_profile": project.get("tool_profile", "basic"),
@@ -185,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, item)
         if u.path == "/api/projects":
             items = [_project_summary(p) for p in sorted(PROJECTS.iterdir())
-                     if p.is_dir()] if PROJECTS.exists() else []
+                     if p.is_dir() and not p.name.startswith(("_", "."))] if PROJECTS.exists() else []
             return self._json(200, {"projects": items})
         if len(parts) == 3 and parts[:2] == ["api", "projects"]:
             p = _project_dir(parts[2])
@@ -219,6 +221,19 @@ class Handler(BaseHTTPRequestHandler):
             content = target.read_text(encoding="utf-8", errors="replace")
             return self._json(200, {"path": rel, "sandboxed": sandboxed,
                                     "content": content[:200000]})
+        if len(parts) >= 2 and parts[0] == "game":
+            project = _project_dir(parts[1])
+            if not project:
+                return self._send(404, b"project not found", "text/plain; charset=utf-8")
+            base = (project / "game").resolve()
+            rel = unquote("/".join(parts[2:])) or "index.html"
+            target = (base / rel).resolve()
+            if not str(target).startswith(str(base) + os.sep) or not target.is_file():
+                return self._send(404, b"game file not found", "text/plain; charset=utf-8")
+            ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+            if ctype.startswith("text/") or ctype in ("application/javascript", "application/json"):
+                ctype += "; charset=utf-8"
+            return self._send(200, target.read_bytes(), ctype)
         if len(parts) == 4 and parts[:2] == ["api", "projects"]                 and parts[3] == "evidence":
             p = _project_dir(parts[2])
             if not p:

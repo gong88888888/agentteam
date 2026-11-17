@@ -1,25 +1,28 @@
 # arch · 架构与契约
 
 - 状态：done
-- 摘要：完成《迷宫冒险家》技术架构设计与接口契约定义。核心决策：1. **架构模式**：采用Host-Authority，单机/本地同屏单进程，局域网联机Host权威；2. **技术栈解耦**：明确Unity/Godot为游戏运行时，React仅用于非实时UI（如主菜单、背包编辑），通过JSON/IPC交换数据，消除前端代码冲突风险；3. **存档安全**：定义WAL预写日志+双备份+CRC校验机制，确保异常退出数据不丢失；4. **接口契约**：定义迷宫生成器输出格式、装备词条结构、同步状态协议。MVP范围锁定第一章5层+本地双人，排除远程联机以降低复杂度。
+- 摘要：作为架构角色，基于已批准的产品基准、项目计划与 UI 规范，产出 docs/architecture/architecture.md 与 contracts/openapi.yaml（作为模块间 JSON 契约文档，非 Web 服务）。关键决策：(1) 分层为 core 基座 / gameplay 增量模块 / ui 增量模块，gameplay 与 ui 仅通过事件总线与只读状态快照交互，禁止跨层直接引用内部实现，保证基座文件不被覆盖且 node --test game_logic.test.mjs 与 smoke.mjs 基线可继续通过；(2) 定义房间契约 RoomSpec 与生成不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）；(3) 定义战斗契约（固定步长确定性 tick、伤害管线顺序、多人缩放查表、Boss+10%、装备独立掉落分桶）；(4) 定义存档契约 SaveEnvelope（版本号、双备份+CRC、迁移链、异常退出回篝火快照）；(5) 明确非目标：不引入 React、Python Web 服务、Unity/Godot，不重写引擎。信息缺口（基座 API 细节、浏览器无 SQLite 的存档介质降级、局域网 UDP 在 Canvas 栈不可行）已写入 open_questions，未编造证据。
 
 - 门禁：pass · G-TEST1-arch
 
 ## Claims（不参与门禁）
 
-- 已解决技术栈冲突：明确MVP阶段Unity/Godot为运行时引擎，React仅用于编辑器工具或启动器UI，二者通过本地HTTP/IPC通信。
-- 定义了Host-Authority架构，确保单人基准与多人同步的一致性，动态难度缩放由Host统一计算。
-- 存档系统采用WAL（Write-Ahead Logging）+ CRC校验双备份策略，解决原子性与防丢档问题。
+- 以 Canvas + 原生 ES Modules 定义垂直切片模块边界：core(基座)/gameplay(房间、战斗、掉落、存档)/ui(HUD、面板)，gameplay 与 ui 通过事件总线与只读状态快照解耦，禁止互相直接引用内部实现。
+- 房间契约：RoomSpec{id,type,seed,exits[],spawns[],lootTable}，生成器保证入口到Boss主路径连通、每层1篝火1商店、钥匙门最多1且钥匙可达；读档按种子+已探索集合恢复。
+- 战斗契约：确定性 tick(固定步长) + 伤害管线(基础→词条→暴击→减伤)，多人缩放系数按人数查表(1/1.6/2.1/2.6 血量等)，Boss额外+10%；掉落独立按玩家ID分桶。
+- 存档契约：SaveEnvelope{version,worldSeed,roomsExplored,player,stash,quests,settings,crc}，双备份+CRC校验，版本迁移函数链，异常退出回最近篝火快照。
+- contracts/openapi.yaml 以 OpenAPI 3.0 形式描述本地存档/房间/战斗事件的消息契约（作为模块间 JSON 契约文档，不引入任何 Web 服务运行时）。
 
 ## 写入文件
 
-- `docs/architecture/architecture.md` · ee4c2656c2c2 · runner-summary
+- `docs/architecture/architecture.md` · eeecff685ea6 · role
+- `contracts/openapi.yaml` · 3821d40cdc91 · role
 
 ## 未决问题
 
-- Q-004: Unity与React集成具体采用Electron还是CEF？需确认性能开销与打包策略。
-- Q-005: Godot引擎若选型，需重新定义ScriptableObject对应的Resource格式及序列化协议。
-- Q-006: 局域网联机UDP包结构细节（如状态同步频率、丢包重传机制）需在P1阶段详细设计。
+- 基座 game/js/core.js 与 main.js 暴露的现有 API（事件总线名、状态容器、tick 入口）未在需求中给出，需在实现前读取确认，避免契约与基座冲突。
+- 存档介质：需求写 JSON/SQLite，但浏览器环境无 SQLite，MVP 采用 localStorage/IndexedDB 需产品确认降级方案。
+- 局域网 P1 的 UDP 同步在浏览器 Canvas 栈下不可行，需确认 P1 是否改为 WebRTC/或明确不在本技术栈内实现。
 
 ## 门禁检查
 

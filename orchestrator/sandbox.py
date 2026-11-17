@@ -29,7 +29,7 @@ DEFAULT_ALLOWLIST = (
 )
 
 SHELL_METACHARS = re.compile(r"[;&|><`$()\r\n]")
-COPY_DIRS = ("docs", "src", "tests", "contracts", "scripts", "knowledge", "tools")
+COPY_DIRS = ("docs", "src", "tests", "contracts", "scripts", "knowledge", "tools", "game")
 COPY_FILES = ("README.md", "pyproject.toml", "requirements.txt", "package.json")
 IGNORE = shutil.ignore_patterns(
     ".git", "__pycache__", "*.pyc", ".pytest_cache", "node_modules",

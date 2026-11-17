@@ -26,6 +26,15 @@ ROLE_KEYWORDS: dict[str, dict[str, list[str]]] = {
     "retro": {"all": [], "any": ["根因", "偏差", "问题", "风险", "行动", "改进", "建议"]},
 }
 
+ARTIFACT_GAME: dict[str, tuple[str, ...]] = {
+    "backend": ("game/js/gameplay/",),
+    "frontend": ("game/js/ui/", "game/css/"),
+    "arch": ("docs/architecture/architecture.md",),
+    "ui": ("docs/design/ui-spec.md",),
+    "qa": ("game/tests/", "tests/test-plan.md"),
+    "ops": ("docs/ops/release-plan.md",),
+}
+
 ARTIFACT_PATHS: dict[str, tuple[str, ...]] = {
     "pm": ("docs/plan/project-plan.md",),
     "product": ("docs/product/product-baseline.md",),
@@ -81,8 +90,10 @@ def _text_of(obj: dict[str, Any]) -> str:
 
 
 def _artifact_present(project: Path, role: str,
-                     files: list[dict[str, Any]]) -> tuple[bool, str]:
-    expected = ARTIFACT_PATHS.get(role, ())
+                     files: list[dict[str, Any]],
+                     project_type: str = "web") -> tuple[bool, str]:
+    expected = (ARTIFACT_GAME.get(role, ARTIFACT_PATHS.get(role, ()))
+                if project_type == "game" else ARTIFACT_PATHS.get(role, ()))
     if not expected:
         return True, "no required artifact"
     authored = {str(f.get("path", "")).replace("\\", "/") for f in files
@@ -129,7 +140,8 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
                   profile: str = "basic",
                   decision_store: DecisionStore | None = None,
                   project_name: str = "",
-                  baseline_fp: str = "") -> GateResult:
+                  baseline_fp: str = "",
+                  project_type: str = "web") -> GateResult:
     project = Path(project_dir)
     gate_id = f"G-{_slug(project_name or project.name)}-{role}"
     checks: list[GateCheck] = []
@@ -155,14 +167,17 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
                                                        for k in any_kw),
                                     "缺少任一预期内容：" + "/".join(any_kw)))
 
-    present, where = _artifact_present(project, role, files)
+    present, where = _artifact_present(project, role, files, project_type)
     checks.append(GateCheck("artifact", present, where))
 
     if role in CODE_ROLES:
         authored = [f for f in files if f.get("source", "role") == "role"]
         checks.append(GateCheck("files_written", bool(authored),
                                 "代码角色没有写出文件"))
-        if not tool_result:
+        if project_type == "game":
+            checks.append(GateCheck("game_artifact", present,
+                                    "游戏角色必须在 game/ 下写出增量模块"))
+        elif not tool_result:
             missing.extend(sorted(_required_kinds(profile, role)))
             missing.append("tool_evidence")
             checks.append(GateCheck("tool_evidence", False, "没有执行工具证据"))

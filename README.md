@@ -177,6 +177,24 @@ python dashboard/serve.py --port 8765
 
 说明：沙箱是进程级隔离，不是内核容器；standard/full 的 semgrep/trivy 在本地缺失时显式为 missing 并失败关闭，CI 会安装并跑 full。
 
+## 游戏项目（game profile）
+
+需求包含“游戏/玩家/关卡/Boss/职业/存档/迷宫”等关键词时，`start_project.py --project-type auto` 自动选择 `web-2d-game` 模板，并启用**项目级可玩性验收**：
+
+- `game/index.html`：Canvas 入口与 ES Module。
+- `game/js/core.js` / `game/js/main.js`：可运行基座。
+- `node --test game/tests/game_logic.test.mjs`：纯逻辑。
+- `node game/tests/smoke.mjs`：冒烟。
+- `game/tests/qa_*.test.mjs`：QA 验收。
+- Chrome 无头渲染截图：证明入口实际渲染。
+- `acceptance.json` 记录全部检查和签名证据；任一失败，项目状态强制 `failed`，不能靠角色摘要“完成”。
+
+test1 游戏产品已按此重跑：12 角色门禁通过，`acceptance.json` 6/6（entry/modules/logic/smoke/qa/render），引擎 `html5-canvas`，可点监控页“打开游戏”直接玩。
+
+```bash
+python start_project.py --requirements projects/test1/requirements/input.md --project-dir projects/test1-game --real --template web-2d-game --project-type game
+```
+
 ## W4 结果
 
 | 能力 | 结果 |
@@ -215,10 +233,11 @@ orchestrator/          W1/W2：模型路由、裁判、证据账本、裁决账�
   role_gates.py        角色门禁与决策收件箱升级
   quality.py           角色质量分与历史趋势
   templates.py         项目脚手架加载与复制
+  game_check.py        游戏入口/逻辑/QA/渲染验收与签名证据
   knowledge/           FTS5 + bge-m3 + RRF + rerank
 eval/                  W2/W4 评测：金丝雀、role golden set、prompt 回归、知识库召回
 dashboard/             W3 工作台 + W4 决策收件箱 + W5 角色/门禁/质量监控
-templates/             minimal-api 脚手架（stdlib 服务、测试、OpenAPI、semgrep）
+templates/             minimal-api 与 web-2d-game 脚手架
 tools/                 默认 semgrep 规则（各项目可覆盖）
 tests/                 沙箱/证据/门禁/质量/rerank/runner 集成测试
 .github/workflows/     CI：单测、评测、预演、specs、standard/full 工具证据

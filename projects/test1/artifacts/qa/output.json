@@ -1,32 +1,67 @@
 {
-  "task_id": "T-QA-001",
+  "task_id": "qa-test-plan",
   "role": "qa",
   "status": "done",
   "artifacts": [
     {
-      "path": "tests/test-plan.md",
-      "sha256": "e99a7b8c4d5f6a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b"
+      "path": "docs/qa/test-plan.md",
+      "sha256": "pending"
+    },
+    {
+      "path": "game/tests/qa_combat_scaling.test.mjs",
+      "sha256": "pending"
+    },
+    {
+      "path": "game/tests/qa_loot_bucket.test.mjs",
+      "sha256": "pending"
+    },
+    {
+      "path": "game/tests/qa_room_invariants.test.mjs",
+      "sha256": "pending"
+    },
+    {
+      "path": "game/tests/qa_save_envelope.test.mjs",
+      "sha256": "pending"
     }
   ],
   "claims": [
     {
-      "claim": "测试计划已覆盖MVP阶段核心功能：单人离线通关、本地同屏双人同步、第一章5层迷宫生成及装备掉落系统。",
+      "claim": "已基于产品基准与架构契约设计测试计划，覆盖战斗缩放查表、掉落分桶、房间生成不变量、存档 CRC/迁移/异常退出回篝火四类核心不变量，并补充冒烟与验收用例矩阵。",
       "counts_as_evidence": false
     },
     {
-      "claim": "针对评审指出的存档原子性风险，设计了专门的异常退出与数据恢复测试用例。",
-      "counts_as_evidence": false
-    },
-    {
-      "claim": "明确了本地多人模式下的动态难度缩放验证策略，确保单人基准平衡不被破坏。",
+      "claim": "新增 qa_*.mjs 测试文件，不修改基座 game_logic.test.mjs 与 smoke.mjs；测试对缺失模块做显式 skip 而非伪造通过。",
       "counts_as_evidence": false
     }
   ],
   "evidence_refs": [],
   "open_questions": [
-    "MVP阶段是否包含‘无尽迷宫’模式？需求文档第5.3节提及通关后解锁，但MVP范围仅含第一章，需确认测试范围。",
-    "本地同屏共享镜头的自动缩放触发距离阈值是多少？需求未定义具体数值，影响UI布局与同步逻辑测试。",
-    "存档双备份的具体实现机制是文件复制还是事务日志？需确认技术细节以设计数据完整性验证用例。"
+    "game/js/gameplay/ 下 backend 模块的实际导出名与文件路径未在摘要中给出，qa_*.mjs 采用动态 import 探测，若路径不符将 skip 并需集成方确认。",
+    "基座 core.js/main.js 的事件总线 API 未实证，冒烟用例仅能验证 index.html 可加载，无法断言增量模块挂载成功。",
+    "浏览器存档介质降级（localStorage vs 内存）未定，SaveEnvelope 双备份+CRC 的持久化断言需介质确认后补。",
+    "局域网 UDP 在 Canvas 栈不可行，P1 联机验收用例暂标记为 out-of-scope，待架构降级方案。"
   ],
-  "summary": "基于《迷宫冒险家》产品需求文档及前期评审结果，制定了详细的测试计划。计划聚焦MVP阶段（第一章5层、3职业、本地双人），覆盖正常流程（单人/多人通关）、异常处理（崩溃恢复、存档损坏）、边界条件（房间生成极限、装备词条组合）及权限控制。特别针对评审中指出的技术栈冲突和存档风险，增加了兼容性验证和数据完整性测试章节。输出文件为 tests/test-plan.md。"
+  "summary": "作为 QA，产出 docs/qa/test-plan.md 测试计划与四组可运行逻辑测试（qa_combat_scaling / qa_loot_bucket / qa_room_invariants / qa_save_envelope），覆盖架构契约中的战斗固定步长与多人缩放查表（2/3/4人血量1.6/2.1/2.6、伤害1.15/1.25/1.35、金币1.25/1.45/1.65、Boss+10%）、掉落品质权重与Boss保底及按玩家id哈希独立分桶、房间生成不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）、存档SaveEnvelope版本号+CRC32+双备份+迁移链+异常退出回篝火。测试采用 node:test，对未就绪模块显式 skip 不伪造通过；不修改基座 game_logic.test.mjs 与 smoke.mjs。验收用例矩阵含新手10分钟首蓝装、30分钟首Boss、单局15-30分钟、读档成功率>99.5%等指标的可测化拆解。信息缺口（模块导出路径、事件总线API、存档介质、P1联机降级）已写入 open_questions，未编造证据。",
+  "files": [
+    {
+      "path": "docs/qa/test-plan.md",
+      "content": "# 迷宫冒险家 · QA 测试计划\n\n> 角色：qa ｜ 依据：docs/product/product-baseline.md、docs/plan/project-plan.md、docs/architecture/architecture.md、contracts/openapi.yaml、docs/design/ui-spec.md\n> 约束：只新增 game/tests/qa_*.mjs；不修改基座 game/tests/game_logic.test.mjs 与 game/tests/smoke.mjs；不写 src/**。\n\n## 1. 测试目标与范围\n\n### 1.1 目标\n- 验证架构契约中的四类核心不变量：战斗缩放、掉落分桶、房间生成、存档完整性。\n- 为产品验收指标提供可测化拆解（首蓝装、首Boss、单局时长、读档成功率）。\n- 保证基座逻辑测试与 smoke 基线不被破坏。\n\n### 1.2 范围内（MVP）\n- 战斗：固定步长确定性 tick、伤害管线顺序、多人缩放查表、Boss 额外 +10% 血量。\n- 掉落：品质权重（白40/绿30/蓝20/紫8/橙2）、Boss 保底（蓝保底、紫20%、橙5%）、装备按玩家 id 哈希独立分桶、金币材料共享。\n- 房间：主路径连通、每层恰 1 篝火 1 商店、钥匙门 ≤1 且钥匙可达、种子+已探索可恢复。\n- 存档：SaveEnvelope 版本号、CRC32、双备份、迁移链、异常退出回最近篝火快照。\n- 冒烟：game/index.html 可加载、增量模块可 import、基座测试通过。\n\n### 1.3 范围外（P1/后续）\n- 局域网 UDP 联机（Canvas 栈不可行，待架构降级方案）。\n- 远程同乐、云存档、交易行。\n- 视觉/像素级 UI 回归（由 ui 角色自测，QA 仅做可访问性抽查）。\n\n## 2. 测试策略\n\n| 层级 | 手段 | 覆盖 |\n|---|---|---|\n| 逻辑单测 | node:test（qa_*.mjs） | 战斗/掉落/房间/存档纯函数不变量 |\n| 冒烟 | node game/tests/smoke.mjs（基座，不改） | index.html 可加载 |\n| 基线回归 | node --test game/tests/game_logic.test.mjs（基座，不改） | 基座逻辑不回归 |\n| 验收 | 手工/脚本化场景 | 产品验收指标 |\n\n**原则**：模块未就绪时测试显式 `skip`，绝不伪造通过；失败保留证据不重试掩盖。\n\n## 3. 用例矩阵\n\n### 3.1 战斗缩放（qa_combat_scaling.test.mjs）\n| ID | 用例 | 期望 |\n|---|---|---|\n| C-01 | 单人缩放 | 血量/伤害/金币系数均 = 1.0 |\n| C-02 | 2人缩放 | 血量1.6 伤害1.15 金币1.25 |\n| C-03 | 3人缩放 | 血量2.1 伤害1.25 金币1.45 |\n| C-04 | 4人缩放 | 血量2.6 伤害1.35 金币1.65 |\n| C-05 | Boss 额外血量 | 在人数缩放基础上再 ×1.10 |\n| C-06 | 固定步长确定性 | 相同输入序列两次 tick 结果一致 |\n| C-07 | 伤害管线顺序 | 基础→词条→暴击→防御→多人缩放→Boss血量 |\n\n### 3.2 掉落分桶（qa_loot_bucket.test.mjs）\n| ID | 用例 | 期望 |\n|---|---|---|\n| L-01 | 品质权重分布 | 大样本下白/绿/蓝/紫/橙比例接近 40/30/20/8/2（容差） |\n| L-02 | Boss 保底蓝 | Boss 掉落品质 ≥ 蓝 |\n| L-03 | Boss 紫/橙概率 | 紫≈20%、橙≈5%（容差） |\n| L-04 | 装备独立分桶 | 不同玩家 id 哈希得到各自掉落，互不可见 |\n| L-05 | 金币材料共享 | 共享拾取，不按玩家分桶 |\n\n### 3.3 房间生成不变量（qa_room_invariants.test.mjs）\n| ID | 用例 | 期望 |\n|---|---|---|\n| R-01 | 主路径连通 | 入口到 Boss 房存在可达路径 |\n| R-02 | 每层 1 篝火 1 商店 | 计数恰为 1 |\n| R-03 | 钥匙门 ≤1 且钥匙可达 | 钥匙门数量 ≤1，钥匙在可达房间 |\n| R-04 | 种子可复现 | 同种子生成同结构 |\n| R-05 | 已探索恢复 | 种子+已探索集合可恢复地图状态 |\n| R-06 | 生成失败抛错 | 非法参数抛错而非静默 |\n\n### 3.4 存档完整性（qa_save_envelope.test.mjs）\n| ID | 用例 | 期望 |\n|---|---|---|\n| S-01 | 版本号存在 | SaveEnvelope 含 version 字段 |\n| S-02 | CRC32 校验 | 篡改内容后校验失败 |\n| S-03 | 双备份 | 主备份损坏时回退副备份 |\n| S-04 | 迁移链 | 旧版本存档可迁移到当前版本 |\n| S-05 | 异常退出回篝火 | 未正常保存时恢复到最近篝火快照 |\n\n### 3.5 验收指标拆解\n| 指标 | 可测化拆解 | 手段 |\n|---|---|---|\n| 新手10分钟首蓝装 | 首蓝装掉落时间 ≤10min | 脚本化模拟掉落序列 |\n| 30分钟首Boss | 首Boss击败时间 ≤30min | 场景计时 |\n| 单局15-30分钟 | 8-12房间+1Boss 通关时长区间 | 场景计时 |\n| 读档成功率>99.5% | 1000次读档失败 ≤5 | 循环读档脚本 |\n| 崩溃率<0.5% | 会话崩溃计数 | 冒烟+长跑 |\n\n## 4. 执行与证据\n- 命令：`node --test game/tests/qa_*.test.mjs`、`node --test game/tests/game_logic.test.mjs`、`node game/tests/smoke.mjs`。\n- 证据：测试输出日志、失败用例复现步骤、截图（UI 相关）。\n- 缺陷：必须含复现步骤+期望/实际+证据，否则不提交。\n\n## 5. 风险与升级\n- 模块导出路径未定 → 测试动态 import 探测，缺失则 skip 并升级集成方。\n- 存档介质未定 → 持久化断言待介质确认后补。\n- 同类缺陷反复 → 升级 reviewer/judge。\n"
+    },
+    {
+      "path": "game/tests/qa_combat_scaling.test.mjs",
+      "content": "// QA: 战斗缩放与确定性 tick 不变量\n// 不修改基座测试；模块未就绪时显式 skip。\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\n\nconst CANDIDATES = [\n  '../js/gameplay/combat.js',\n  '../js/gameplay/combat.mjs',\n  '../js/gameplay/battle.js',\n];\n\nasync function loadCombat() {\n  for (const p of CANDIDATES) {\n    try { return await import(p); } catch { /* try next */ }\n  }\n  return null;\n}\n\nconst mod = await loadCombat();\nconst skip = mod ? false : 'gameplay combat module not found (see open_questions)';\n\n// 期望缩放表（产品基准）\nconst TABLE = {\n  1: { hp: 1.0, dmg: 1.0, gold: 1.0 },\n  2: { hp: 1.6, dmg: 1.15, gold: 1.25 },\n  3: { hp: 2.1, dmg: 1.25, gold: 1.45 },\n  4: { hp: 2.6, dmg: 1.35, gold: 1.65 },\n};\n\nfunction pickScaleFn(m) {\n  return m.scaleForPlayers || m.getMultiplayerScale || m.multiplayerScale || null;\n}\n\nfor (const n of [1, 2, 3, 4]) {\n  test(`C-0${n} ${n}人缩放查表`, { skip }, () => {\n    const fn = pickScaleFn(mod);\n    assert.ok(typeof fn === 'function', 'scale function missing');\n    const s = fn(n);\n    const e = TABLE[n];\n    assert.equal(s.hp, e.hp);\n    assert.equal(s.dmg, e.dmg);\n    assert.equal(s.gold, e.gold);\n  });\n}\n\ntest('C-05 Boss 额外 +10% 血量', { skip }, () => {\n  const fn = mod.bossHpMultiplier || mod.getBossHpMultiplier;\n  assert.ok(typeof fn === 'function', 'boss hp multiplier missing');\n  assert.equal(fn(1), 1.1);\n  assert.equal(fn(2), 1.6 * 1.1);\n});\n\ntest('C-06 固定步长确定性', { skip }, () => {\n  const tick = mod.tick || mod.step;\n  assert.ok(typeof tick === 'function', 'tick missing');\n  const input = { dt: 1, actions: [{ type: 'attack', power: 10 }] };\n  const a = tick(structuredClone(input));\n  const b = tick(structuredClone(input));\n  assert.deepEqual(a, b);\n});\n\ntest('C-07 伤害管线顺序', { skip }, () => {\n  const fn = mod.computeDamage || mod.damagePipeline;\n  assert.ok(typeof fn === 'function', 'damage pipeline missing');\n  // 基础10, 词条+5, 暴击x2, 防御减免50%, 2人缩放1.15\n  const d = fn({ base: 10, affix: 5, crit: true, critMul: 2, defense: 0.5, players: 2 });\n  // (10+5)*2*0.5*1.15 = 17.25\n  assert.ok(Math.abs(d - 17.25) < 1e-6, `got ${d}`);\n});\n"
+    },
+    {
+      "path": "game/tests/qa_loot_bucket.test.mjs",
+      "content": "// QA: 掉落品质权重、Boss 保底、独立分桶\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\n\nconst CANDIDATES = [\n  '../js/gameplay/loot.js',\n  '../js/gameplay/loot.mjs',\n  '../js/gameplay/drop.js',\n];\n\nasync function loadLoot() {\n  for (const p of CANDIDATES) {\n    try { return await import(p); } catch { /* next */ }\n  }\n  return null;\n}\n\nconst mod = await loadLoot();\nconst skip = mod ? false : 'gameplay loot module not found (see open_questions)';\n\nconst WEIGHTS = { white: 40, green: 30, blue: 20, purple: 8, orange: 2 };\n\nfunction rollFn(m) {\n  return m.rollQuality || m.rollDrop || m.rollLoot || null;\n}\n\ntest('L-01 品质权重分布（大样本容差）', { skip }, () => {\n  const roll = rollFn(mod);\n  assert.ok(typeof roll === 'function', 'roll function missing');\n  const N = 20000;\n  const cnt = { white: 0, green: 0, blue: 0, purple: 0, orange: 0 };\n  for (let i = 0; i < N; i++) cnt[roll({ boss: false })]++;\n  for (const k of Object.keys(WEIGHTS)) {\n    const p = cnt[k] / N;\n    const e = WEIGHTS[k] / 100;\n    assert.ok(Math.abs(p - e) < 0.02, `${k} got ${p.toFixed(3)} expect ${e}`);\n  }\n});\n\ntest('L-02 Boss 保底蓝', { skip }, () => {\n  const roll = rollFn(mod);\n  const order = ['white', 'green', 'blue', 'purple', 'orange'];\n  for (let i = 0; i < 2000; i++) {\n    const q = roll({ boss: true });\n    assert.ok(order.indexOf(q) >= order.indexOf('blue'), `boss dropped ${q}`);\n  }\n});\n\ntest('L-03 Boss 紫/橙概率', { skip }, () => {\n  const roll = rollFn(mod);\n  const N = 20000;\n  let purple = 0, orange = 0;\n  for (let i = 0; i < N; i++) {\n    const q = roll({ boss: true });\n    if (q === 'purple') purple++;\n    if (q === 'orange') orange++;\n  }\n  assert.ok(Math.abs(purple / N - 0.20) < 0.03, `purple ${purple / N}`);\n  assert.ok(Math.abs(orange / N - 0.05) < 0.02, `orange ${orange / N}`);\n});\n\ntest('L-04 装备独立分桶（按玩家 id 哈希）', { skip }, () => {\n  const fn = mod.bucketForPlayer || mod.playerBucket || null;\n  assert.ok(typeof fn === 'function', 'bucket function missing');\n  const a = fn('p1');\n  const b = fn('p2');\n  assert.notEqual(a, b);\n  assert.equal(fn('p1'), a, 'bucket must be deterministic');\n});\n\ntest('L-05 金币材料共享', { skip }, () => {\n  const fn = mod.isSharedDrop || mod.sharedDrop || null;\n  assert.ok(typeof fn === 'function', 'shared drop fn missing');\n  assert.equal(fn('gold'), true);\n  assert.equal(fn('material'), true);\n  assert.equal(fn('equipment'), false);\n});\n"
+    },
+    {
+      "path": "game/tests/qa_room_invariants.test.mjs",
+      "content": "// QA: 房间生成不变量\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\n\nconst CANDIDATES = [\n  '../js/gameplay/roomgen.js',\n  '../js/gameplay/room.js',\n  '../js/gameplay/maze.js',\n];\n\nasync function loadRoom() {\n  for (const p of CANDIDATES) {\n    try { return await import(p); } catch { /* next */ }\n  }\n  return null;\n}\n\nconst mod = await loadRoom();\nconst skip = mod ? false : 'gameplay roomgen module not found (see open_questions)';\n\nfunction genFn(m) {\n  return m.generateFloor || m.generateRoom || m.generate || null;\n}\n\nfunction reachable(rooms, from, to) {\n  const seen = new Set([from]);\n  const q = [from];\n  while (q.length) {\n    const cur = q.shift();\n    if (cur === to) return true;\n    for (const nb of rooms[cur]?.doors || []) {\n      if (!seen.has(nb)) { seen.add(nb); q.push(nb); }\n    }\n  }\n  return false;\n}\n\ntest('R-01 主路径连通（入口→Boss）', { skip }, () => {\n  const gen = genFn(mod);\n  assert.ok(typeof gen === 'function', 'generate fn missing');\n  for (let s = 1; s <= 20; s++) {\n    const f = gen({ seed: s });\n    assert.ok(reachable(f.rooms, f.entrance, f.boss), `seed ${s} not connected`);\n  }\n});\n\ntest('R-02 每层恰 1 篝火 1 商店', { skip }, () => {\n  const gen = genFn(mod);\n  for (let s = 1; s <= 20; s++) {\n    const f = gen({ seed: s });\n    const types = Object.values(f.rooms).map(r => r.type);\n    assert.equal(types.filter(t => t === 'campfire').length, 1, `seed ${s} campfire`);\n    assert.equal(types.filter(t => t === 'shop').length, 1, `seed ${s} shop`);\n  }\n});\n\ntest('R-03 钥匙门 ≤1 且钥匙可达', { skip }, () => {\n  const gen = genFn(mod);\n  for (let s = 1; s <= 20; s++) {\n    const f = gen({ seed: s });\n    const locked = Object.values(f.rooms).filter(r => r.locked);\n    assert.ok(locked.length <= 1, `seed ${s} locked doors ${locked.length}`);\n    if (locked.length === 1) {\n      const keyRoom = Object.entries(f.rooms).find(([, r]) => r.hasKey)?.[0];\n      assert.ok(keyRoom, `seed ${s} key missing`);\n      assert.ok(reachable(f.rooms, f.entrance, keyRoom), `seed ${s} key unreachable`);\n    }\n  }\n});\n\ntest('R-04 种子可复现', { skip }, () => {\n  const gen = genFn(mod);\n  const a = gen({ seed: 42 });\n  const b = gen({ seed: 42 });\n  assert.deepEqual(a.rooms, b.rooms);\n});\n\ntest('R-05 种子+已探索可恢复', { skip }, () => {\n  const gen = genFn(mod);\n  const restore = mod.restoreFloor || mod.restore || null;\n  assert.ok(typeof restore === 'function', 'restore fn missing');\n  const f = gen({ seed: 7 });\n  const explored = Object.keys(f.rooms).slice(0, 3);\n  const r = restore({ seed: 7, explored });\n  assert.deepEqual(r.rooms, f.rooms);\n  assert.deepEqual(r.explored.sort(), explored.sort());\n});\n\ntest('R-06 非法参数抛错', { skip }, () => {\n  const gen = genFn(mod);\n  assert.throws(() => gen({ seed: -1 }));\n});\n"
+    },
+    {
+      "path": "game/tests/qa_save_envelope.test.mjs",
+      "content": "// QA: SaveEnvelope 版本/CRC/双备份/迁移/异常退出回篝火\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\n\nconst CANDIDATES = [\n  '../js/gameplay/save.js',\n  '../js/gameplay/save.mjs',\n  '../js/gameplay/persistence.js',\n];\n\nasync function loadSave() {\n  for (const p of CANDIDATES) {\n    try { return await import(p); } catch { /* next */ }\n  }\n  return null;\n}\n\nconst mod = await loadSave();\nconst skip = mod ? false : 'gameplay save module not found (see open_questions)';\n\nfunction makeEnvelope(m, data) {\n  const fn = m.createEnvelope || m.wrapSave || null;\n  assert.ok(typeof fn === 'function', 'createEnvelope missing');\n  return fn(data);\n}\n\ntest('S-01 版本号存在', { skip }, () => {\n  const env = makeEnvelope(mod, { gold: 10 });\n  assert.ok('version' in env, 'version missing');\n  assert.equal(typeof env.version, 'number');\n});\n\ntest('S-02 CRC32 校验（篡改失败）', { skip }, () => {\n  const verify = mod.verifyEnvelope || mod.verify || null;\n  assert.ok(typeof verify === 'function', 'verify missing');\n  const env = makeEnvelope(mod, { gold: 10 });\n  assert.equal(verify(env), true);\n  env.data.gold = 999;\n  assert.equal(verify(env), false);\n});\n\ntest('S-03 双备份回退', { skip }, () => {\n  const load = mod.loadWithBackup || mod.load || null;\n  assert.ok(typeof load === 'function', 'load missing');\n  const primary = makeEnvelope(mod, { gold: 10 });\n  const backup = makeEnvelope(mod, { gold: 20 });\n  primary.data.gold = 999; // 破坏主备份\n  const r = load({ primary, backup });\n  assert.equal(r.data.gold, 20);\n});\n\ntest('S-04 迁移链', { skip }, () => {\n  const migrate = mod.migrate || mod.migrateEnvelope || null;\n  assert.ok(typeof migrate === 'function', 'migrate missing');\n  const old = { version: 1, data: { gold: 5 } };\n  const cur = migrate(old);\n  assert.ok(cur.version >= 2, `migrated version ${cur.version}`);\n  assert.equal(cur.data.gold, 5);\n});\n\ntest('S-05 异常退出回最近篝火快照', { skip }, () => {\n  const recover = mod.recoverAfterCrash || mod.recover || null;\n  assert.ok(typeof recover === 'function', 'recover missing');\n  const campfire = { room: 'campfire-1', gold: 30 };\n  const r = recover({ lastCampfire: campfire, dirty: true });\n  assert.deepEqual(r, campfire);\n});\n"
+    }
+  ]
 }

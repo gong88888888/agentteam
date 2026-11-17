@@ -11,6 +11,36 @@
       ],
       "port": 8765,
       "url": "http://localhost:8765"
+    },
+    {
+      "name": "game",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8781",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "templates/web-2d-game/game"
+      ],
+      "port": 8781,
+      "url": "http://localhost:8781"
+    },
+    {
+      "name": "test1-game",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8782",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "projects/test1/game"
+      ],
+      "port": 8782,
+      "url": "http://localhost:8782"
     }
   ]
 }

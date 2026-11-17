@@ -131,6 +131,7 @@
       <p class="sub">查看每个角色的 prompt、产出、模型、Token、文件与状态；运行中每 2 秒自动刷新当前角色与耗时，发现不合格可直接补充调整要求并重跑该角色。</p>
     </div>
     <div class="controls">
+      <a class="btn primary hidden" id="play-game" target="_blank" rel="noopener">▶ 打开游戏</a>
       <a class="btn" href="index.html">← 监控工作台</a>
       <a class="btn" href="decisions.html">决策收件箱</a>
       <button class="icon-btn" id="theme-toggle" title="切换深浅色">◐</button>
@@ -233,11 +234,17 @@ function renderProject(p, preferredRole = null, selectRole = true) {
   const gates = p.gates || {};
   const prog = p.progress || {};
   const meta = [
+    p.project_type === "game" ? "类型 game" : "类型 web",
+    p.acceptance ? `验收 ${p.acceptance.status || "—"} · ${p.acceptance.engine || ""}` : "验收 —",
     `模板 ${esc(p.template || "none")}`,
     `证据 ${esc(p.tool_profile || "basic")}`,
     p.quality_avg != null ? `质量均值 ${esc(p.quality_avg)}` : "质量 —",
     `门禁 通过 ${gates.pass || 0} / 待补证 ${gates.need_evidence || 0} / 失败 ${gates.fail || 0}`,
   ];
+  const play = $("play-game");
+  const playable = p.project_type === "game" && p.acceptance?.status === "pass";
+  play.classList.toggle("hidden", !playable);
+  if (playable) play.href = `game/${encodeURIComponent(p.name)}/index.html?play=swordsman`;
   if (p.status === "running") {
     meta.push(`进行中 ${esc(prog.current_role || "准备下一角色")} (${esc(prog.current_index || 0)}/${esc(prog.total_roles || p.roles.length)})`);
     meta.push(`已更新 ${esc(prog.clock || "—")}`);

@@ -90,9 +90,10 @@ UI/UX 设计师：基于已批准的产品基准输出信息架构、交互流�
 
 ## 项目运行器约束
 你正在项目目录 `test1` 中作为 ui 工作。
+这是游戏项目：只产出 game/ 下的增量模块与文档，不生成 Web 后端/React/引擎工程；保持 game/tests 的逻辑测试与 smoke 通过。
 项目需求文档已经完整放在 user 消息中；不要因为缺少“额外附件、上一轮对话或具体代码路径”而返回 blocked。
 先基于现有需求完成本角色的交付物；信息缺口写入 open_questions，不要编造证据。
-输出只能是 JSON；如需写文件，files[].path 必须落在 `docs/design/, artifacts/ui/`。
+输出只能是 JSON；如需写文件，files[].path 必须落在 `game/css/, docs/design/, artifacts/ui/`。
 不得写项目目录之外，不得写密钥；不确定时写 open_questions，不要编造证据。
 
 
@@ -307,314 +308,22 @@ UI/UX 设计师：基于已批准的产品基准输出信息架构、交互流�
 
 # 当前角色
 ui · UI/UX 设计规范
-输出信息架构、交互状态、设计 token、深浅色与可访问性要求；写 docs/design/ui-spec.md。
+输出游戏 HUD、菜单、像素/卡通视觉规范与 Design Token；可写 game/css 增量。
+
+# 游戏项目约束（必须遵守）
+- 交付物是 **可运行的游戏**，入口为 `game/index.html`，不是 Web API/React 后台。
+- 技术栈固定为 HTML5 Canvas + 原生 ES Modules（模板已提供）；不要生成 Python Web 服务、Flask、React 工程或 Unity/Godot 代码。
+- 代码角色只写 `game/js/gameplay/` 或 `game/js/ui/` 下的增量 `.js` 模块；不要覆盖基座文件 `game/js/core.js`、`game/js/main.js`、`game/index.html`、`game/tests/game_logic.test.mjs`、`game/tests/smoke.mjs`。
+- QA 只新增 `game/tests/qa_*.mjs`；基座逻辑测试与 smoke 是验收基线，不得修改。
+- 必须保持 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。
 
 # 项目模板
-minimal-api (hash 0a227e36d8eb8929)
+web-2d-game (hash 1a070816a0110d8e)
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：docs/design/ui-spec.md
 
 # 前置产物摘要
-- pm: # pm · 项目计划与切片
-
-- 状态：done
-- 摘要：已生成《迷宫冒险家》项目计划文档 docs/plan/project-plan.md。核心决策：1. MVP范围锁定为第一章5层、3职业、单机+本地双人同步，排除远程联机；2. 单人模式为基准平衡，多人功能为非侵入式增强；3. 技术栈冲突（React vs Unity/Godot）列为最高风险，需在架构阶段解决；4. 存档系统需实现双备份+CRC校验及版本迁移机制。计划包含12周MVP开发路线、门禁标准及角色分工。
-
-- 门禁：pass · G-TEST1-pm
-
-## Claims（不参与门禁）
-
-- 项目计划已基于产品基准与MVP范围生成，明确以单人离线完整体验为第一优先级。
-- 技术栈冲突（React vs Unity/Godot）已被识别为关键风险，计划在架构阶段解决。
-- MVP范围锁定为第一章5层、3职业、本地双人同步，排除远程联机以降低风险。
-
-## 写入文件
-
-- `docs/plan/project-plan.md` · a2d81a25e9ef · runner-summary
-
-## 未决问题
-
-- Q-004: Unity或Godot的具体版本选型需技术负责人确认，以决定构建工具链。
-- Q-005: React前端代码在MVP中是否废弃？若保留，需明确与引擎的集成协议（如WebView或Native Plugin）。
-- Q-006: 存档WAL实现由Backend还是Arch负责？需明确原子性写入的技术细节。
-
-## 门禁检查
-
-- 全部通过
-
-- product: # product · 产品基准
-
-- 状态：done
-- 摘要：已完成《迷宫冒险家》产品基准文档编写。核心决策包括：1. 明确单人模式为第一优先级，所有多人功能均为非侵入式增强；2. 划定MVP边界为第一章5层+本地双人，排除局域网联机以控制风险；3. 定义量化验收指标（如10分钟首件蓝装、崩溃率<0.5%）；4. 列出3个需技术/数值团队确认的开放问题。文档已写入 docs/product/product-baseline.md。
-
-- 门禁：pass · G-TEST1-product
-
-## Claims（不参与门禁）
-
-- 产品基准已确立：以单人离线完整体验为基石，本地同屏为差异化增强，严格禁止设计必须多人才能通关的内容。
-- MVP范围锁定为第一章5层、3职业、单机+本地双人同步，局域网联机明确排除在MVP之外。
-
-## 写入文件
-
-- `docs/product/product-baseline.md` · 67f0c22237b7 · runner-summary
-
-## 未决问题
-
-- Q-001: 多人掉落金币缩放公式需确认是否仅线性增加或微调稀有度权重，建议初期采用固定系数表。
-- Q-002: 本地同屏‘掉队传送’的判定距离（像素或屏幕百分比）未定义，需明确以避免视觉突兀。
-- Q-003: 存档版本迁移策略需确认是运行时转换还是启动时校验，建议MVP采用简单字段追加或旧档只读。
-
-## 门禁检查
-
-- 全部通过
-
-- arch: # arch · 架构与契约
-
-- 状态：done
-- 摘要：完成《迷宫冒险家》技术架构设计与接口契约定义。核心决策：1. **架构模式**：采用Host-Authority，单机/本地同屏单进程，局域网联机Host权威；2. **技术栈解耦**：明确Unity/Godot为游戏运行时，React仅用于非实时UI（如主菜单、背包编辑），通过JSON/IPC交换数据，消除前端代码冲突风险；3. **存档安全**：定义WAL预写日志+双备份+CRC校验机制，确保异常退出数据不丢失；4. **接口契约**：定义迷宫生成器输出格式、装备词条结构、同步状态协议。MVP范围锁定第一章5层+本地双人，排除远程联机以降低复杂度。
-
-- 门禁：pass · G-TEST1-arch
-
-## Claims（不参与门禁）
-
-- 已解决技术栈冲突：明确MVP阶段Unity/Godot为运行时引擎，React仅用于编辑器工具或启动器UI，二者通过本地HTTP/IPC通信。
-- 定义了Host-Authority架构，确保单人基准与多人同步的一致性，动态难度缩放由Host统一计算。
-- 存档系统采用WAL（Write-Ahead Logging）+ CRC校验双备份策略，解决原子性与防丢档问题。
-
-## 写入文件
-
-- `docs/architecture/architecture.md` · ee4c2656c2c2 · runner-summary
-
-## 未决问题
-
-- Q-004: Unity与React集成具体采用Electron还是CEF？需确认性能开销与打包策略。
-- Q-005: Godot引擎若选型，需重新定义ScriptableObject对应的Resource格式及序列化协议。
-- Q-006: 局域网联机UDP包结构细节（如状态同步频率、丢包重传机制）需在P1阶段详细设计。
-
-## 门禁检查
-
-- 全部通过
-
-- backend: # backend · 后端实现
-
-- 状态：done
-- 摘要：代码文件已生成：src/backend/services/dungeon_generator.py
-
-- 门禁：pass · G-TEST1-backend
-
-## Claims（不参与门禁）
-
-- 已实现基于种子确定性生成的迷宫系统，支持房间模板连接与关键路径保证。
-- 已实现符合需求文档权重的掉落管理器，支持品质概率与Boss保底逻辑。
-- 已实现基于人数的动态难度缩放器，严格遵循单人基准+系数表规则。
-- 已实现带CRC校验与双备份机制的存档服务，确保数据完整性。
-
-## 写入文件
-
-- `src/backend/services/dungeon_generator.py` · d22462f961c8 · role
-
-## 未决问题
-
-- Q-001: 多人掉落金币缩放公式需确认是否仅线性增加或微调稀有度权重，建议初期采用固定系数表。
-- Q-002: 本地同屏‘掉队传送’的判定距离（像素或屏幕百分比）未定义，需明确以避免视觉突兀。
-- Q-003: 存档版本迁移策略需确认是运行时转换还是启动时校验，建议MVP采用简单字段追加或旧档只读。
-
-## 门禁检查
-
-- 全部通过
-
-- frontend: # frontend · 前端实现
-
-- 状态：done
-- 摘要：代码文件已生成：src/frontend/components/hud/HUD.tsx
-
-- 门禁：pass · G-TEST1-frontend
-
-## Claims（不参与门禁）
-
-- 已实现基于CSS Variables的Design Token系统，支持低配卡通像素风格的视觉层级。
-- 主菜单组件包含继续、新游戏、多人、设置入口，符合UI规范。
-- HUD组件预留了血蓝条、技能CD、小地图及队友血条的DOM结构。
-- 背包组件实现了品质颜色区分与一键分解白绿装备的基础逻辑骨架。
-- 加载状态组件支持进度条显示，适配短会话快速重入场景。
-
-## 写入文件
-
-- `src/frontend/components/hud/HUD.tsx` · 9366778e454d · role
-
-## 未决问题
-
-- Unity/Godot引擎中CSS/HTML渲染层的集成方式（如WebView、CefSharp或自定义UI框架）尚未确定，当前代码为通用Web标准实现。
-- 本地同屏多玩家输入映射的具体键位配置表需由策划最终确认。
-- 装备光柱特效在Web层是否通过CSS动画模拟还是交由引擎渲染？
-
-## 门禁检查
-
-- 全部通过
-
-- review: # review · 代码评审
-
-- 状态：done
-- 摘要：本次评审发现三个关键问题：1. **技术栈冲突**：需求文档指定Unity/Godot，但前端代码为React组件，缺乏集成方案，可能导致后期重构；2. **存档风险**：双备份机制未定义原子性写入（如预写日志或事务），异常退出时可能产生损坏数据；3. **接口缺失**：迷宫生成器仅作为独立脚本，未定义与游戏引擎的数据交换协议。建议尽快明确引擎选型与React的集成路径，并补充存档系统的容错设计文档。
-
-- 门禁：pass · G-TEST1-review
-
-## Claims（不参与门禁）
-
-- 技术栈选型存在严重冲突：需求指定Unity/Godot引擎，但前端产物为React组件，缺乏明确的桥接方案。
-- 存档系统的双备份机制未定义原子性写入策略，存在异常退出导致数据损坏的风险。
-- 迷宫生成算法仅输出Python代码，缺乏与游戏引擎（Unity/Godot）的数据交换格式定义。
-
-## 写入文件
-
-- `docs/reviews/review.md` · 2cd72a60e030 · runner-summary
-
-## 未决问题
-
-- React HUD组件如何与Unity或Godot引擎进行实时数据通信？是否计划使用Electron封装或自定义Native插件？
-- 迷宫生成器输出的数据结构格式是什么？如何确保与游戏引擎的Tile Map系统兼容？
-- 存档系统的CRC校验在跨平台（Windows/Linux/macOS）环境下是否一致？如何处理不同操作系统的换行符和路径分隔符差异？
-
-## 门禁检查
-
-- 全部通过
-
-- qa: # qa · 测试计划与用例
-
-- 状态：done
-- 摘要：基于《迷宫冒险家》产品需求文档及前期评审结果，制定了详细的测试计划。计划聚焦MVP阶段（第一章5层、3职业、本地双人），覆盖正常流程（单人/多人通关）、异常处理（崩溃恢复、存档损坏）、边界条件（房间生成极限、装备词条组合）及权限控制。特别针对评审中指出的技术栈冲突和存档风险，增加了兼容性验证和数据完整性测试章节。输出文件为 tests/test-plan.md。
-
-- 门禁：pass · G-TEST1-qa
-
-## Claims（不参与门禁）
-
-- 测试计划已覆盖MVP阶段核心功能：单人离线通关、本地同屏双人同步、第一章5层迷宫生成及装备掉落系统。
-- 针对评审指出的存档原子性风险，设计了专门的异常退出与数据恢复测试用例。
-- 明确了本地多人模式下的动态难度缩放验证策略，确保单人基准平衡不被破坏。
-
-## 写入文件
-
-- `tests/test-plan.md` · 582ebe3ff134 · runner-summary
-
-## 未决问题
-
-- MVP阶段是否包含‘无尽迷宫’模式？需求文档第5.3节提及通关后解锁，但MVP范围仅含第一章，需确认测试范围。
-- 本地同屏共享镜头的自动缩放触发距离阈值是多少？需求未定义具体数值，影响UI布局与同步逻辑测试。
-- 存档双备份的具体实现机制是文件复制还是事务日志？需确认技术细节以设计数据完整性验证用例。
-
-## 门禁检查
-
-- 全部通过
-
-- security: # security · 安全与合规
-
-- 状态：done
-- 摘要：完成《迷宫冒险家》初始威胁建模。重点覆盖存档防篡改、本地多人状态同步、依赖供应链安全及数据隐私。针对评审指出的存档原子性风险，提出预写日志(WAL)与双备份校验方案；针对技术栈冲突，强调引擎选型对安全边界的影响。MVP阶段因无远程联机，网络层风险降至最低，重点转向本地进程安全与数据完整性。
-
-- 门禁：pass · G-TEST1-security
-
-## Claims（不参与门禁）
-
-- 已识别存档完整性、本地多人同步及依赖管理为核心风险点。
-- MVP阶段排除远程联机，降低了网络攻击面。
-
-## 写入文件
-
-- `docs/security/threat-model.md` · a0850f933945 · runner-summary
-
-## 未决问题
-
-- Unity/Godot引擎具体版本及第三方插件清单未定，需后续补充SBOM。
-- 存档加密算法选型（如AES-256-GCM vs ChaCha20）需技术团队确认。
-- 本地同屏共享内存/进程间通信的具体实现机制未定义。
-
-## 门禁检查
-
-- 全部通过
-
-- ops: # ops · 发布与回滚
-
-- 状态：done
-- 摘要：ops角色已完成《迷宫冒险家》MVP阶段（12周）的发布与运维规划。核心决策包括：1. 确立以单人离线完整通关为基准的发布标准，所有多人功能作为非侵入式增强；2. 针对评审发现的技术栈冲突（React代码与Unity/Godot引擎），在构建流程中增加集成验证门禁，防止后期重构成本；3. 针对存档风险，定义WAL预写日志与双备份校验为发布前必检项；4. MVP范围锁定第一章5层、3职业、本地双人同步，排除远程联机以降低网络同步复杂度。输出文件为docs/ops/release-plan.md，包含构建、灰度（EA阶段）、监控与回滚策略。
-
-- 门禁：pass · G-TEST1-ops
-
-## Claims（不参与门禁）
-
-- 已根据需求文档生成《迷宫冒险家》MVP阶段发布计划，明确单人离线为基准，本地同屏为增强。
-- 针对评审指出的技术栈冲突（React vs Unity/Godot），在发布流程中增加了引擎集成验证门禁。
-- 针对存档风险，定义了WAL预写日志与双备份校验的发布前检查项。
-- MVP阶段排除远程联机，仅包含本地同屏2人，降低网络同步复杂度与发布风险。
-
-## 写入文件
-
-- `docs/ops/release-plan.md` · 7cd212c428b9 · role
-
-## 未决问题
-
-- 引擎选型最终确认：Unity还是Godot？这将决定构建工具链（Build Pipeline）的具体配置。
-- React前端组件在MVP中的具体用途：是用于编辑器工具、UI预览还是其他非运行时模块？需明确集成点以避免重构。
-- 本地同屏的输入映射表是否已定稿？需确保键盘/手柄混用在发布前完成兼容性测试。
-
-## 门禁检查
-
-- 全部通过
-
-- kb: # kb · 知识沉淀
-
-- 状态：done
-- 摘要：完成《迷宫冒险家》项目知识沉淀。核心决策包括：1. 产品定位以单人离线完整通关为第一优先级，本地同屏为差异化卖点；2. MVP范围锁定第一章5层、3职业、单机+本地双人，排除远程联机以降低风险；3. 技术架构采用Host-Authority，统一状态机管理房间与战斗；4. 存档系统需实现双备份+CRC校验及版本迁移机制。关键风险包括技术栈冲突（React vs Unity/Godot）、存档原子性及多人平衡性，已在计划中列出对策。MVP阶段验收指标明确：10分钟首件蓝装、30分钟击败首个精英/Boss、崩溃率<0.5%。
-
-- 门禁：pass · G-TEST1-kb
-
-## Claims（不参与门禁）
-
-- 产品定位明确以单人离线完整通关为第一优先级，本地同屏为差异化卖点，所有多人功能均为非侵入式增强。
-- MVP阶段范围锁定为第一章5层迷宫、3职业基础战斗、单机+本地双人同步及核心存档/装备系统，排除远程联机以降低风险。
-- 技术架构确立Host-Authority模式，兼容本地同屏与局域网联机，统一状态机管理房间生成与战斗流程。
-- 存档系统需实现双备份+CRC校验机制及版本迁移逻辑，以解决异常退出导致的存档损坏风险。
-- 存在技术栈冲突风险：需求指定Unity/Godot，但现有前端代码为React组件，需明确集成路径或清理策略。
-
-## 写入文件
-
-- `knowledge/project-notes.md` · 828bcf8e0ab1 · runner-summary
-
-## 未决问题
-
-- 引擎选型最终确认：Unity还是Godot？这将决定后续资产管线与存档格式的具体实现。
-- React前端代码在MVP阶段的用途：是用于PC端启动器/UI覆盖层，还是已废弃需清理？
-- 局域网联机（P1）的具体同步协议细节：UDP包结构及状态同步频率。
-
-## 门禁检查
-
-- 全部通过
-
-- retro: # retro · 复盘与改进
-
-- 状态：done
-- 摘要：本次复盘识别出三大关键风险：1. 技术栈冲突（React vs Unity/Godot）需立即决策；2. 存档原子性写入需跨平台验证；3. 多人数值缩放需固定系数表。行动项已分配至Arch/Backend/Product角色，deadline为2024-06-15。
-
-- 门禁：pass · G-TEST1-retro
-
-## Claims（不参与门禁）
-
-- 技术栈冲突（React vs Unity/Godot）是MVP阶段最高风险，需立即决策集成方案或废弃React代码。
-- 存档系统的WAL原子性写入在架构层已定义，但后端实现尚未验证跨平台一致性（Windows/Linux/macOS）。
-- 多人动态难度缩放公式需固定系数表以避免数值爆炸，目前仅有线性描述，缺乏明确阈值。
-
-## 写入文件
-
-- `docs/retro/retro.md` · 0efe9f144bcb · runner-summary
-
-## 未决问题
-
-- Q-001: Unity/Godot引擎选型最终确认时间？决定React代码是否废弃及集成方式。Owner: Arch, Deadline: 2024-06-15
-- Q-002: 存档WAL实现是否需支持Linux/macOS路径分隔符差异？需Backend确认跨平台一致性。Owner: Backend, Deadline: 2024-06-15
-- Q-003: 多人掉落金币缩放公式是否采用固定系数表？需Product确认数值平衡以避免非线性爆炸。Owner: Product, Deadline: 2024-06-15
-
-## 门禁检查
-
-- 全部通过
-
+- pm: 产出 docs/plan/project-plan.md：定义项目目标（单人离线完整通关优先、本地同屏差异化、局域网P1）、MVP范围（第一章5层、3职业、20怪、1 Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火）、功能切片 S0-S8 与依赖顺序、门禁规则（node --test game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过，QA 只新增 qa_*.mjs，代码只写 game/js/gameplay|ui 增量模块）、角色分工（pm/arch/gameplay/ui/qa/reviewer/judge）与升级路径。所有切片以可运行 game/index.html 为交付形态，技术栈固定 Canvas + 原生 ES Modules。 | gate=pass
+- product: 产出 docs/product/product-baseline.md：定义产品定位（2D横版房间制迷宫动作冒险+轻刷装+本地多人，PC离线买断）、目标用户与场景、单局/长期循环与情绪节奏、模式矩阵与多人规则（单人基准+动态缩放、装备独立掉落、复活与存档归属）、迷宫/战斗/装备/成长/存档/UI 功能清单（标注MVP/P1/EA）、非目标清单、可量化验收标准与风险对策。关键决策：单人完整通关为第一优先级，所有内容单人均可完成，不设人数专属门与剧情；MVP范围与pm计划一致（第一章5层、3职业、20怪、1Boss、50装备、单人+本地双人、存档/背包/强化/商店/篝火），局域网联机列P1；验收绑定可运行 game/index.html 且 node --test game/tests/game_logic.test.mjs 与 node game/tests/smoke.mjs 必须通过。信息缺口已写入 open_questions，未编造证据。 | gate=pass
 
 # 知识库引用
 （未启用或无命中）
@@ -624,7 +333,7 @@ minimal-api (hash 0a227e36d8eb8929)
 
 # 输出要求
 只输出符合 `specs/agent-output.schema.json` 的 JSON 对象。
-如需写文件，增加 `"files":[{"path":"docs/design/, artifacts/ui/...","content":"..."}]`；
-只能写这些前缀：docs/design/, artifacts/ui/；不得写项目目录之外；不得写密钥。
+如需写文件，增加 `"files":[{"path":"game/css/, docs/design/, artifacts/ui/...","content":"..."}]`；
+只能写这些前缀：game/css/, docs/design/, artifacts/ui/；不得写项目目录之外；不得写密钥。
 摘要必须包含本角色的关键决策与可验证内容，claims 不能当作证据。
 

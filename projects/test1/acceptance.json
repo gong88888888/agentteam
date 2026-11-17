@@ -1,0 +1,52 @@
+{
+  "status": "pass",
+  "engine": "html5-canvas",
+  "checks": [
+    {
+      "name": "entry",
+      "ok": true,
+      "detail": "canvas#game + module entry present",
+      "evidence_id": "EV-000035"
+    },
+    {
+      "name": "modules",
+      "ok": true,
+      "detail": "js/main.js + js/core.js present",
+      "evidence_id": "EV-000036"
+    },
+    {
+      "name": "logic",
+      "ok": true,
+      "detail": "logic tests passed",
+      "evidence_id": "EV-000037"
+    },
+    {
+      "name": "smoke",
+      "ok": true,
+      "detail": "GAME SMOKE PASS {\"rooms\":4,\"classes\":3,\"coopPlayers\":2,\"loot\":\"绿·Boss 徽记\"}\n",
+      "evidence_id": "EV-000038"
+    },
+    {
+      "name": "qa",
+      "ok": true,
+      "detail": "✔ C-01 1人缩放查表 (0.5006ms)\n✔ C-02 2人缩放查表 (0.0644ms)\n✔ C-03 3人缩放查表 (0.0463ms)\n✔ C-04 4人缩放查表 (0.6138ms)\n✔ C-05 Boss 额外 +10% 血量 (0.1721ms)\n✔ C-06 固定步长确定性 (0.5ms)\n✔ C-07 伤害管线顺序 (0.1096ms)\n✔ L-01 品质权重分布（大样本容差） (5.7394ms)\n✔ L-02 Boss 保底蓝 (0.7191ms)\n✔ L-03 Boss 紫/橙概率 (1.3722ms)\n✔ L-04 装备独立分桶（按玩家 id 哈希） (0.2366ms)\n✔ L-05 金币材料共享 (0.1487ms)\n✔ R-01 主路径连通（入口→Boss） (1.451ms)\n✔ R-02 每层恰 1 篝火 1 商店 (0.2335ms)\n✔ R-03 钥匙门 ≤1 且钥匙可达 (0.2507ms)\n✔ R-04 种子可复现 (0.4784ms)\n✔ R-05 种子+已探索可恢复 (0.3953ms)\n✔ R-06 非法参数抛错 (0.2789ms)\n✔ S-01 版本号存在 (0.5267ms)\n✔ S-02 CRC32 校验（篡改失败） (0.1086ms)\n✔ S-03 双备份回退 (0.1374ms)\n✔ S-04 迁移链 (0.0745ms)\n✔ S-05 异常退出回最近篝火快照 (0.7509ms)\nℹ tests 23\nℹ suites 0\nℹ pass 23\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 53.6096\n",
+      "evidence_id": "EV-000039"
+    },
+    {
+      "name": "render",
+      "ok": true,
+      "detail": "screenshot 227357 bytes",
+      "evidence_id": "EV-000040"
+    }
+  ],
+  "evidence_ids": [
+    "EV-000035",
+    "EV-000036",
+    "EV-000037",
+    "EV-000038",
+    "EV-000039",
+    "EV-000040"
+  ],
+  "subject_hash": "2c89ab28644b5f561a9264ab8c798c35034d9cb2d5b64d8feb78f4eae709261a",
+  "finished_at": "2026-11-16 21:32:59"
+}

@@ -8,16 +8,44 @@
     "hash": "9eed02c89930aed9",
     "path": "prompts\\roles\\ops.md"
   },
-  "model": "qwen3.6:35b-a3b-mtp-q4_K_M",
-  "backend": "local",
-  "latency_ms": 13039,
-  "tokens": 6942,
-  "cost_usd": 0.0,
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 16670,
+  "tokens": 10307,
+  "cost_usd": 0.0088965,
   "files": [
     {
       "path": "docs/ops/release-plan.md",
-      "sha256": "7cd212c428b9f78d53d671c48f42917da4edd493b7de928790f8a6e0fb84f58a",
-      "bytes": 2731,
+      "sha256": "f4f7fc26fb019d9ad7e95aac257e9fb06b033ee23d3a2219fa9b01993fdb8b72",
+      "bytes": 4123,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "scripts/ops/start-local.sh",
+      "sha256": "5a478286184ce6ebf2b4d5cd177b8d777f5ecca545ceab85cee093a03386e73a",
+      "bytes": 581,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "scripts/ops/build.sh",
+      "sha256": "87b95d8b27acbdcf9bb34182b284bef98f04b14fdcf239f79d7313b38a62bda7",
+      "bytes": 1328,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "scripts/ops/backup-save.sh",
+      "sha256": "dad95c648a1be7c8a2b3b70318fa0c12c64b6b58620ce7e7077ab23bc8d30605",
+      "bytes": 864,
+      "source": "role",
+      "promoted": true
+    },
+    {
+      "path": "scripts/ops/rollback.sh",
+      "sha256": "b2a809fd2a21be296242b4778fe892221b91c8a260c16a09bfb6165824684a64",
+      "bytes": 1303,
       "source": "role",
       "promoted": true
     }
@@ -67,22 +95,24 @@
   },
   "tools": null,
   "sandbox": "direct",
-  "template": "minimal-api",
-  "run_id": "20261116-202614",
-  "started_at": 1794832289.0690422,
-  "started_clock": "20:31:29",
+  "template": "web-2d-game",
+  "run_id": "20261116-212301",
+  "started_at": 1794835578.5739872,
+  "started_clock": "21:26:18",
   "schema_repairs": [],
-  "finished_at": "2026-11-16 20:31:53",
+  "finished_at": "2026-11-16 21:26:39",
   "quality": {
-    "score": 100,
+    "score": 97,
     "grade": "A",
     "components": {
       "completeness": 30,
       "gate": 30,
       "evidence": 20,
-      "efficiency": 10,
-      "clarity": 10
+      "efficiency": 9,
+      "clarity": 8
     },
-    "issues": []
+    "issues": [
+      "4 个未决问题"
+    ]
   }
 }

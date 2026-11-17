@@ -1,0 +1,48 @@
+/* 迷宫冒险家 UI 样式 —— 基于 ui-spec Design Token，16px 网格 / 2x 整数缩放 */
+:root {
+  --bg: #12141c; --panel: #1e2230; --panel-alt: #2a3042; --border: #3d4660;
+  --text: #e8ecf5; --text-dim: #9aa4bd; --hp: #e5484d; --mp: #3b82f6;
+  --gold: #f5c542; --interact: #4ade80; --danger: #f97316;
+  --q-white: #d6d9e0; --q-green: #4ade80; --q-blue: #3b82f6; --q-purple: #a855f7; --q-orange: #f97316;
+  --radius: 8px; --ease: cubic-bezier(0.2,0.8,0.2,1);
+}
+* { box-sizing: border-box; }
+.ui-hud, .ui-panel, .ui-tutorial { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text); }
+.hidden { display: none !important; }
+
+.ui-hud { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
+.bar { width: 200px; height: 16px; background: #0008; border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 8px; }
+.bar.small { width: 120px; height: 10px; }
+.bar-fill { height: 100%; width: 100%; transition: width 120ms var(--ease); }
+.bar-hp .bar-fill { background: var(--hp); }
+.bar-mp .bar-fill { background: var(--mp); }
+.hud-gold { position: absolute; top: 8px; right: 16px; color: var(--gold); font-weight: 700; }
+.hud-skills { position: absolute; bottom: 16px; left: 16px; display: flex; gap: 8px; }
+.skill { width: 48px; height: 48px; background: var(--panel); border: 2px solid var(--border); border-radius: var(--radius); display: grid; place-items: center; font-size: 12px; position: relative; }
+.skill::after { content: ''; position: absolute; inset: 0; background: #0009; transform: scaleY(var(--cd, 0)); transform-origin: bottom; }
+.hud-party { position: absolute; top: 8px; left: 16px; display: flex; flex-direction: column; gap: 4px; }
+.party-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.hud-minimap { position: absolute; top: 8px; right: 16px; margin-top: 24px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+
+.ui-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 2px solid var(--border); border-radius: 12px; padding: 16px; min-width: 320px; z-index: 200; box-shadow: 0 8px 32px #000a; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 700; }
+.btn { background: var(--panel-alt); color: var(--text); border: 2px solid var(--border); border-radius: var(--radius); padding: 6px 12px; cursor: pointer; transition: background 120ms var(--ease); }
+.btn:hover:not(:disabled) { background: var(--interact); color: #000; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.input { background: var(--bg); color: var(--text); border: 2px solid var(--border); border-radius: var(--radius); padding: 6px 10px; margin: 8px 0; }
+
+.inv-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.inv-cell { border: 2px solid var(--q-white); border-radius: var(--radius); padding: 6px; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.arrow.up { color: var(--interact); } .arrow.down { color: var(--danger); }
+.shop-row { display: flex; align-items: center; gap: 12px; padding: 6px; border-left: 4px solid var(--border); margin-bottom: 6px; }
+.price { color: var(--gold); margin-left: auto; }
+.drop-row { padding: 2px 0; }
+.setting-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.multi-hint { color: var(--text-dim); margin-bottom: 8px; }
+
+.ui-tutorial { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; }
+.step { padding: 4px 10px; border-radius: var(--radius); background: var(--panel); border: 2px solid var(--border); font-size: 12px; color: var(--text-dim); }
+.step.active { border-color: var(--interact); color: var(--text); }
+.step.done { opacity: 0.5; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

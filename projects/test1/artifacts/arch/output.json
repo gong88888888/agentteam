@@ -1,39 +1,45 @@
 {
-  "task_id": "T-ARCH-001",
+  "task_id": "arch-slice-arch",
   "role": "arch",
   "status": "done",
-  "artifacts": [
+  "artifacts": [],
+  "claims": [
+    {
+      "claim": "以 Canvas + 原生 ES Modules 定义垂直切片模块边界：core(基座)/gameplay(房间、战斗、掉落、存档)/ui(HUD、面板)，gameplay 与 ui 通过事件总线与只读状态快照解耦，禁止互相直接引用内部实现。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "房间契约：RoomSpec{id,type,seed,exits[],spawns[],lootTable}，生成器保证入口到Boss主路径连通、每层1篝火1商店、钥匙门最多1且钥匙可达；读档按种子+已探索集合恢复。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "战斗契约：确定性 tick(固定步长) + 伤害管线(基础→词条→暴击→减伤)，多人缩放系数按人数查表(1/1.6/2.1/2.6 血量等)，Boss额外+10%；掉落独立按玩家ID分桶。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "存档契约：SaveEnvelope{version,worldSeed,roomsExplored,player,stash,quests,settings,crc}，双备份+CRC校验，版本迁移函数链，异常退出回最近篝火快照。",
+      "counts_as_evidence": false
+    },
+    {
+      "claim": "contracts/openapi.yaml 以 OpenAPI 3.0 形式描述本地存档/房间/战斗事件的消息契约（作为模块间 JSON 契约文档，不引入任何 Web 服务运行时）。",
+      "counts_as_evidence": false
+    }
+  ],
+  "evidence_refs": [],
+  "open_questions": [
+    "基座 game/js/core.js 与 main.js 暴露的现有 API（事件总线名、状态容器、tick 入口）未在需求中给出，需在实现前读取确认，避免契约与基座冲突。",
+    "存档介质：需求写 JSON/SQLite，但浏览器环境无 SQLite，MVP 采用 localStorage/IndexedDB 需产品确认降级方案。",
+    "局域网 P1 的 UDP 同步在浏览器 Canvas 栈下不可行，需确认 P1 是否改为 WebRTC/或明确不在本技术栈内实现。"
+  ],
+  "summary": "作为架构角色，基于已批准的产品基准、项目计划与 UI 规范，产出 docs/architecture/architecture.md 与 contracts/openapi.yaml（作为模块间 JSON 契约文档，非 Web 服务）。关键决策：(1) 分层为 core 基座 / gameplay 增量模块 / ui 增量模块，gameplay 与 ui 仅通过事件总线与只读状态快照交互，禁止跨层直接引用内部实现，保证基座文件不被覆盖且 node --test game_logic.test.mjs 与 smoke.mjs 基线可继续通过；(2) 定义房间契约 RoomSpec 与生成不变量（主路径连通、每层1篝火1商店、钥匙门≤1且钥匙可达、种子+已探索可恢复）；(3) 定义战斗契约（固定步长确定性 tick、伤害管线顺序、多人缩放查表、Boss+10%、装备独立掉落分桶）；(4) 定义存档契约 SaveEnvelope（版本号、双备份+CRC、迁移链、异常退出回篝火快照）；(5) 明确非目标：不引入 React、Python Web 服务、Unity/Godot，不重写引擎。信息缺口（基座 API 细节、浏览器无 SQLite 的存档介质降级、局域网 UDP 在 Canvas 栈不可行）已写入 open_questions，未编造证据。",
+  "files": [
     {
       "path": "docs/architecture/architecture.md",
-      "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+      "content": "# 迷宫冒险家 · 架构与契约（垂直切片）\n\n> 角色：arch。范围：HTML5 Canvas + 原生 ES Modules 垂直切片。不引入 React / Python Web 服务 / Unity / Godot，不重写引擎。\n> 上游：docs/plan/project-plan.md、docs/product/product-baseline.md、docs/design/ui-spec.md。\n\n## 1. 目标与非目标\n\n### 目标\n- 交付可运行 `game/index.html`，单人完整第一章 + 本地同屏 2 人 + 存档/背包/强化/商店/篝火。\n- 定义 gameplay 与 ui 的模块边界、房间/战斗/存档契约与不变量。\n- 保持基座 `game/js/core.js`、`game/js/main.js`、`game/index.html`、`game/tests/game_logic.test.mjs`、`game/tests/smoke.mjs` 不被修改，且 `node --test game/tests/game_logic.test.mjs` 与 `node game/tests/smoke.mjs` 通过。\n\n### 非目标\n- 不生成 Web API / React 工程 / 引擎工程。\n- 不在本切片实现局域网联机（P1）；不实现远程同乐。\n- 不修改产品验收标准与非目标。\n\n## 2. 分层与模块边界\n\n```\ngame/\n  index.html            # 基座，不改\n  js/core.js            # 基座：循环/输入/渲染上下文/事件总线，不改\n  js/main.js            # 基座：启动装配，不改\n  js/gameplay/          # 增量：纯逻辑模块（可被 node 测试直接 import）\n    rooms.mjs           # 房间生成与状态机\n    combat.mjs          # 战斗 tick、伤害管线、缩放\n    loot.mjs            # 掉落表与独立掉落分桶\n    inventory.mjs       # 背包/仓库/强化/重铸\n    save.mjs            # 存档封装、CRC、迁移\n    progression.mjs     # 等级/任务/委托\n  js/ui/                # 增量：渲染与输入适配（依赖 gameplay 只读快照）\n    hud.mjs\n    panels.mjs\n    screens.mjs\n  tests/\n    game_logic.test.mjs # 基座，不改\n    smoke.mjs           # 基座，不改\n    qa_*.mjs            # QA 新增\n```\n\n### 依赖规则（强制）\n1. `gameplay/*` 不得 import `ui/*`，不得访问 DOM。\n2. `ui/*` 只消费 gameplay 导出的**只读状态快照**与事件，不直接改 gameplay 内部对象。\n3. 跨模块通信只经 `core.js` 提供的事件总线（事件名见 §6）。\n4. 所有 gameplay 模块导出纯函数或 `createXxx()` 工厂，便于 node 测试无 DOM 运行。\n5. 禁止新增未登记依赖；MVP 零第三方运行时依赖。\n\n## 3. 房间契约\n\n```ts\ntype RoomType = 'combat'|'platform'|'treasure'|'shop'|'campfire'|'event'|'elite'|'boss';\n\ninterface RoomSpec {\n  id: string;            // 层内唯一\n  type: RoomType;\n  seed: number;          // 派生自世界种子 + 房间序号\n  exits: Exit[];         // {to: roomId, door: 'normal'|'key', locked: boolean}\n  spawns: SpawnSpec[];   // 怪物/宝箱/陷阱\n  lootTableId: string;\n}\n\ninterface FloorSpec {\n  worldSeed: number;\n  floorIndex: number;\n  rooms: RoomSpec[];     // 8-12 + 1 boss\n  entryRoomId: string;\n  bossRoomId: string;\n}\n```\n\n### 生成不变量（必须由 rooms.mjs 保证并可测试）\n- I1 主路径：`entryRoomId` 到 `bossRoomId` 存在至少一条连通路径。\n- I2 每层恰好 1 个 `campfire`、1 个 `shop`。\n- I3 `elite` 房概率 60%（按种子确定性）。\n- I4 `treasure` 房数量 ∈ [2,4]。\n- I5 钥匙门 ≤ 1，且钥匙来源（精英/事件）在钥匙门之前可达；无钥匙门时不得生成 `locked` 出口。\n- I6 同种子 + 同 floorIndex ⇒ 同 FloorSpec（确定性）。\n- I7 读档：`worldSeed + roomsExplored + bossDefeated` 可完整恢复房间状态。\n\n### 房间状态机\n`unvisited → active → cleared`；`boss` 房 `active → cleared` 触发结算事件。\n\n## 4. 战斗契约\n\n### 4.1 确定性 tick\n- 固定步长 `DT = 1/60`，逻辑与渲染解耦；渲染可插值。\n- `stepCombat(state, input, dt)` 纯函数，同输入序列 ⇒ 同结果（可测试）。\n\n### 4.2 伤害管线（顺序固定）\n1. 基础伤害（武器 + 等级）\n2. 词条加成（加法区）\n3. 暴击（暴击率/暴击伤害）\n4. 目标减伤/护盾\n5. 取整（向下取整，最小 1）\n\n### 4.3 多人缩放（以单人基准）\n| 人数 | 怪物血量 | 怪物伤害 | 金币 |\n|---|---|---|---|\n| 1 | ×1.0 | ×1.0 | ×1.0 |\n| 2 | ×1.6 | ×1.15 | ×1.25 |\n| 3 | ×2.1 | ×1.25 | ×1.45 |\n| 4 | ×2.6 | ×1.35 | ×1.65 |\n\nBoss 额外 +10% 血量。缩放只作用于怪物侧，玩家数值不变。\n\n### 4.4 掉落\n- 金币/材料共享拾取；装备**按玩家 ID 独立分桶**，每人只见自己的光柱。\n- 品质权重：白40/绿30/蓝20/紫8/橙2；Boss 保底蓝、紫20%、橙5%。\n- 掉落随机源必须由 `worldSeed + roomId + killIndex` 派生，保证可复现。\n\n## 5. 存档契约\n\n```ts\ninterface SaveEnvelope {\n  version: number;          // 迁移用\n  slot: 0|1|2;\n  worldSeed: number;\n  floorIndex: number;\n  roomsExplored: string[];\n  bossDefeated: string[];\n  player: PlayerSave;       // 属性/背包/装备/金币/技能点\n  stash: ItemSave[];        // 仓库 200 格\n  quests: QuestSave[];\n  settings: SettingsSave;\n  crc: string;              // 对除 crc 外字段的校验\n}\n```\n\n### 不变量\n- S1 双备份：主档 + 备份档，写入后校验 CRC，失败回退备份。\n- S2 版本迁移：`migrate(env)` 链式升级，未知高版本只读提示。\n- S3 自动存档点：进房间、回城、Boss 前、篝火；手动存档仅篝火/回城。\n- S4 异常退出：回最近篝火快照（不丢已确认的强化/购买）。\n- S5 客机角色独立档，主机世界档独立；切回单人不得锁内容。\n\n## 6. 事件总线契约（经 core.js）\n\n| 事件 | 方向 | 载荷 |\n|---|---|---|\n| `room:enter` | gameplay→ui | `{roomId, type}` |\n| `room:cleared` | gameplay→ui | `{roomId}` |\n| `combat:hit` | gameplay→ui | `{targetId, dmg, crit}` |\n| `loot:drop` | gameplay→ui | `{playerId, itemId, quality}` |\n| `save:written` | gameplay→ui | `{slot, ok}` |\n| `ui:intent` | ui→gameplay | `{action, payload}` |\n\n事件名与载荷为契约，变更需走契约评审。\n\n## 7. 与基座/测试的兼容\n- gameplay 模块为 `.mjs` 纯逻辑，可被 `node --test` 直接 import，不依赖 DOM。\n- 不修改基座测试；QA 仅新增 `game/tests/qa_*.mjs`。\n- smoke 通过条件：`game/index.html` 可加载、无未捕获异常、首帧渲染成功。\n\n## 8. ADR\n\n### ADR-001 逻辑与渲染分离\n- 决策：gameplay 纯逻辑 + 固定步长，ui 只读快照。\n- 理由：可测试、可复现、满足基座 node 测试。\n- 代价：需维护快照序列化。\n\n### ADR-002 确定性随机\n- 决策：所有随机由 `worldSeed` 派生（房间/掉落/精英概率）。\n- 理由：读档恢复与可复现测试。\n\n### ADR-003 存档介质降级\n- 决策：浏览器环境用 localStorage/IndexedDB 承载 SaveEnvelope，保留 JSON 结构。\n- 理由：需求写 JSON/SQLite，但 Canvas 栈无 SQLite；结构不变便于后续迁移。\n- 待确认：见 open_questions。\n\n### ADR-004 局域网 P1 不在本栈实现\n- 决策：MVP 只做本地同屏单进程；UDP 联机在浏览器栈不可行，P1 需另议（WebRTC 或独立方案）。\n- 理由：遵守技术栈约束，不引入服务端。\n\n## 9. 风险\n- 基座 API 未确认 → 实现前先读 core.js/main.js。\n- 存档介质降级 → 需产品确认。\n- 多人缩放与掉落分桶需在本地同屏下验证不串档。\n"
     },
     {
       "path": "contracts/openapi.yaml",
-      "sha256": "f6e5d4c3b2a1098765432109876543210987654321098765432109876543210"
+      "content": "openapi: 3.0.3\ninfo:\n  title: 迷宫冒险家 · 模块间 JSON 契约（文档用，非 Web 服务）\n  version: 0.1.0\n  description: >\n    本文件仅作为 gameplay/ui/存档之间的 JSON 消息契约文档，用于契约评审与 lint。\n    项目为离线 Canvas 游戏，不启动任何 HTTP 服务；路径语义映射为模块事件与存档结构。\npaths:\n  /events/room-enter:\n    post:\n      summary: 进入房间事件\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/RoomEnterEvent'\n      responses:\n        '204': { description: 已广播 }\n  /events/room-cleared:\n    post:\n      summary: 房间清空事件\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/RoomClearedEvent'\n      responses:\n        '204': { description: 已广播 }\n  /events/combat-hit:\n    post:\n      summary: 命中事件\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/CombatHitEvent'\n      responses:\n        '204': { description: 已广播 }\n  /events/loot-drop:\n    post:\n      summary: 掉落事件（按玩家分桶）\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/LootDropEvent'\n      responses:\n        '204': { description: 已广播 }\n  /save/envelope:\n    get:\n      summary: 读取存档封装\n      responses:\n        '200':\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/SaveEnvelope'\n    put:\n      summary: 写入存档封装（双备份+CRC）\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/SaveEnvelope'\n      responses:\n        '200':\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/SaveResult'\ncomponents:\n  schemas:\n    RoomType:\n      type: string\n      enum: [combat, platform, treasure, shop, campfire, event, elite, boss]\n    RoomEnterEvent:\n      type: object\n      required: [roomId, type]\n      properties:\n        roomId: { type: string }\n        type: { $ref: '#/components/schemas/RoomType' }\n    RoomClearedEvent:\n      type: object\n      required: [roomId]\n      properties:\n        roomId: { type: string }\n    CombatHitEvent:\n      type: object\n      required: [targetId, dmg, crit]\n      properties:\n        targetId: { type: string }\n        dmg: { type: integer, minimum: 1 }\n        crit: { type: boolean }\n    LootDropEvent:\n      type: object\n      required: [playerId, itemId, quality]\n      properties:\n        playerId: { type: string }\n        itemId: { type: string }\n        quality:\n          type: string\n          enum: [white, green, blue, purple, orange]\n    ItemSave:\n      type: object\n      required: [itemId, quality, affixes]\n      properties:\n        itemId: { type: string }\n        quality:\n          type: string\n          enum: [white, green, blue, purple, orange]\n        affixes:\n          type: array\n          items: { type: string }\n    PlayerSave:\n      type: object\n      required: [classId, level, gold, bag, equipped]\n      properties:\n        classId: { type: string, enum: [warrior, mage, ranger] }\n        level: { type: integer, minimum: 1, maximum: 30 }\n        gold: { type: integer, minimum: 0 }\n        bag:\n          type: array\n          items: { $ref: '#/components/schemas/ItemSave' }\n        equipped:\n          type: object\n          additionalProperties: { $ref: '#/components/schemas/ItemSave' }\n    SaveEnvelope:\n      type: object\n      required: [version, slot, worldSeed, floorIndex, roomsExplored, bossDefeated, player, stash, quests, settings, crc]\n      properties:\n        version: { type: integer, minimum: 1 }\n        slot: { type: integer, enum: [0, 1, 2] }\n        worldSeed: { type: integer }\n        floorIndex: { type: integer, minimum: 0 }\n        roomsExplored:\n          type: array\n          items: { type: string }\n        bossDefeated:\n          type: array\n          items: { type: string }\n        player: { $ref: '#/components/schemas/PlayerSave' }\n        stash:\n          type: array\n          items: { $ref: '#/components/schemas/ItemSave' }\n        quests:\n          type: array\n          items: { type: object }\n        settings:\n          type: object\n        crc: { type: string }\n    SaveResult:\n      type: object\n      required: [ok]\n      properties:\n        ok: { type: boolean }\n        usedBackup: { type: boolean }\n"
     }
-  ],
-  "claims": [
-    {
-      "claim": "已解决技术栈冲突：明确MVP阶段Unity/Godot为运行时引擎，React仅用于编辑器工具或启动器UI，二者通过本地HTTP/IPC通信。",
-      "counts_as_evidence": false
-    },
-    {
-      "claim": "定义了Host-Authority架构，确保单人基准与多人同步的一致性，动态难度缩放由Host统一计算。",
-      "counts_as_evidence": false
-    },
-    {
-      "claim": "存档系统采用WAL（Write-Ahead Logging）+ CRC校验双备份策略，解决原子性与防丢档问题。",
-      "counts_as_evidence": false
-    }
-  ],
-  "evidence_refs": [
-    "docs/architecture/architecture.md",
-    "contracts/openapi.yaml"
-  ],
-  "open_questions": [
-    "Q-004: Unity与React集成具体采用Electron还是CEF？需确认性能开销与打包策略。",
-    "Q-005: Godot引擎若选型，需重新定义ScriptableObject对应的Resource格式及序列化协议。",
-    "Q-006: 局域网联机UDP包结构细节（如状态同步频率、丢包重传机制）需在P1阶段详细设计。"
-  ],
-  "summary": "完成《迷宫冒险家》技术架构设计与接口契约定义。核心决策：1. **架构模式**：采用Host-Authority，单机/本地同屏单进程，局域网联机Host权威；2. **技术栈解耦**：明确Unity/Godot为游戏运行时，React仅用于非实时UI（如主菜单、背包编辑），通过JSON/IPC交换数据，消除前端代码冲突风险；3. **存档安全**：定义WAL预写日志+双备份+CRC校验机制，确保异常退出数据不丢失；4. **接口契约**：定义迷宫生成器输出格式、装备词条结构、同步状态协议。MVP范围锁定第一章5层+本地双人，排除远程联机以降低复杂度。"
+  ]
 }
