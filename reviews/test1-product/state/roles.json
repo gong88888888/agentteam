@@ -1,0 +1,321 @@
+{
+  "red-team": {
+    "role": "red-team",
+    "title": "产品红队评审",
+    "status": "done",
+    "prompt": {
+      "role": "red-team",
+      "version": 1,
+      "hash": "8412a44b4c39a43c",
+      "path": "prompts\\product-team\\red-team.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 21628,
+    "tokens": 10017,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 20,
+      "percent": 90.9
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/09-red-team.md",
+        "sha256": "9fa2f167d5aa9137d7f45a340699983e8a8e00a4d16283f129b8abd09e2e98aa",
+        "bytes": 6420
+      }
+    ],
+    "finished_at": "2026-11-17 18:20:02"
+  },
+  "product-lead": {
+    "role": "product-lead",
+    "title": "产品负责人",
+    "status": "done",
+    "prompt": {
+      "role": "product-lead",
+      "version": 1,
+      "hash": "b6c03187c2170fe9",
+      "path": "prompts\\product-team\\product-lead.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 19741,
+    "tokens": 7650,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 19,
+      "percent": 86.4
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/00-brief.md",
+        "sha256": "1a59d677e4cdf9999e9d653cb29c5dac78148a2299d958da249fc148d2cc0517",
+        "bytes": 5588
+      }
+    ],
+    "finished_at": "2026-11-17 18:15:12"
+  },
+  "doc-analyst": {
+    "role": "doc-analyst",
+    "title": "产品文档分析师",
+    "status": "done",
+    "prompt": {
+      "role": "doc-analyst",
+      "version": 1,
+      "hash": "3e83599f51b26bb7",
+      "path": "prompts\\product-team\\doc-analyst.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 18799,
+    "tokens": 15810,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 22,
+      "percent": 100.0
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/01-document-map.md",
+        "sha256": "b039f51da532f8ffe36337b7b91fcb3130ea0d800f1ec0900f367565455826e7",
+        "bytes": 10721
+      }
+    ],
+    "finished_at": "2026-11-17 18:16:07"
+  },
+  "user-researcher": {
+    "role": "user-researcher",
+    "title": "用户与场景研究员",
+    "status": "done",
+    "prompt": {
+      "role": "user-researcher",
+      "version": 1,
+      "hash": "775581e0a5359754",
+      "path": "prompts\\product-team\\user-researcher.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 27023,
+    "tokens": 8775,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 21,
+      "percent": 95.5
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/02-users-journeys.md",
+        "sha256": "94f9af8fc81c215c0f7aecdf9d593c590fcda8d825b1fbb4321319e583e0ab95",
+        "bytes": 6405
+      }
+    ],
+    "finished_at": "2026-11-17 18:16:38"
+  },
+  "flow-architect": {
+    "role": "flow-architect",
+    "title": "产品流程架构师",
+    "status": "done",
+    "prompt": {
+      "role": "flow-architect",
+      "version": 1,
+      "hash": "6c3ac754b305353f",
+      "path": "prompts\\product-team\\flow-architect.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 28299,
+    "tokens": 10425,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 22,
+      "percent": 100.0
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/03-product-flows.md",
+        "sha256": "6eb325b438a66eae2da5e3493145c43a8991544566845e99cf35a11b09091fb0",
+        "bytes": 9730
+      }
+    ],
+    "finished_at": "2026-11-17 18:17:10"
+  },
+  "feature-designer": {
+    "role": "feature-designer",
+    "title": "功能与验收设计师",
+    "status": "done",
+    "prompt": {
+      "role": "feature-designer",
+      "version": 1,
+      "hash": "f777dc87fd696863",
+      "path": "prompts\\product-team\\feature-designer.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 20577,
+    "tokens": 9240,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 20,
+      "percent": 90.9
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/04-feature-spec.md",
+        "sha256": "6521b07583d4effc84ea714e3c2974d0acd94e40ee7aa95ab516ae37e01db29d",
+        "bytes": 8532
+      }
+    ],
+    "finished_at": "2026-11-17 18:17:35"
+  },
+  "ux-reviewer": {
+    "role": "ux-reviewer",
+    "title": "UX/可访问性评审",
+    "status": "done",
+    "prompt": {
+      "role": "ux-reviewer",
+      "version": 1,
+      "hash": "df81601d3c4c8e5a",
+      "path": "prompts\\product-team\\ux-reviewer.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 28692,
+    "tokens": 9749,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 18,
+      "percent": 81.8
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/05-ux-review.md",
+        "sha256": "9175f78f4739373e249bb803cea57975678bd1241e11e8f5f607646a483812d6",
+        "bytes": 7743
+      }
+    ],
+    "finished_at": "2026-11-17 18:18:08"
+  },
+  "tech-feasibility": {
+    "role": "tech-feasibility",
+    "title": "技术可行性评审",
+    "status": "done",
+    "prompt": {
+      "role": "tech-feasibility",
+      "version": 1,
+      "hash": "619985a9ce527763",
+      "path": "prompts\\product-team\\tech-feasibility.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 23693,
+    "tokens": 9267,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 17,
+      "percent": 77.3
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/06-tech-feasibility.md",
+        "sha256": "09c22cd0d8f5cf06863fe25886701bb151d39325f48147431d4b9c689070160b",
+        "bytes": 6081
+      }
+    ],
+    "finished_at": "2026-11-17 18:18:36"
+  },
+  "release-strategist": {
+    "role": "release-strategist",
+    "title": "版本与发布策略师",
+    "status": "done",
+    "prompt": {
+      "role": "release-strategist",
+      "version": 1,
+      "hash": "daa7adc2b78ab72b",
+      "path": "prompts\\product-team\\release-strategist.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 29393,
+    "tokens": 10047,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 13,
+      "percent": 59.1
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/07-upgrade-plan.md",
+        "sha256": "281df514ea445ff1045f1748c78e782be0c78767ba750c38a8873af23b7c111b",
+        "bytes": 8402
+      }
+    ],
+    "finished_at": "2026-11-17 18:19:09"
+  },
+  "qa-rehearsal": {
+    "role": "qa-rehearsal",
+    "title": "质量预演师",
+    "status": "done",
+    "prompt": {
+      "role": "qa-rehearsal",
+      "version": 1,
+      "hash": "8fc5e75467b5ddcc",
+      "path": "prompts\\product-team\\qa-rehearsal.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 22746,
+    "tokens": 9923,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 17,
+      "percent": 77.3
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/08-rehearsal.md",
+        "sha256": "848a6d79b88f5d2a49ce0e2fee61e3949c114bfe5ae7bf2c557446ef3148751d",
+        "bytes": 8826
+      }
+    ],
+    "finished_at": "2026-11-17 18:19:36"
+  },
+  "knowledge-curator": {
+    "role": "knowledge-curator",
+    "title": "知识沉淀与复用",
+    "status": "done",
+    "prompt": {
+      "role": "knowledge-curator",
+      "version": 1,
+      "hash": "1e2dfc24077e4142",
+      "path": "prompts\\product-team\\knowledge-curator.md"
+    },
+    "model": "deepseek-chat",
+    "backend": "deepseekharness",
+    "latency_ms": 17931,
+    "tokens": 9515,
+    "coverage": {
+      "total_sections": 22,
+      "covered_sections": 18,
+      "percent": 81.8
+    },
+    "gate": "pass",
+    "files": [
+      {
+        "path": "docs/product-review/10-playbook.md",
+        "sha256": "068fd61f0dd24721f56f16bf502c21be7100296b370e206fb668d70c309121cd",
+        "bytes": 6986
+      }
+    ],
+    "finished_at": "2026-11-17 18:20:24"
+  }
+}

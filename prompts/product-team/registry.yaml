@@ -1,0 +1,45 @@
+roles:
+  - role: product-lead
+    title: 产品负责人
+    artifact: docs/product-review/00-brief.md
+    hash: b6c03187c2170fe9
+  - role: doc-analyst
+    title: 产品文档分析师
+    artifact: docs/product-review/01-document-map.md
+    hash: 3e83599f51b26bb7
+  - role: user-researcher
+    title: 用户与场景研究员
+    artifact: docs/product-review/02-users-journeys.md
+    hash: 775581e0a5359754
+  - role: flow-architect
+    title: 产品流程架构师
+    artifact: docs/product-review/03-product-flows.md
+    hash: 6c3ac754b305353f
+  - role: feature-designer
+    title: 功能与验收设计师
+    artifact: docs/product-review/04-feature-spec.md
+    hash: f777dc87fd696863
+  - role: ux-reviewer
+    title: UX/可访问性评审
+    artifact: docs/product-review/05-ux-review.md
+    hash: df81601d3c4c8e5a
+  - role: tech-feasibility
+    title: 技术可行性评审
+    artifact: docs/product-review/06-tech-feasibility.md
+    hash: 619985a9ce527763
+  - role: release-strategist
+    title: 版本与发布策略师
+    artifact: docs/product-review/07-upgrade-plan.md
+    hash: daa7adc2b78ab72b
+  - role: qa-rehearsal
+    title: 质量预演师
+    artifact: docs/product-review/08-rehearsal.md
+    hash: 8fc5e75467b5ddcc
+  - role: red-team
+    title: 产品红队评审
+    artifact: docs/product-review/09-red-team.md
+    hash: 8412a44b4c39a43c
+  - role: knowledge-curator
+    title: 知识沉淀与复用
+    artifact: docs/product-review/10-playbook.md
+    hash: 1e2dfc24077e4142

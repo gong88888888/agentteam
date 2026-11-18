@@ -1,0 +1,29 @@
+{
+  "role": "user-researcher",
+  "title": "用户与场景研究员",
+  "status": "done",
+  "prompt": {
+    "role": "user-researcher",
+    "version": 1,
+    "hash": "775581e0a5359754",
+    "path": "prompts\\product-team\\user-researcher.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 27023,
+  "tokens": 8775,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 21,
+    "percent": 95.5
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/02-users-journeys.md",
+      "sha256": "94f9af8fc81c215c0f7aecdf9d593c590fcda8d825b1fbb4321319e583e0ab95",
+      "bytes": 6405
+    }
+  ],
+  "finished_at": "2026-11-17 18:16:38"
+}

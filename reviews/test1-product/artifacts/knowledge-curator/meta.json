@@ -1,0 +1,29 @@
+{
+  "role": "knowledge-curator",
+  "title": "知识沉淀与复用",
+  "status": "done",
+  "prompt": {
+    "role": "knowledge-curator",
+    "version": 1,
+    "hash": "1e2dfc24077e4142",
+    "path": "prompts\\product-team\\knowledge-curator.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 17931,
+  "tokens": 9515,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 18,
+    "percent": 81.8
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/10-playbook.md",
+      "sha256": "068fd61f0dd24721f56f16bf502c21be7100296b370e206fb668d70c309121cd",
+      "bytes": 6986
+    }
+  ],
+  "finished_at": "2026-11-17 18:20:24"
+}

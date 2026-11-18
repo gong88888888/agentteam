@@ -113,3 +113,21 @@ API：
 - `POST /api/projects/{name}/roles/{role}/rerun` `{note, offline, sandbox, profile}`
 
 重跑写入新的 `request.md`、`meta.json`（含 `adjustment/gate/tools/quality`）、`quality/history.jsonl`、`evidence/tool-ledger.jsonl` 与 `logs/events.jsonl`；已有其他角色记录保留。门禁未通过会自动在决策收件箱创建 `DEC-<project>-<role>`。
+
+## Product Review & Upgrade Reference
+
+`reviews.html` 展示 `reviews/` 下的产品评审团队结果：11 个角色门禁、来源覆盖率、参考方案和全部 artifacts。
+
+```bash
+python start_product_review.py --doc <产品文档.md> --out reviews/<version> --real --kb
+python dashboard/serve.py --port 8765
+# http://localhost:8765/reviews.html
+```
+
+API：
+
+- `GET /api/reviews`
+- `GET /api/reviews/{name}`
+- `GET /api/reviews/{name}/file?path=REFERENCE-PLAN.md`
+
+详见 [PRODUCT_REVIEW_TEAM.md](../PRODUCT_REVIEW_TEAM.md)。

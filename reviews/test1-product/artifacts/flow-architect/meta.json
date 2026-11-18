@@ -1,0 +1,29 @@
+{
+  "role": "flow-architect",
+  "title": "产品流程架构师",
+  "status": "done",
+  "prompt": {
+    "role": "flow-architect",
+    "version": 1,
+    "hash": "6c3ac754b305353f",
+    "path": "prompts\\product-team\\flow-architect.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 28299,
+  "tokens": 10425,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 22,
+    "percent": 100.0
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/03-product-flows.md",
+      "sha256": "6eb325b438a66eae2da5e3493145c43a8991544566845e99cf35a11b09091fb0",
+      "bytes": 9730
+    }
+  ],
+  "finished_at": "2026-11-17 18:17:10"
+}

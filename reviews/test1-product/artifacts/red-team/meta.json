@@ -1,0 +1,29 @@
+{
+  "role": "red-team",
+  "title": "产品红队评审",
+  "status": "done",
+  "prompt": {
+    "role": "red-team",
+    "version": 1,
+    "hash": "8412a44b4c39a43c",
+    "path": "prompts\\product-team\\red-team.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 21628,
+  "tokens": 10017,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 20,
+    "percent": 90.9
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/09-red-team.md",
+      "sha256": "9fa2f167d5aa9137d7f45a340699983e8a8e00a4d16283f129b8abd09e2e98aa",
+      "bytes": 6420
+    }
+  ],
+  "finished_at": "2026-11-17 18:20:02"
+}

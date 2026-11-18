@@ -1,0 +1,5 @@
+{
+  "role": "product-lead",
+  "status": "error",
+  "error": "'low' is not one of ['info', 'minor', 'major', 'critical']\n\nFailed validating 'enum' in schema['properties']['findings']['items']['properties']['severity']:\n    {'type': 'string', 'enum': ['info', 'minor', 'major', 'critical']}\n\nOn instance['findings'][9]['severity']:\n    'low'"
+}

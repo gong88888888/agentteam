@@ -10,6 +10,20 @@ from .. import hard_blocks
 from .base import ChatResult, ModelTimeout
 
 
+PRODUCT_ROLE_STUB = {
+    "product-lead": ("docs/product-review/00-brief.md", "目标 成功指标 非目标 决策 用户 版本 升级"),
+    "doc-analyst": ("docs/product-review/01-document-map.md", "来源 主张 歧义 覆盖 SRC-001 用户 流程 数据 风险"),
+    "user-researcher": ("docs/product-review/02-users-journeys.md", "用户 场景 旅程 痛点 假设 失败 恢复 SRC-001"),
+    "flow-architect": ("docs/product-review/03-product-flows.md", "状态 事件 转移 失败 恢复 空状态 加载 错误 SRC-001"),
+    "feature-designer": ("docs/product-review/04-feature-spec.md", "功能 切片 依赖 非目标 验收 边界 异常 SRC-001"),
+    "ux-reviewer": ("docs/product-review/05-ux-review.md", "信息架构 状态 错误 可访问 文案 键盘 对比度 SRC-001"),
+    "tech-feasibility": ("docs/product-review/06-tech-feasibility.md", "技术 依赖 性能 安全 风险 架构 假设 SRC-001"),
+    "release-strategist": ("docs/product-review/07-upgrade-plan.md", "版本 兼容 迁移 灰度 回滚 特性开关 发布 升级 SRC-001"),
+    "qa-rehearsal": ("docs/product-review/08-rehearsal.md", "场景 基线 指标 回滚 Go/No-Go 补丁 小版本 大版本 SRC-001"),
+    "red-team": ("docs/product-review/09-red-team.md", "矛盾 缺口 风险 严重度 SRC-001 范围 验收"),
+    "knowledge-curator": ("docs/product-review/10-playbook.md", "复用 升级 触发条件 门禁 模板 常见坑 SRC-001"),
+}
+
 ROLE_STUB = {
     "pm": "决策包 选项 证据 风险 升级 裁决协调 切片 依赖 门禁",
     "product": "非目标 验收标准 用户场景 范围",
@@ -67,6 +81,8 @@ class StubBackend:
             }
             if "项目运行器约束" in text and role in ("backend", "frontend"):
                 obj["files"] = [self._project_file(role, "游戏项目约束" in text)]
+            if role in PRODUCT_ROLE_STUB:
+                obj = self._product_review(role, text)
         if self.mode == "schema_error":
             content = '{"not": "a verdict"'
         else:
@@ -74,6 +90,50 @@ class StubBackend:
         return ChatResult(content=content, backend=self.name, model=model or "stub",
                           model_version="stub@1", latency_ms=int((time.time() - started) * 1000),
                           response_id="stub")
+
+    @staticmethod
+    def _product_review(role: str, text: str) -> dict[str, Any]:
+        artifact, terms = PRODUCT_ROLE_STUB[role]
+        refs = sorted(set(re.findall(r"SRC-\d{3,}", text))) or [f"SRC-{i:03d}" for i in range(1, 7)]
+        detail = "".join(
+            f"""### {ref}
+- 用户/流程/功能/风险均需在下一版回归；当前结论来自文档段落，需产品与 QA 复核。
+
+"""
+            for ref in refs)
+        content = f"""# {role} · stub product review
+
+来源覆盖：{', '.join(refs)}
+
+## 目标与范围
+{terms}
+
+## 关键结论
+- 用户、场景、流程、数据与升级影响已按来源建立映射。
+- 假设与缺口进入 open_questions，不伪装成已验证事实。
+
+## 详细分析
+{detail}## 验收与下一步
+- 验收：可观察、可回滚、可追溯到 SRC。
+- 角色：{role}；输出：{artifact}。
+"""
+        findings = [
+            {"id": f"{role}-F{i}", "severity": "major" if i == 0 else "minor",
+             "claim": f"来源 {refs[i % len(refs)]} 需要明确验收或升级影响",
+             "source_refs": [refs[i % len(refs)]],
+             "recommendation": "补充流程/验收/回滚说明"}
+            for i in range(5 if role == "red-team" else 2)
+        ]
+        return {
+            "task_id": f"stub-{role}", "role": role, "status": "done",
+            "source_sections": refs,
+            "findings": findings,
+            "coverage": {"total_sections": len(refs), "covered_sections": len(refs),
+                         "percent": 100 if refs else 0},
+            "files": [{"path": artifact, "content": content}],
+            "summary": f"stub {role}: {terms}",
+            "open_questions": [],
+        }
 
     @staticmethod
     def _project_file(role: str, game: bool = False) -> dict[str, str]:
@@ -117,10 +177,10 @@ class StubBackend:
 
     @staticmethod
     def _role(text: str) -> str:
-        m = re.search(r"ROLE:\s*([a-z]+)", text)
+        m = re.search(r"ROLE:\s*([a-z-]+)", text)
         if m and m.group(1) in ("pm", "product", "ui", "arch", "frontend",
                                 "backend", "review", "qa", "security",
-                                "ops", "kb", "retro"):
+                                "ops", "kb", "retro", *PRODUCT_ROLE_STUB):
             return m.group(1)
         return "product"
 

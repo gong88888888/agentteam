@@ -1,0 +1,29 @@
+{
+  "role": "release-strategist",
+  "title": "版本与发布策略师",
+  "status": "done",
+  "prompt": {
+    "role": "release-strategist",
+    "version": 1,
+    "hash": "daa7adc2b78ab72b",
+    "path": "prompts\\product-team\\release-strategist.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 29393,
+  "tokens": 10047,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 13,
+    "percent": 59.1
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/07-upgrade-plan.md",
+      "sha256": "281df514ea445ff1045f1748c78e782be0c78767ba750c38a8873af23b7c111b",
+      "bytes": 8402
+    }
+  ],
+  "finished_at": "2026-11-17 18:19:09"
+}

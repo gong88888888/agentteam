@@ -1,0 +1,29 @@
+{
+  "role": "ux-reviewer",
+  "title": "UX/可访问性评审",
+  "status": "done",
+  "prompt": {
+    "role": "ux-reviewer",
+    "version": 1,
+    "hash": "df81601d3c4c8e5a",
+    "path": "prompts\\product-team\\ux-reviewer.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 28692,
+  "tokens": 9749,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 18,
+    "percent": 81.8
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/05-ux-review.md",
+      "sha256": "9175f78f4739373e249bb803cea57975678bd1241e11e8f5f607646a483812d6",
+      "bytes": 7743
+    }
+  ],
+  "finished_at": "2026-11-17 18:18:08"
+}

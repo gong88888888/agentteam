@@ -34,11 +34,13 @@ from orchestrator.config import load_config, signing_key  # noqa: E402
 from orchestrator.evidence.store import EvidenceStore  # noqa: E402
 from orchestrator.project_runner import ProjectRunner, ROLE_MAP, ROLE_SPECS  # noqa: E402
 from orchestrator.quality import role_trend  # noqa: E402
+from orchestrator.product_review import PRODUCT_ROLES  # noqa: E402
 from live import live_payload  # noqa: E402
 
 STORE = DecisionStore(ROOT / "data" / "decisions.db")
 STORE.seed_demo()
 PROJECTS = ROOT / "projects"
+REVIEWS = ROOT / "reviews"
 CFG = load_config()
 PROJECT_LOCK = threading.Lock()
 
@@ -129,6 +131,39 @@ def _project_detail(p: Path) -> dict:
     return data
 
 
+def _review_summary(p: Path) -> dict:
+    gates = _read_json(p / "state" / "gates.json", {})
+    state = _read_json(p / "state" / "roles.json", {})
+    order = {r.role: i for i, r in enumerate(PRODUCT_ROLES)}
+    return {
+        "name": p.name, "status": gates.get("status", "unknown"),
+        "coverage": gates.get("coverage_percent"),
+        "source": gates.get("source", ""),
+        "roles": [{"role": r, "status": state[r].get("status"),
+                   "gate": state[r].get("gate"),
+                   "files": state[r].get("files", [])}
+                  for r in sorted(state, key=lambda role: order.get(role, 999))],
+        "gates": gates.get("gates", []),
+        "finished_at": gates.get("finished_at", ""),
+    }
+
+
+def _review_detail(p: Path) -> dict:
+    data = _review_summary(p)
+    readme = p / "README.md"
+    data["readme"] = readme.read_text(encoding="utf-8")[:8000] if readme.exists() else ""
+    files = []
+    for rel in ("REFERENCE-PLAN.md", "README.md"):
+        f = p / rel
+        if f.is_file():
+            files.append({"path": rel, "bytes": f.stat().st_size})
+    for f in sorted((p / "docs" / "product-review").glob("*")):
+        if f.is_file():
+            files.append({"path": f.relative_to(p).as_posix(), "bytes": f.stat().st_size})
+    data["files"] = files
+    return data
+
+
 def _role_detail(p: Path, role: str) -> dict | None:
     if role not in ROLE_MAP:
         return None
@@ -203,6 +238,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(404, {"error": str(exc)})
             except Exception as exc:
                 return self._json(500, {"error": str(exc)[:500]})
+        if u.path == "/api/reviews":
+            items = [_review_summary(p) for p in sorted(REVIEWS.iterdir())
+                     if p.is_dir()] if REVIEWS.exists() else []
+            return self._json(200, {"reviews": items})
+        if len(parts) == 3 and parts[:2] == ["api", "reviews"]:
+            p = REVIEWS / parts[2]
+            if not p.is_dir():
+                return self._json(404, {"error": "review not found"})
+            return self._json(200, _review_detail(p))
+        if len(parts) == 4 and parts[:2] == ["api", "reviews"] and parts[3] == "file":
+            rel = (parse_qs(u.query).get("path") or [""])[0].replace("\\", "/").lstrip("/")
+            if not rel or ".." in Path(rel).parts:
+                return self._json(400, {"error": "invalid path"})
+            p = REVIEWS / parts[2]
+            target = (p / rel).resolve()
+            root = str(p.resolve())
+            if not str(target).startswith(root + os.sep) or not target.is_file():
+                return self._json(404, {"error": "file not found"})
+            return self._json(200, {"path": rel,
+                                    "content": target.read_text(encoding="utf-8", errors="replace")[:200000]})
         if u.path == "/api/projects":
             items = [_project_summary(p) for p in sorted(PROJECTS.iterdir())
                      if p.is_dir() and not p.name.startswith(("_", "."))] if PROJECTS.exists() else []

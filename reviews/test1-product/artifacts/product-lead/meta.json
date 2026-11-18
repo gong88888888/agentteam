@@ -1,0 +1,29 @@
+{
+  "role": "product-lead",
+  "title": "产品负责人",
+  "status": "done",
+  "prompt": {
+    "role": "product-lead",
+    "version": 1,
+    "hash": "b6c03187c2170fe9",
+    "path": "prompts\\product-team\\product-lead.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 19741,
+  "tokens": 7650,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 19,
+    "percent": 86.4
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/00-brief.md",
+      "sha256": "1a59d677e4cdf9999e9d653cb29c5dac78148a2299d958da249fc148d2cc0517",
+      "bytes": 5588
+    }
+  ],
+  "finished_at": "2026-11-17 18:15:12"
+}

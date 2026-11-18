@@ -1,0 +1,29 @@
+{
+  "role": "tech-feasibility",
+  "title": "技术可行性评审",
+  "status": "done",
+  "prompt": {
+    "role": "tech-feasibility",
+    "version": 1,
+    "hash": "619985a9ce527763",
+    "path": "prompts\\product-team\\tech-feasibility.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 23693,
+  "tokens": 9267,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 17,
+    "percent": 77.3
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/06-tech-feasibility.md",
+      "sha256": "09c22cd0d8f5cf06863fe25886701bb151d39325f48147431d4b9c689070160b",
+      "bytes": 6081
+    }
+  ],
+  "finished_at": "2026-11-17 18:18:36"
+}

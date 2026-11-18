@@ -14,6 +14,7 @@
 | [eval/README.md](eval/README.md) | W2/W4 评测集、金丝雀、role/prompt/KB 评测 |
 | [PROJECT_PLAYBOOK.md](PROJECT_PLAYBOOK.md) | 选需求、启动项目、角色记录与优化路线 |
 | [PROCESS_OPTIMIZATION.md](PROCESS_OPTIMIZATION.md) | 第一次失败的复盘、六阶段流程、DoD 与 P0–P2 提升方案 |
+| [PRODUCT_REVIEW_TEAM.md](PRODUCT_REVIEW_TEAM.md) | 产品文档深析/流程细化/版本升级预演团队与门禁 |
 
 ## Windows 启动
 
@@ -196,6 +197,18 @@ test1 游戏产品已按此重跑：产品/架构角色产出深度文档并通�
 ```bash
 python start_project.py --requirements projects/test1/requirements/input.md --project-dir projects/test1-game --real --template web-2d-game --project-type game
 ```
+
+## 产品评审与升级预演团队
+
+发版/升级前先运行独立的 Product Review Team，不直接进入开发：
+
+```bash
+python start_product_review.py   --doc projects/test1/docs/product/product-baseline.md   --out reviews/test1-product --real --kb
+```
+
+11 个角色：product-lead、doc-analyst、user-researcher、flow-architect、feature-designer、ux-reviewer、tech-feasibility、release-strategist、qa-rehearsal、red-team、knowledge-curator。输出 `REFERENCE-PLAN.md`、`state/gates.json`、补丁/小版本/大版本预演、兼容/迁移/回滚方案和下一次升级清单。
+
+示例：`reviews/test1-product/`（11/11 门禁、22/22 来源章节覆盖）；监控页 `http://localhost:8765/reviews.html`。详见 [PRODUCT_REVIEW_TEAM.md](PRODUCT_REVIEW_TEAM.md)。
 
 ## W4 结果
 

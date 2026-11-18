@@ -1,0 +1,29 @@
+{
+  "role": "doc-analyst",
+  "title": "产品文档分析师",
+  "status": "done",
+  "prompt": {
+    "role": "doc-analyst",
+    "version": 1,
+    "hash": "3e83599f51b26bb7",
+    "path": "prompts\\product-team\\doc-analyst.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 18799,
+  "tokens": 15810,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 22,
+    "percent": 100.0
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/01-document-map.md",
+      "sha256": "b039f51da532f8ffe36337b7b91fcb3130ea0d800f1ec0900f367565455826e7",
+      "bytes": 10721
+    }
+  ],
+  "finished_at": "2026-11-17 18:16:07"
+}

@@ -209,6 +209,8 @@ python dashboard/serve.py --port 8765
 
 完整复盘与六阶段流程见 [PROCESS_OPTIMIZATION.md](PROCESS_OPTIMIZATION.md)。要点：preflight → product 深文档 → arch 契约 → implementation 阶段验收 → QA 真实测试 → final acceptance + DoD；任何阶段失败不能 `completed`，`start_project.py` 只有 completed 返回 0。
 
+发版/升级前先运行产品评审团队，见 [PRODUCT_REVIEW_TEAM.md](PRODUCT_REVIEW_TEAM.md)：`python start_product_review.py --doc <新版本文档> --out reviews/<version> --real`。
+
 ## 5. 建议的第一个真实闭环
 
 1. 选 `REQ-CSV`。

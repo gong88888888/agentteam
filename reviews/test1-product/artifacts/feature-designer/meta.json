@@ -1,0 +1,29 @@
+{
+  "role": "feature-designer",
+  "title": "功能与验收设计师",
+  "status": "done",
+  "prompt": {
+    "role": "feature-designer",
+    "version": 1,
+    "hash": "f777dc87fd696863",
+    "path": "prompts\\product-team\\feature-designer.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 20577,
+  "tokens": 9240,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 20,
+    "percent": 90.9
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/04-feature-spec.md",
+      "sha256": "6521b07583d4effc84ea714e3c2974d0acd94e40ee7aa95ab516ae37e01db29d",
+      "bytes": 8532
+    }
+  ],
+  "finished_at": "2026-11-17 18:17:35"
+}

@@ -1,0 +1,89 @@
+sections:
+- id: SRC-001
+  level: 1
+  heading: product · 产品基准（第一章 / MVP）
+  line: 1
+- id: SRC-002
+  level: 2
+  heading: 0. 一句话与范围
+  line: 6
+- id: SRC-003
+  level: 2
+  heading: 1. 非目标（明确不做，防止范围蔓延）
+  line: 12
+- id: SRC-004
+  level: 2
+  heading: 2. 全局状态机（顶层）
+  line: 25
+- id: SRC-005
+  level: 2
+  heading: 3. 逐状态定义
+  line: 33
+- id: SRC-006
+  level: 3
+  heading: S1 主菜单 MAIN_MENU
+  line: 35
+- id: SRC-007
+  level: 3
+  heading: S2 选职业/难度 CHAR_SETUP
+  line: 41
+- id: SRC-008
+  level: 3
+  heading: S3 层加载 RUN_LOADING
+  line: 47
+- id: SRC-009
+  level: 3
+  heading: S4 迷宫循环 DUNGEON_LOOP（8-12 房间 + 1 Boss 房）
+  line: 53
+- id: SRC-010
+  level: 3
+  heading: S5 战斗与掉落（DUNGEON_LOOP 内子流程）
+  line: 65
+- id: SRC-011
+  level: 3
+  heading: S6 商店/篝火/事件
+  line: 72
+- id: SRC-012
+  level: 3
+  heading: S7 Boss 房 BOSS_ROOM
+  line: 79
+- id: SRC-013
+  level: 3
+  heading: S8 结算 RESULT
+  line: 86
+- id: SRC-014
+  level: 3
+  heading: S9 回城 TOWN
+  line: 93
+- id: SRC-015
+  level: 3
+  heading: S10 存档/读档 SAVE_LOAD（旁路）
+  line: 99
+- id: SRC-016
+  level: 3
+  heading: S11 双人复活（多人子状态）
+  line: 106
+- id: SRC-017
+  level: 3
+  heading: S12 暂停 PAUSE
+  line: 112
+- id: SRC-018
+  level: 3
+  heading: S13 错误恢复 ERROR_RECOVERY
+  line: 116
+- id: SRC-019
+  level: 2
+  heading: 4. 多人规则（仅缩放与协作）
+  line: 121
+- id: SRC-020
+  level: 2
+  heading: 5. 量化验收指标
+  line: 134
+- id: SRC-021
+  level: 2
+  heading: 6. 失败恢复总表
+  line: 149
+- id: SRC-022
+  level: 2
+  heading: 7. 待确认（open questions）
+  line: 163

@@ -1,0 +1,29 @@
+{
+  "role": "qa-rehearsal",
+  "title": "质量预演师",
+  "status": "done",
+  "prompt": {
+    "role": "qa-rehearsal",
+    "version": 1,
+    "hash": "8fc5e75467b5ddcc",
+    "path": "prompts\\product-team\\qa-rehearsal.md"
+  },
+  "model": "deepseek-chat",
+  "backend": "deepseekharness",
+  "latency_ms": 22746,
+  "tokens": 9923,
+  "coverage": {
+    "total_sections": 22,
+    "covered_sections": 17,
+    "percent": 77.3
+  },
+  "gate": "pass",
+  "files": [
+    {
+      "path": "docs/product-review/08-rehearsal.md",
+      "sha256": "848a6d79b88f5d2a49ce0e2fee61e3949c114bfe5ae7bf2c557446ef3148751d",
+      "bytes": 8826
+    }
+  ],
+  "finished_at": "2026-11-17 18:19:36"
+}
