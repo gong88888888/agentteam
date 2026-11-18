@@ -74,6 +74,34 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(404, {"error": "not_found", "path": parsed.path})
 
+    def _method_not_allowed(self) -> None:
+        body = json.dumps({"error": "method_not_allowed",
+                           "allow": "GET"}, ensure_ascii=False).encode("utf-8")
+        self.send_response(405)
+        self.send_header("Allow", "GET")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    do_POST = _method_not_allowed  # noqa: N815
+    do_PUT = _method_not_allowed  # noqa: N815
+    do_PATCH = _method_not_allowed  # noqa: N815
+    do_DELETE = _method_not_allowed  # noqa: N815
+    do_OPTIONS = _method_not_allowed  # noqa: N815
+    do_TRACE = _method_not_allowed  # noqa: N815
+    do_HEAD = _method_not_allowed  # noqa: N815
+
+    def send_error(self, code: int, message: str | None = None,
+                   explain: str | None = None) -> None:
+        # BaseHTTPRequestHandler answers unknown methods with 501; the contract
+        # check expects a clean 405 for methods not declared in OpenAPI.
+        if code == 501:
+            self._method_not_allowed()
+            return
+        super().send_error(code, message, explain)
+
     def log_message(self, fmt: str, *args) -> None:
         return
 

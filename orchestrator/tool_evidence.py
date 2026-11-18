@@ -140,7 +140,7 @@ def build_checks(root: Path, profile: str, sandbox: Sandbox,
         if base_url and contract and schemathesis:
             checks.append(CheckSpec(
                 "api_test",
-                (schemathesis, "run", str(contract), "--base-url", base_url,
+                (schemathesis, "run", str(contract), "--url", base_url,
                  "--checks", "all")))
     return checks
 
