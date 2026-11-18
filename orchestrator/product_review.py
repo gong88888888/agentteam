@@ -25,6 +25,8 @@ from .judge.backend import parse_json_object
 from .knowledge import HybridRetriever
 from .models.router import ModelRouter
 from .prompts import load_prompt
+from .requirements_ledger import from_model_output as requirements_from_output
+from .sources import SourceUnit, diff_units, parse_markdown
 
 
 @dataclass(frozen=True)
@@ -73,31 +75,68 @@ PRODUCT_ROLES: list[ProductRole] = [
 ]
 
 ROLE_MAP = {r.role: r for r in PRODUCT_ROLES}
-HEADING = re.compile(r"^(#{1,4})\s+(.+?)\s*$", re.M)
 SRC_REF = re.compile(r"SRC-\d{3,}")
+VALID_STATUSES = {"done", "blocked", "need_evidence", "failed", "error",
+                  "draft", "unknown", "invalid"}
+STATUS_ALIASES = {"completed": "done", "complete": "done", "success": "done",
+                  "ok": "done", "finished": "done", "ready": "done",
+                  "ready_for_verification": "done"}
+
+
+def source_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def extract_source_sections(text: str) -> list[dict[str, Any]]:
+    parsed = parse_markdown(text, doc_id="PRODUCT")
+    headings = [u for u in parsed.units if u.kind == "heading"]
+    lines = text.replace("\r\n", "\n").split("\n")
     sections = []
-    for index, match in enumerate(HEADING.finditer(text), 1):
+    for index, unit in enumerate(headings, 1):
+        next_line = headings[index].line if index < len(headings) else len(lines) + 1
+        body = "\n".join(lines[unit.line: next_line - 1])
         sections.append({
             "id": f"SRC-{index:03d}",
-            "level": len(match.group(1)),
-            "heading": match.group(2).strip(),
-            "line": text[:match.start()].count("\n") + 1,
+            "level": len(unit.path),
+            "heading": unit.heading,
+            "line": unit.line,
+            "stable_id": unit.unit_id,
+            "content_hash": unit.content_hash,
+            "body_hash": hashlib.sha256(body.strip().encode("utf-8")).hexdigest(),
+            "path": list(unit.path),
         })
     return sections
 
 
-def _normalize(obj: dict[str, Any], role: str, total_sections: int) -> dict[str, Any]:
+def _normalize(obj: dict[str, Any], role: str, total_sections: int,
+               valid_ids: set[str] | None = None) -> dict[str, Any]:
     out = dict(obj)
-    aliases = {"completed": "done", "success": "done", "ok": "done",
-               "failed": "blocked", "error": "blocked"}
-    status = str(out.get("status", "")).lower()
-    out["status"] = aliases.get(status, out.get("status", "done"))
+    raw_status = str(out.get("status", "")).strip().lower()
+    if not raw_status:
+        # Missing status is not success. The caller may show the draft for
+        # diagnosis, but the gate must not treat it as a completed review.
+        out["status"] = "unknown"
+        out["status_missing"] = True
+    elif raw_status in STATUS_ALIASES:
+        out["status"] = STATUS_ALIASES[raw_status]
+        out["status_raw"] = raw_status
+    elif raw_status in VALID_STATUSES:
+        out["status"] = raw_status
+    else:
+        out["status"] = "invalid"
+        out["status_raw"] = raw_status
     out.setdefault("task_id", f"PR-{role.upper()}-{int(time.time())}")
     out["role"] = role
-    out.setdefault("source_sections", [])
+    declared = out.get("source_sections") or []
+    if not isinstance(declared, list):
+        declared = [str(declared)]
+    declared = [str(x) for x in declared]
+    invalid = sorted({x for x in declared if valid_ids and x not in valid_ids})
+    if valid_ids:
+        declared = [x for x in declared if x in valid_ids]
+    out["source_sections"] = declared
+    if invalid:
+        out["invalid_source_refs"] = invalid
     findings = out.get("findings") or []
     severity_alias = {"low": "minor", "medium": "major", "high": "critical",
                       "severe": "critical", "warning": "minor"}
@@ -108,13 +147,15 @@ def _normalize(obj: dict[str, Any], role: str, total_sections: int) -> dict[str,
     out.setdefault("files", [])
     out.setdefault("summary", "")
     out.setdefault("open_questions", [])
-    cov = out.get("coverage") or {}
-    covered = len({*out.get("source_sections", []),
-                   *SRC_REF.findall(json.dumps(out, ensure_ascii=False))})
-    cov.setdefault("total_sections", total_sections)
-    cov["covered_sections"] = min(total_sections, int(cov.get("covered_sections", covered)))
-    cov.setdefault("percent", round(cov["covered_sections"] / total_sections * 100, 1)
-                   if total_sections else 0)
+    cov = out.get("coverage") if isinstance(out.get("coverage"), dict) else {}
+    covered = len(set(declared))
+    cov["total_sections"] = total_sections
+    cov["covered_sections"] = min(total_sections, covered)
+    if valid_ids:
+        cov["covered_sections"] = min(cov["covered_sections"], len(valid_ids))
+    cov["percent"] = round(cov["covered_sections"] / total_sections * 100, 1) \
+        if total_sections else 0
+    cov["computed_by"] = "product_review.normalize"
     out["coverage"] = cov
     return out
 
@@ -139,10 +180,17 @@ class ProductReviewRunner:
         self.router = ModelRouter(self.cfg, offline=offline)
         self.schema = load_schema("product-review-output.schema.json")
         self.source_text = self.doc_path.read_text(encoding="utf-8")
+        self.parsed_source = parse_markdown(self.source_text, doc_id="PRODUCT")
         self.sections = extract_source_sections(self.source_text)
+        self.section_ids = {s["id"] for s in self.sections}
+        self.source_hash = source_hash(self.source_text)
+        self.run_id = f"PR-{time.strftime('%Y%m%d-%H%M%S')}-{self.source_hash[:8]}"
         self.log_path = self.out_dir / "logs" / "events.jsonl"
         self.state_path = self.out_dir / "state" / "roles.json"
         self.gates_path = self.out_dir / "state" / "gates.json"
+        self.history_path = self.out_dir / "state" / "gate-history.jsonl"
+        self.artifact_registry: dict[str, list[dict[str, Any]]] = {}
+        self.requirement_errors_by_role: dict[str, list[dict[str, str]]] = {}
         self.previous_state: dict[str, Any] = {}
         self.previous_gates: dict[str, dict[str, Any]] = {}
 
@@ -158,11 +206,40 @@ class ProductReviewRunner:
             (self.out_dir / d).mkdir(parents=True, exist_ok=True)
         (self.out_dir / "input" / "product-doc.md").write_text(self.source_text, encoding="utf-8")
         (self.out_dir / "state" / "source-map.json").write_text(
-            json.dumps({"source": str(self.doc_path), "sections": self.sections},
+            json.dumps({"source": str(self.doc_path), "source_hash": self.source_hash,
+                        "run_id": self.run_id, "sections": self.sections},
                        ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         (self.out_dir / "input" / "source-map.yaml").write_text(
-            yaml.safe_dump({"sections": self.sections}, allow_unicode=True,
+            yaml.safe_dump({"source_hash": self.source_hash,
+                            "sections": self.sections}, allow_unicode=True,
                            sort_keys=False), encoding="utf-8")
+        units_path = self.out_dir / "state" / "source-units.json"
+        old_units: list[SourceUnit] = []
+        if units_path.is_file():
+            try:
+                old = json.loads(units_path.read_text(encoding="utf-8"))
+                for raw in old.get("units") or []:
+                    path = tuple(raw.get("path") or [])
+                    old_units.append(SourceUnit(
+                        unit_id=raw["unit_id"], doc_id=raw.get("doc_id", "PRODUCT"),
+                        kind=raw.get("kind", "paragraph"),
+                        text=raw.get("text", ""), heading=raw.get("heading", ""),
+                        path=path, line=int(raw.get("line", 0)),
+                        line_end=int(raw.get("line_end", 0)),
+                        content_hash=raw.get("content_hash", ""),
+                        identity_key=raw.get("identity_key", ""),
+                        occurrence=int(raw.get("occurrence", 1))))
+            except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                old_units = []
+        current = self.parsed_source.to_dict()
+        units_path.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n",
+                              encoding="utf-8")
+        if old_units and old_units != self.parsed_source.units:
+            diff = diff_units(old_units, self.parsed_source)
+            (self.out_dir / "state" / "source-diff.json").write_text(
+                json.dumps(diff, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8")
+            self.log("source.changed", counts=diff["counts"])
 
     def kb_context(self) -> str:
         if not self.use_kb:
@@ -232,30 +309,59 @@ class ProductReviewRunner:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
             sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
-            written.append({"path": path, "sha256": sha,
-                            "bytes": len(content.encode("utf-8"))})
+            rec = {"path": path, "sha256": sha,
+                   "bytes": len(content.encode("utf-8")),
+                   "source": "role", "run_id": self.run_id,
+                   "source_hash": self.source_hash}
+            written.append(rec)
+            self.artifact_registry.setdefault(role, []).append(rec)
             self.log("file.written", role=role, path=path, sha256=sha)
         return written
 
     def gate(self, spec: ProductRole, obj: dict[str, Any],
              files: list[dict[str, Any]], coverage: float) -> dict[str, Any]:
-        checks = []
-        text = "\n".join([obj.get("summary", "")] + [
-            (self.out_dir / f["path"]).read_text(encoding="utf-8", errors="replace")
-            for f in files if (self.out_dir / f["path"]).is_file()])
+        checks: list[dict[str, Any]] = []
+        file_texts: list[str] = []
+        empty_files: list[str] = []
+        for f in files:
+            path = self.out_dir / f["path"]
+            text = path.read_text(encoding="utf-8", errors="replace") \
+                if path.is_file() else ""
+            file_texts.append(text)
+            if len(text.strip()) < 20:
+                empty_files.append(str(f.get("path", "")))
+        summary = str(obj.get("summary", ""))
+        text = "\n".join([summary, *file_texts])
+        status = str(obj.get("status", "")).lower()
+        checks.append({"name": "status_done", "ok": status == "done",
+                       "detail": f"status={obj.get('status')!r}；"
+                                 "blocked/failed/缺失状态都不能作为正式通过"})
+        checks.append({"name": "files", "ok": bool(files), "detail": f"{len(files)} files"})
+        checks.append({"name": "files_nonempty", "ok": bool(files) and not empty_files,
+                       "detail": ("空文件：" + ", ".join(empty_files)) if empty_files
+                                 else "所有交付文件非空"})
         for term in spec.required_terms:
             checks.append({"name": f"term:{term}", "ok": term.lower() in text.lower(),
                            "detail": "" if term.lower() in text.lower() else "缺少关键内容"})
-        checks.append({"name": "files", "ok": bool(files), "detail": f"{len(files)} files"})
-        checks.append({"name": "source_refs", "ok": bool(SRC_REF.search(text)),
+        refs = set(SRC_REF.findall(text))
+        invalid_refs = sorted(refs - self.section_ids)
+        checks.append({"name": "source_refs", "ok": bool(refs),
                        "detail": "必须引用 SRC-###"})
+        checks.append({"name": "source_refs_valid", "ok": not invalid_refs,
+                       "detail": ("不存在的来源号：" + ", ".join(invalid_refs))
+                                 if invalid_refs else "所有来源号属于当前文档"})
         findings = obj.get("findings") or []
         if spec.role == "red-team":
             checks.append({"name": "red_findings", "ok": len(findings) >= 5,
                            "detail": f"{len(findings)} findings"})
+            finding_refs = [str(r) for f in findings for r in (f.get("source_refs") or [])]
+            invalid_finding_refs = sorted(set(finding_refs) - self.section_ids)
             checks.append({"name": "finding_refs",
-                           "ok": all(f.get("source_refs") for f in findings),
-                           "detail": "每条 finding 必须引用来源"})
+                           "ok": bool(findings) and all(f.get("source_refs") for f in findings)
+                                 and not invalid_finding_refs,
+                           "detail": ("无效 finding 来源：" + ", ".join(invalid_finding_refs))
+                                     if invalid_finding_refs
+                                     else "每条 finding 必须引用当前来源"})
         if spec.role == "qa-rehearsal":
             checks.append({"name": "scenarios", "ok": text.count("场景") >= 3,
                            "detail": "至少 3 个升级场景"})
@@ -264,9 +370,21 @@ class ProductReviewRunner:
         if spec.role == "doc-analyst":
             checks.append({"name": "coverage", "ok": coverage >= 0.6,
                            "detail": f"{coverage:.0%} source coverage"})
-        status = "pass" if all(c["ok"] for c in checks) else "fail"
-        return {"role": spec.role, "status": status, "checks": checks,
-                "coverage": coverage, "files": files}
+        req_errors = self.requirement_errors_by_role.get(spec.role)
+        if req_errors is not None:
+            checks.append({
+                "name": "requirements_valid", "ok": not req_errors,
+                "detail": ("; ".join(f"{e['code']}: {e['detail']}"
+                                     for e in req_errors[:6]))
+                if req_errors else "结构化需求与来源处置通过校验"})
+        gate_status = "pass" if all(c["ok"] for c in checks) else "fail"
+        attempt_id = f"{self.run_id}-{spec.role}"
+        return {"role": spec.role, "status": gate_status, "checks": checks,
+                "coverage": coverage, "files": files,
+                "run_id": self.run_id, "attempt_id": attempt_id,
+                "source_hash": self.source_hash,
+                "subject_fingerprint": self.source_hash,
+                "legacy": False}
 
     def run(self) -> dict[str, Any]:
         self.prepare()
@@ -276,21 +394,32 @@ class ProductReviewRunner:
                 self.previous_state = previous.get("roles") or {}
                 self.previous_gates = {g["role"]: g for g in previous.get("gates", [])
                                        if isinstance(g, dict) and g.get("role")}
+                # Preserve the whole previous run as history before replacing
+                # the current gate set.
+                if self.previous_gates:
+                    with open(self.history_path, "a", encoding="utf-8") as f:
+                        f.write(json.dumps({
+                            "run_id": previous.get("run_id", ""),
+                            "source_hash": previous.get("source_hash", ""),
+                            "finished_at": previous.get("finished_at", ""),
+                            "gates": list(self.previous_gates.values()),
+                            "archived_at": time.time(),
+                        }, ensure_ascii=False) + "\n")
             except (OSError, json.JSONDecodeError):
                 self.previous_state, self.previous_gates = {}, {}
         kb = self.kb_context()
         state: dict[str, Any] = dict(self.previous_state)
-        gates: list[dict[str, Any]] = list(self.previous_gates.values())
+        current_gates: dict[str, dict[str, Any]] = {}
         prior: list[str] = []
         self.log("review.started", doc=str(self.doc_path), sections=len(self.sections),
-                 roles=self.roles)
+                 roles=self.roles, run_id=self.run_id, source_hash=self.source_hash)
         for spec in PRODUCT_ROLES:
             if spec.role not in self.roles:
                 continue
+            attempt_id = f"{self.run_id}-{spec.role}"
             prompt = load_prompt(spec.role, "prompts/product-team")
             messages = [{"role": "system", "content": self.system_message(spec)},
                         {"role": "user", "content": self.user_message(spec, prior, kb)}]
-            started = time.perf_counter()
             obj = None
             result = None
             last_exc: Exception | None = None
@@ -299,7 +428,8 @@ class ProductReviewRunner:
                     result = self.router.execution(spec.role, messages,
                                                    response_format="json")
                     parsed = parse_json_object(result.content)
-                    obj = _normalize(parsed, spec.role, len(self.sections))
+                    obj = _normalize(parsed, spec.role, len(self.sections),
+                                     valid_ids=self.section_ids)
                     jsonschema.validate(obj, self.schema)
                     break
                 except Exception as exc:
@@ -318,27 +448,55 @@ class ProductReviewRunner:
                 encoding="utf-8")
             if obj is None:
                 state[spec.role] = {"role": spec.role, "status": "error",
-                                    "error": str(last_exc)[:1000]}
+                                    "error": str(last_exc)[:1000],
+                                    "run_id": self.run_id, "attempt_id": attempt_id,
+                                    "source_hash": self.source_hash}
+                current_gates[spec.role] = {
+                    "role": spec.role, "status": "fail",
+                    "checks": [{"name": "role_execution", "ok": False,
+                                "detail": f"本次尝试失败：{str(last_exc)[:300]}"}],
+                    "coverage": 0.0, "files": [],
+                    "run_id": self.run_id, "attempt_id": attempt_id,
+                    "source_hash": self.source_hash,
+                    "subject_fingerprint": self.source_hash,
+                    "legacy": False,
+                }
                 (role_dir / "error.json").write_text(
                     json.dumps(state[spec.role], ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8")
-                self.log("review.role_failed", role=spec.role, error=str(last_exc)[:500])
+                self.log("review.role_failed", role=spec.role, error=str(last_exc)[:500],
+                         attempt_id=attempt_id)
                 if self.extra_note:
                     prior.append(f"- {spec.role}: FAILED — {str(last_exc)[:180]}")
                 continue
             files = self.write_files(spec.role, obj.get("files") or [])
+            if "requirements" in obj or "source_dispositions" in obj:
+                aliases = {s["id"]: s["stable_id"] for s in self.sections}
+                ledger, req_errors = requirements_from_output(
+                    obj, self.parsed_source.units, "PRODUCT", aliases=aliases)
+                self.requirement_errors_by_role[spec.role] = req_errors
+                (role_dir / "requirements.ledger.json").write_text(
+                    json.dumps(ledger.to_dict(), ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8")
+                (role_dir / "requirements.ledger.md").write_text(
+                    ledger.render_markdown(), encoding="utf-8")
+                self.log("requirements.validated", role=spec.role,
+                         requirements=len(ledger.requirements),
+                         dispositions=len(ledger.dispositions),
+                         errors=[e["code"] for e in req_errors])
             (role_dir / "output.json").write_text(
                 json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             file_text = "\n".join(
                 (self.out_dir / f["path"]).read_text(encoding="utf-8", errors="replace")
                 for f in files if (self.out_dir / f["path"]).is_file())
             refs = set(SRC_REF.findall(file_text + "\n" + obj.get("summary", "")))
-            coverage = (len({s["id"] for s in self.sections} & refs) / len(self.sections)
+            coverage = (len(self.section_ids & refs) / len(self.sections)
                         if self.sections else 1.0)
             obj["coverage"]["percent"] = round(coverage * 100, 1)
             obj["coverage"]["covered_sections"] = round(coverage * len(self.sections))
+            obj["coverage"]["basis"] = "current_role_artifacts"
             gate = self.gate(spec, obj, files, coverage)
-            gates.append(gate)
+            current_gates[spec.role] = gate
             meta = {
                 "role": spec.role, "title": spec.title, "status": obj["status"],
                 "prompt": prompt.metadata(), "model": result.model if result else "",
@@ -346,7 +504,9 @@ class ProductReviewRunner:
                 "latency_ms": result.latency_ms if result else 0,
                 "tokens": (result.prompt_tokens + result.completion_tokens) if result else 0,
                 "coverage": obj.get("coverage"), "gate": gate["status"],
-                "files": files, "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "files": files, "run_id": self.run_id, "attempt_id": attempt_id,
+                "source_hash": self.source_hash,
+                "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
             (role_dir / "meta.json").write_text(
                 json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -354,55 +514,125 @@ class ProductReviewRunner:
             prior.append(f"- {spec.role} [{gate['status']}] {obj.get('summary', '')[:700]}")
             self.log("review.role_finished", role=spec.role, status=obj["status"],
                      gate=gate["status"], coverage=obj.get("coverage"),
-                     files=[f["path"] for f in files])
-        all_refs = set()
-        for f in self.out_dir.rglob("*.md"):
-            try:
-                all_refs |= set(SRC_REF.findall(f.read_text(encoding="utf-8")))
-            except OSError:
-                pass
+                     files=[f["path"] for f in files], attempt_id=attempt_id)
+        final_gates: list[dict[str, Any]] = []
+        reused: list[str] = []
+        stale: list[str] = []
+        for spec in PRODUCT_ROLES:
+            gate = current_gates.get(spec.role)
+            if gate is not None:
+                final_gates.append({**gate, "current_attempt": True})
+                continue
+            prev = self.previous_gates.get(spec.role)
+            if (prev and prev.get("source_hash") == self.source_hash
+                    and prev.get("status") == "pass"):
+                final_gates.append({**prev, "current_attempt": False,
+                                    "reused_from": prev.get("attempt_id")
+                                    or prev.get("run_id") or "previous-run",
+                                    "reused": True})
+                reused.append(spec.role)
+                continue
+            if prev is None:
+                reason = "本次未运行，且没有历史结果"
+            elif prev.get("source_hash") != self.source_hash:
+                reason = "来源已变化，旧结果不适用于当前版本"
+            else:
+                reason = f"历史状态为 {prev.get('status')}，不能复用"
+            final_gates.append({
+                "role": spec.role, "status": "stale",
+                "checks": [{"name": "current_attempt", "ok": False, "detail": reason}],
+                "coverage": 0.0, "files": [], "run_id": self.run_id,
+                "attempt_id": "", "source_hash": self.source_hash,
+                "subject_fingerprint": self.source_hash,
+                "stale_reason": reason, "current_attempt": False, "legacy": False,
+            })
+            stale.append(spec.role)
+        all_refs: set[str] = set()
+        registered_files = 0
+        for gate in final_gates:
+            if gate.get("status") != "pass":
+                continue
+            for f in gate.get("files") or []:
+                path = self.out_dir / f.get("path", "")
+                if not path.is_file():
+                    continue
+                registered_files += 1
+                all_refs |= set(SRC_REF.findall(
+                    path.read_text(encoding="utf-8", errors="replace")))
         total = len(self.sections)
-        covered = len({s["id"] for s in self.sections} & all_refs)
+        covered = len(self.section_ids & all_refs)
         overall = round(covered / total * 100, 1) if total else 0.0
-        gate_by_role = {g["role"]: g for g in gates}
-        gates = [gate_by_role[r.role] for r in PRODUCT_ROLES if r.role in gate_by_role]
-        gate_status = ("pass" if len(gates) == len(PRODUCT_ROLES)
-                       and all(g["status"] == "pass" for g in gates) else "fail")
+        gate_status = ("pass" if len(final_gates) == len(PRODUCT_ROLES)
+                       and all(g["status"] == "pass" for g in final_gates)
+                       and all(g.get("source_hash") == self.source_hash
+                               for g in final_gates) else "fail")
         final = {
             "status": gate_status, "source": str(self.doc_path),
+            "run_id": self.run_id, "source_hash": self.source_hash,
             "source_sections": total, "covered_sections": covered,
-            "coverage_percent": overall, "roles": state, "gates": gates,
+            "coverage_percent": overall,
+            "coverage_detail": {
+                "structural_percent": overall,
+                "structural_basis": "registered_current_artifacts",
+                "semantic_review": "not_run",
+                "registered_files": registered_files,
+                "reused_roles": reused,
+                "stale_roles": stale,
+                "note": "结构覆盖只证明来源有去向，不证明语义理解正确。",
+            },
+            "roles": state, "gates": final_gates,
+            "attempts": {g["role"]: g.get("attempt_id", "") for g in final_gates},
             "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
         (self.out_dir / "state" / "gates.json").write_text(
             json.dumps(final, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        with open(self.history_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "run_id": self.run_id, "source_hash": self.source_hash,
+                "finished_at": final["finished_at"], "status": gate_status,
+                "gates": final_gates,
+            }, ensure_ascii=False) + "\n")
         (self.state_path).write_text(
             json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         self.write_reference_plan(final)
         self.write_readme(final)
-        self.log("review.finished", status=gate_status, coverage=overall)
+        self.log("review.finished", status=gate_status, coverage=overall,
+                 run_id=self.run_id, reused=reused, stale=stale)
         return {"out_dir": str(self.out_dir), "status": gate_status,
-                "coverage": overall, "roles": {r: v.get("status") for r, v in state.items()},
-                "gates": {g["role"]: g["status"] for g in gates},
+                "coverage": overall, "run_id": self.run_id,
+                "source_hash": self.source_hash,
+                "roles": {r: v.get("status") for r, v in state.items()},
+                "gates": {g["role"]: g["status"] for g in final_gates},
+                "coverage_detail": final["coverage_detail"],
                 "reference_plan": str(self.out_dir / "REFERENCE-PLAN.md")}
 
     def write_reference_plan(self, final: dict[str, Any]) -> None:
+        detail = final.get("coverage_detail") or {}
         lines = [
             "# Product Deep Review & Upgrade Reference Plan", "",
             f"- Source: `{self.doc_path}`",
+            f"- Run: `{final.get('run_id', '')}` · source hash `{final.get('source_hash', '')[:12]}`",
             f"- Source sections: {final['source_sections']} · "
-            f"Coverage: **{final['coverage_percent']}%**",
+            f"Structural coverage: **{final['coverage_percent']}%** "
+            f"(`{detail.get('structural_basis', 'unknown')}`)",
+            f"- Semantic review: **{detail.get('semantic_review', 'not_run')}** "
+            "(结构覆盖不等于语义正确)",
             f"- Gate: **{final['status']}**",
             f"- Generated: {final['finished_at']}", "",
             "> 这是给下一次发版/升级使用的参考方案，不是自动发布审批。",
             "", "## Role Gates", "",
-            "| 角色 | 输出 | 门禁 |", "|---|---|---|",
+            "| 角色 | 输出 | 门禁 | 本次尝试 | 复用 |", "|---|---|---|---|---|",
         ]
         for spec in PRODUCT_ROLES:
-            if spec.role not in self.roles:
+            if spec.role not in self.roles and not any(
+                    g["role"] == spec.role and g.get("status") == "pass"
+                    for g in final["gates"]):
                 continue
             gate = next((g for g in final["gates"] if g["role"] == spec.role), None)
-            lines.append(f"| {spec.role} | `{spec.artifact}` | {gate['status'] if gate else 'missing'} |")
+            lines.append(f"| {spec.role} | `{spec.artifact}` | "
+                         f"{gate['status'] if gate else 'missing'} | "
+                         f"{'yes' if gate and gate.get('current_attempt') else 'no'} | "
+                         f"{gate.get('reused_from', '') if gate else ''} |")
         lines += ["", "## Artifacts", ""]
         for spec in PRODUCT_ROLES:
             path = self.out_dir / spec.artifact

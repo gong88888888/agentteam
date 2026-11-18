@@ -50,3 +50,6 @@ export function validateFloor(floor) {
   if (types.filter((t) => t === "boss").length !== 1) throw new Error("boss count");
   return true;
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-maze", version: 1, actions: ["generateFloor"], smoke: { action: "generateFloor", args: [1], expectType: "object" } };

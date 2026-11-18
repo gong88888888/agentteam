@@ -37,3 +37,6 @@ export function enhance(item, { rng = Math.random } = {}) {
   next.upgrade = next.enhanceLevel;
   return { ok: true, item: next };
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-items", version: 1, actions: ["generateItem"], smoke: { action: "generateItem", args: [{ seed: 1 }], expectType: "object" } };

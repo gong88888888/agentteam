@@ -8,3 +8,6 @@ export function generateFloor({ seed = 1, floorIndex = 1, chapter = 1, rooms = 1
   floor.chapter = chapter;
   return floor;
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-mapgen", version: 1, actions: ["generateFloor"], smoke: { action: "generateFloor", args: [{ seed: 1 }], expectType: "object" } };

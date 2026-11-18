@@ -172,6 +172,10 @@ class EvidenceStore:
     def all(self) -> list[dict[str, Any]]:
         return list(self._by_id.values())
 
+    def get(self, evidence_id: str) -> dict[str, Any] | None:
+        """Return a signed record by ID, or None. Never invents a record."""
+        return self._by_id.get(evidence_id)
+
     def verify_chain(self) -> bool:
         last = ""
         for rec in self._records:

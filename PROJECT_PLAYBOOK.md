@@ -203,13 +203,30 @@ python dashboard/serve.py --port 8765
 - 沙箱是进程级隔离（allowlist、脱敏环境、超时、隔离副本/worktree），**不是内核容器**；生产需要容器/seccomp/网络命名空间。
 - 本地未安装 semgrep/trivy 时，standard/full 的对应证据显式为 missing，门禁失败关闭；CI job 会安装并跑 full。
 - `minimal-api` 是 stdlib 脚手架，用来验证证据/门禁链路；真实项目需替换依赖、测试与契约。
-- 模板脚手架中的 TODO 不算交付物；角色未写文档时，runner 会生成明确标注的 `runner-summary` 文档，便于审阅但不冒充模型产物。
+- 模板脚手架中的 TODO 不算交付物；角色未写文档时，runner 仍可生成明确标注的 `runner-summary` 便于审阅，但**它不能满足正式产物门禁**，项目会保持未完成。
 
 ## 4.1 流程门禁与 DoD
 
 完整复盘与六阶段流程见 [PROCESS_OPTIMIZATION.md](PROCESS_OPTIMIZATION.md)。要点：preflight → product 深文档 → arch 契约 → implementation 阶段验收 → QA 真实测试 → final acceptance + DoD；任何阶段失败不能 `completed`，`start_project.py` 只有 completed 返回 0。
 
 发版/升级前先运行产品评审团队，见 [PRODUCT_REVIEW_TEAM.md](PRODUCT_REVIEW_TEAM.md)：`python start_product_review.py --doc <新版本文档> --out reviews/<version> --real`。
+
+## 4.2 2026-11-18 后的信任模型
+
+- 每个项目在 `state/manifest.json` 记录本轮承诺角色、验收与文档；DoD 只检查这份集合。
+- 无 manifest 的历史项目显示 `legacy_unverified`，不会自动通过。
+- Web 项目必须真实启动并通过健康检查和业务流；游戏必须通过入口/逻辑/冒烟/渲染/集成。
+- `--mode formal`（默认）失败会阻塞下游；`--mode rehearsal` 只用于探索，永远不是正式完成。
+- 单角色“只重跑”使用 `partial_run`：只更新该角色记录，项目状态为 `partial_rerun`，不会把整个项目重新标记为完成。
+- 每个项目有 `state/agentteam.db`（任务/尝试/租约/产物/事件）；`project.json` 只作兼容视图。
+- Dashboard 显示 `trust`：`current_verified / incomplete / rehearsal / legacy_unverified`。
+
+```bash
+python start_project.py --requirements requirements/examples/csv-export/selected.md \
+  --project-dir projects/example-csv-export-new --offline --template minimal-api
+python eval/failure_injection.py
+python -m orchestrator.cli model-capabilities --offline
+```
 
 ## 5. 建议的第一个真实闭环
 

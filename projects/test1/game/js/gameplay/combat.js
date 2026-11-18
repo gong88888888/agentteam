@@ -62,3 +62,39 @@ export function computeDamage(input, defender, opts = {}) {
 }
 
 export const isImmune = (state, now = 0) => isInvincible(state, now);
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-combat", version: 1, actions: ["computeDamageBase"], smoke: { action: "computeDamageBase", args: [{ attack: 10 }, { defense: 2 }], expectType: "number" } };
+
+// Cooldown/dodge helpers required by player.js and the extension harness.
+export function createCooldowns() {
+  return {};
+}
+
+export function tickCooldowns(cooldowns, dtMs) {
+  if (!cooldowns || typeof cooldowns !== 'object') return cooldowns;
+  for (const key of Object.keys(cooldowns)) {
+    cooldowns[key] = Math.max(0, Number(cooldowns[key] || 0) - Number(dtMs || 0));
+  }
+  return cooldowns;
+}
+
+export function canUseSkill(cooldowns, id) {
+  return !cooldowns || !(Number(cooldowns[id] || 0) > 0);
+}
+
+export function startCooldown(cooldowns, id, ms) {
+  if (cooldowns && typeof cooldowns === 'object') {
+    cooldowns[id] = Math.max(0, Number(ms || 0));
+  }
+  return cooldowns;
+}
+
+export function applyDodge(player, nowMs = 0) {
+  if (!player) return player;
+  player.dodgeUntil = Number(nowMs) + 300;
+  player.state = 'dodge';
+  return player;
+}
+
+export const isInvulnerable = (state, nowMs = 0) => isInvincible(state, nowMs);

@@ -35,6 +35,7 @@ from orchestrator.evidence.store import EvidenceStore  # noqa: E402
 from orchestrator.project_runner import ProjectRunner, ROLE_MAP, ROLE_SPECS  # noqa: E402
 from orchestrator.quality import role_trend  # noqa: E402
 from orchestrator.product_review import PRODUCT_ROLES  # noqa: E402
+from orchestrator.trust import project_trust  # noqa: E402
 from live import live_payload  # noqa: E402
 
 STORE = DecisionStore(ROOT / "data" / "decisions.db")
@@ -57,6 +58,10 @@ def _project_dir(name: str) -> Path | None:
         return None
     p = PROJECTS / name
     return p if p.is_dir() else None
+
+
+def _project_trust(project: dict) -> str:
+    return project_trust(project)
 
 
 def _project_summary(p: Path) -> dict:
@@ -107,6 +112,10 @@ def _project_summary(p: Path) -> dict:
             "project_type": project.get("project_type", "web"),
             "acceptance": project.get("acceptance"),
             "dod": project.get("dod"),
+            "trust": _project_trust(project),
+            "mode": project.get("mode", "legacy"),
+            "manifest": project.get("manifest"),
+            "persistence": project.get("persistence"),
             "stages": project.get("stages", []),
             "preflight": project.get("preflight"),
             "process_metrics": project.get("process_metrics", {}),
@@ -373,6 +382,12 @@ class Handler(BaseHTTPRequestHandler):
                 template = str(_read_json(p / ".agentteam" / "template.json", {})
                                .get("template") or project.get("template") or "none")
                 profile = str(body.get("profile") or project.get("tool_profile") or "basic")
+                manifest = project.get("manifest") or {}
+                scope_roles = [str(t.get("role")) for t in
+                               manifest.get("required_tasks", [])
+                               if t.get("required", True) and t.get("role")]
+                if not scope_roles:
+                    scope_roles = list(project.get("roles") or [role])
                 with PROJECT_LOCK:
                     runner = ProjectRunner(
                         requirements=req, project_dir=p, cfg=CFG,
@@ -381,7 +396,8 @@ class Handler(BaseHTTPRequestHandler):
                         extra_note=str(body.get("note", "")),
                         template=template, tool_profile=profile,
                         sandbox=bool(body.get("sandbox", False)),
-                        stop_on_gate=bool(body.get("stop_on_gate", False)))
+                        stop_on_gate=bool(body.get("stop_on_gate", False)),
+                        scope_roles=scope_roles, partial_run=True)
                     result = runner.run()
                 return self._json(200, {"result": result,
                                         "project": _project_summary(p),

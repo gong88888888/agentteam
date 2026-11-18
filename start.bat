@@ -37,6 +37,8 @@ if /i "%~1"=="sim" goto :sim
 if /i "%~1"=="w3" goto :w3
 if /i "%~1"=="dashboard" goto :dashboard
 if /i "%~1"=="test" goto :test
+if /i "%~1"=="fi" goto :fi
+if /i "%~1"=="caps" goto :caps
 if /i "%~1"=="eval" goto :eval
 if /i "%~1"=="demo" goto :demo
 if /i "%~1"=="real" goto :real
@@ -65,10 +67,12 @@ echo   6. W3 parallel/serial and dashboard build
 echo   7. Start dashboard on http://localhost:%PORT%
 echo   8. Unit tests and selfchecks
 echo   9. Offline evaluation suite
+echo   10. Failure-injection acceptance suite
+echo   11. Model capability probe (offline)
 echo   0. Exit
 echo.
 set "CHOICE="
-set /p "CHOICE=Select [0-9]: "
+set /p "CHOICE=Select [0-9,10,11]: "
 if not defined CHOICE goto :menu
 if "%CHOICE%"=="0" goto :done
 if "%CHOICE%"=="1" goto :project
@@ -80,6 +84,8 @@ if "%CHOICE%"=="6" goto :w3
 if "%CHOICE%"=="7" goto :dashboard
 if "%CHOICE%"=="8" goto :test
 if "%CHOICE%"=="9" goto :eval
+if "%CHOICE%"=="10" goto :fi
+if "%CHOICE%"=="11" goto :caps
 echo Invalid choice.
 goto :menu
 
@@ -227,7 +233,27 @@ if errorlevel 1 goto :fail
 echo [test] Spec validation...
 %PY% -I specs\validate_specs.py
 if errorlevel 1 goto :fail
+echo [test] Failure-injection acceptance suite...
+%PY% eval\failure_injection.py
+if errorlevel 1 goto :fail
+echo [test] Model capability contract probe...
+%PY% -m orchestrator.cli model-capabilities --offline
+if errorlevel 1 goto :fail
 echo [test] OK
+goto :done
+
+:fi
+echo.
+echo [fi] Deterministic failure-injection acceptance suite...
+%PY% eval\failure_injection.py
+if errorlevel 1 goto :fail
+goto :done
+
+:caps
+echo.
+echo [caps] Model capability probe (offline contract)...
+%PY% -m orchestrator.cli model-capabilities --offline
+if errorlevel 1 goto :fail
 goto :done
 
 :eval
@@ -330,7 +356,9 @@ echo   check       Environment check and orchestrator selfcheck
 echo   sim         v4.1 orchestration simulation and selfcheck
 echo   w3          W3 parallel/serial, selfcheck and dashboard build
 echo   dashboard   Serve dashboard at http://localhost:8765
-echo   test        Unit tests, selfchecks, spec validation
+echo   test        Unit tests, selfchecks, spec validation, failure injection
+echo   fi          Failure-injection acceptance suite
+echo   caps        Model capability probe (offline contract)
 echo   eval        Offline evaluation suite
 echo   demo        Offline 12-role sample project
 echo   real        Real local Qwen sample project

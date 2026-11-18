@@ -23,6 +23,7 @@ import yaml
 from .config import ROOT, data_dir, load_config, load_schema, signing_key
 from .evidence.store import EvidenceStore
 from .evidence.verdict_store import VerdictStore
+from .execution.capabilities import capability_report
 from .judge.backend import (ModelJudgeBackend, StubJudgeBackend,
                             parse_json_object)
 from .judge.panel import JudgePanel
@@ -282,6 +283,14 @@ def cmd_eval(args: argparse.Namespace) -> int:
                limit=args.limit, config=args.config)
 
 
+def cmd_model_capabilities(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    report = capability_report(cfg, offline=args.offline,
+                               allow_network=args.allow_network)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if report.get("offline_contract", {}).get("status") == "pass" else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="AgentTeam W1/W2 CLI")
     p.add_argument("--config", default=None)
@@ -340,6 +349,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--json", action="store_true")
     sp = sub.add_parser("kb-stats", help="知识库统计")
     sp.add_argument("--config", default=None)
+    sp = common("model-capabilities", "模型能力探针与逻辑档位/实际模型记录")
+    sp.add_argument("--allow-network", action="store_true",
+                    help="显式允许真实小探针（会产生模型调用）")
     return p
 
 
@@ -369,6 +381,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_kb_query(args)
     if args.command == "kb-stats":
         return cmd_kb_stats(args)
+    if args.command == "model-capabilities":
+        return cmd_model_capabilities(args)
     return 2
 
 

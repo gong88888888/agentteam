@@ -43,7 +43,7 @@ def main() -> None:
     index = ROOT / "dashboard" / "index.html"
     assert index.exists() and index.stat().st_size > 100_000
     text = index.read_text(encoding="utf-8")
-    assert "W3 Delivery Monitor" in text and "task-bar" in text
+    assert "Delivery Monitor" in text and "task-bar" in text
     print("  dashboard OK:", index.stat().st_size, "bytes")
     print("ALL CHECKS PASSED")
 

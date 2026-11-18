@@ -37,7 +37,10 @@ def main() -> None:
     for name in ("agent-spec.schema.json", "task-card.schema.json",
                  "evidence.schema.json", "decision-packet.schema.json",
                  "verdict.schema.json", "agent-output.schema.json",
-                 "product-review-output.schema.json"):
+                 "product-review-output.schema.json",
+                 "iteration-manifest.schema.json", "source-unit.schema.json",
+                 "requirement.schema.json",
+                 "source-disposition.schema.json"):
         check_schema(name)
     with open(os.path.join(HERE, "agent-specs.yaml"), encoding="utf-8") as f:
         doc = yaml.safe_load(f)
@@ -78,7 +81,7 @@ def main() -> None:
         for skill in s.get("skills", []):
             if skill not in skill_names:
                 raise ValueError(f"{s['id']} 引用了未注册技能：{skill}")
-    print(f"OK: {len(specs)} 份 Agent 规格书，7 个 Schema 可解析")
+    print(f"OK: {len(specs)} 份 Agent 规格书，11 个 Schema 可解析")
 
 
 if __name__ == "__main__":

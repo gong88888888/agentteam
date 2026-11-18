@@ -13,6 +13,11 @@
 | `decision-packet.schema.json` | 裁判唯一输入：确定性检查、缺失证据、claims、内容隔离 |
 | `verdict.schema.json` | 六态裁决：approve / conditions / need_evidence / reject / defer / abstain |
 | `agent-output.schema.json` | 创作型 Agent 的统一输出包；claims 明确 `counts_as_evidence=false` |
+| `product-review-output.schema.json` | 产品评审输出；含可选的结构化需求与来源处置 |
+| `iteration-manifest.schema.json` | 已批准迭代：承诺任务、验收集合、文档、模式与预算 |
+| `source-unit.schema.json` | 来源结构单元：稳定身份、内容哈希、路径与位置 |
+| `requirement.schema.json` | 原子需求：来源引用、类型、预期结果、假设与状态 |
+| `source-disposition.schema.json` | 每个来源单元的明确去向（需求/背景/重复/冲突等） |
 | `contracts/miniledger.openapi.yaml` | 契约优先示例：X1 认证、X2 记账、X3 报表 |
 | `validate_specs.py` | 结构性校验脚本（不依赖第三方 jsonschema） |
 

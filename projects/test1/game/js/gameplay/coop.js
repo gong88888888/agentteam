@@ -37,3 +37,6 @@ export function getBossScaling(players) {
   const base = getScaling(players);
   return { ...base, hp: base.hp * 1.1 };
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-coop", version: 1, actions: ["assignDropOwner"], smoke: { action: "assignDropOwner", args: [{ id: "drop" }, "p1"], expectType: "object" } };

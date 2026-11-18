@@ -5,6 +5,8 @@ import {
   upgradeCost, chapterProgress, multiplayerScale, encodeSave, decodeSave,
   snapshot, restoreRun, mulberry32, itemScore, addXp, questProgress, claimQuest,
 } from "./core.js";
+import { loadManifest, initExtensions, invokeExtension, extensionState }
+  from "./extensions/registry.js";
 
 const W = 1280;
 const H = 720;
@@ -1181,6 +1183,15 @@ window.__AGENTTEAM_GAME__ = {
   save: (slot = currentSlot) => saveSlot(slot),
   load: (slot = currentSlot) => loadSlot(slot),
 };
+
+// Extensions are loaded from the manifest after the baseline API exists.
+loadManifest().then((loaded) => {
+  const initResults = initExtensions(window.__AGENTTEAM_GAME__);
+  window.__AGENTTEAM_EXTENSIONS__ = {
+    ...extensionState(), initResults,
+    invoke: (id, action, ...args) => invokeExtension(id, action, ...args),
+  };
+});
 
 setSelected("swordsman");
 setDifficulty(2);

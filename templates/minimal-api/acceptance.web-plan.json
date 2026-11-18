@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "profile": "web-api",
+  "entry": "src/backend/app.py",
+  "start_argv": ["{python}", "src/backend/app.py", "--port", "{port}"],
+  "health": {
+    "path": "/health",
+    "expect_status": 200,
+    "expect_json": {"status": "ok"}
+  },
+  "flow": [
+    {
+      "name": "csv_export",
+      "method": "GET",
+      "path": "/api/v1/exports/csv?month=2026-02",
+      "expect_status": 200,
+      "expect_contains": "date,amount,category,note"
+    }
+  ],
+  "startup_timeout_s": 15
+}

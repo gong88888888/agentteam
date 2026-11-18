@@ -2,6 +2,35 @@
 
 一人公司主导的全栈交付 Agent 集群。当前仓库包含 **v4.1 编排协议**、**W1/W2 真实适配层**、**W3 三切片并行/共享文件/契约影响/Serial Baseline**、**W4 角色 golden set/prompt 回归、混合检索知识库、决策收件箱** 与 **W5 需求选择/项目启动/角色监控**，并完成 **P0–P2 升级**（工具证据 + CI、进程级沙箱、角色门禁、决策升级、质量趋势、模板、rerank）：本地 Qwen 3.6 负责执行 Agent，DeepSeek（deepseekharness）负责裁判或作为补充；门禁只接受工具签名证据，裁决和证据失效可审计、可复评；W3 工作台、W4 决策收件箱与 W5 角色监控在 `dashboard/`。
 
+## 2026-11-18 优化实施
+
+按 `optimization-2026-11-18/` 的 18 篇方案分 8 轮完成，详细交付与限制见
+[实施报告](docs/optimization/implementation-report.md) 与 [轮次记录](docs/optimization/rounds.md)。
+
+| 能力 | 结果 |
+|---|---|
+| 失败关闭 | 未知后端/真实模式 stub 直接配置错误；空产物、伪造/过期证据、旧门禁、blocked 评审不再通过 |
+| 完成定义 | 必需集合来自已批准 `state/manifest.json`；Web 必须真实启动+健康+业务流；游戏必须集成验收 |
+| 来源与需求 | 稳定来源单元（内容身份/移动/修改/新增/删除）、原子需求、来源处置与结构校验 |
+| 上下文 | `ContextAssembler` 按任务注入原文/规范/代码，带哈希、截断标记与 manifest |
+| 持久化 | SQLite 任务/尝试/产物/租约/outbox；CAS 完成、孤儿恢复、幂等消费 |
+| 工具循环 | read/list/search/apply_patch/run_check/submit_result；路径、写入范围、预算、哈希校验 |
+| 缺陷与迭代 | finding 去重/路由/修复任务、独立 QA、暂停/预算/验证积压、复盘行动入队、知识权威等级、影响图 |
+| 裁判整合 | `--judge-gate`：高风险角色确定性门禁通过后追加 J1/J2；拒绝/不可用都阻塞，且不能批准失败门禁 |
+| 观测 | `project.json` 记录 manifest/mode/DoD/任务/模型调用/trust；Dashboard 显示 `current_verified` 等信任标签 |
+| 验收 | **146 项测试**；`eval/failure_injection.py` **20/20**；test1 游戏 **7/7**（14 个扩展 loaded/invoked/asserted） |
+
+```bash
+python -m unittest discover -s tests -v
+python eval/failure_injection.py
+python -m orchestrator.cli model-capabilities --offline
+python start_project.py --requirements requirements/examples/csv-export/selected.md \
+    --project-dir projects/example-csv-export-new --offline --template minimal-api --mode formal
+# rehearsal 只用于探索，不能得到正式完成
+python start_project.py --requirements requirements/examples/csv-export/selected.md \
+    --project-dir projects/_rehearsal --offline --mode rehearsal
+```
+
 ## 先看这几份
 
 | 文档 | 作用 |
@@ -238,34 +267,47 @@ python start_product_review.py   --doc projects/test1/docs/product/product-basel
 
 ```
 orchestrator/          W1/W2：模型路由、裁判、证据账本、裁决账本、技能、CLI
-  models/              Ollama(qwen3.6) / DeepSeek / Stub / Router
+  models/              Ollama(qwen3.6) / DeepSeek / Stub / Router；严格配置校验
   judge/               packet / verdict / panel / canary / revalidation / rubric
-  evidence/            evidence store / verdict store / dependency graph / signing
+  evidence/            evidence store / verdict store / resolver / dependency graph / signing
+  sources/             稳定来源单元解析与版本 diff
   requirements.py      确定性需求评分与选择（now/next/later）
+  requirements_ledger.py 原子需求、来源处置、结构校验与 Markdown 渲染
+  design_states.py     交互状态/转移/适用性检查
+  context/             按任务装配的上下文包与 manifest
+  iterations/          manifest、计划编译、暂停/预算/在制品控制器
+  persistence/         SQLite 任务/尝试/产物/租约/outbox/仓储
+  execution/           工具注册表、执行循环、能力探针
+  acceptance_web.py    Web 启动/健康/业务流运行验收
   project_runner.py    需求文件 → 项目目录 → 12 角色记录/代码/日志
+  findings.py          finding 去重、分诊、修复任务
+  qa.py                独立 QA 验证与关闭条件
+  actions.py           复盘行动 → 任务
+  trust.py             项目信任标签
   sandbox.py           进程级沙箱：allowlist、脱敏环境、超时、隔离工作区
   tool_evidence.py     编译/单测/SAST/契约/密钥扫描 → HMAC 签名证据
   role_gates.py        角色门禁与决策收件箱升级
   quality.py           角色质量分与历史趋势
   templates.py         项目脚手架加载与复制
-  game_check.py        游戏入口/逻辑/QA/渲染验收与签名证据
-  knowledge/           FTS5 + bge-m3 + RRF + rerank
-eval/                  W2/W4 评测：金丝雀、role golden set、prompt 回归、知识库召回
-dashboard/             W3 工作台 + W4 决策收件箱 + W5 角色/门禁/质量监控
+  game_check.py        游戏入口/逻辑/QA/渲染/集成验收与签名证据
+  knowledge/           FTS5 + bge-m3 + RRF + rerank + 权威等级
+eval/                  W2/W4 评测 + failure_injection 故障注入
+dashboard/             W3 工作台 + W4 决策收件箱 + W5 角色/门禁/质量/信任监控
 templates/             minimal-api 与 web-2d-game 脚手架
 tools/                 默认 semgrep 规则（各项目可覆盖）
-tests/                 沙箱/证据/门禁/质量/rerank/runner 集成测试
-.github/workflows/     CI：单测、评测、预演、specs、standard/full 工具证据
+tests/                 沙箱/证据/门禁/质量/rerank/runner/8 轮优化测试
+.github/workflows/     CI：单测、故障注入、能力探针、评测、预演、specs、工具证据
 prompts/               12 角色版本化提示词 + 候选 v2 + registry
 knowledge/             RAGFlow 风格混合检索说明（FTS5 + bge-m3 + RRF）
 skills/                本地技能注册表（引用 RAG-Agent-Toolkit 的 4 个技能）
-specs/                 任务卡、证据、决策包、裁决、Agent 规格
+specs/                 任务卡、证据、决策包、裁决、Agent 规格、迭代清单、来源/需求
 rubrics/               产品/架构/代码/验收/发布/复核 rubric
 sim/                   编排协议预演（v4.1 + W3），v4.0 备份在 dryrun_v4.0.py
 config/                配置示例（只放环境变量名）
 requirements/          backlog、需求选择脚本与示例需求
-projects/              角色运行示例（prompt/output/meta/evidence/quality/logs/src）
-start_project.py       项目启动脚本
+projects/              角色运行示例（prompt/output/meta/evidence/quality/logs/src/db）
+docs/optimization/     本次优化基线、轮次记录与实施报告
+start_project.py       项目启动脚本（--mode formal|rehearsal）
 start.bat              Windows 启动器（ASCII）
 ARCHITECTURE.md        当前代码架构汇总
 PROJECT_PLAYBOOK.md    选需求/启动/角色记录/门禁/质量/优化路线
@@ -273,17 +315,22 @@ PROJECT_PLAYBOOK.md    选需求/启动/角色记录/门禁/质量/优化路线
 
 ## 当前边界
 
+- 本次优化没有调用真实模型：能力探针真实分支默认 `skipped`；真实成功率、成本与时延仍需在目标端点测量。
+- 旧项目没有迭代清单时显示 `legacy_unverified`，不会被新 DoD 自动放行；历史项目只读保留，未批量迁移。
+- `state/agentteam.db` 是新权威状态；旧 `project.json`/`roles.json` 继续作为 Dashboard 兼容视图。
+- SQLite 租约/outbox 通过了单进程与线程级测试，尚未做多进程高吞吐压测。
+- 游戏集成证明扩展被加载、调用和断言；test1 的玩法主路径仍主要使用基座 core/main，尚未逐模块迁移。
+- Dashboard 增加了信任/模式/任务摘要标签，但未重构为完整的任务/切片/缺陷/行动多层视图。
 - 裁判真实调用依赖 DeepSeek Key；没有 Key 时默认失败关闭，`--allow-local-judge` 是显式降级并记录 family collision。
 - 本地 Qwen 输出通过 Schema 校验与少量“格式修复”（只修 severity/line/额外字段，不改 decision/evidence），修复次数记录在 `schema_repairs`。
 - 机械硬约束先于裁判执行：确定性失败、缺证据、未签名证据、越界写、高危漏洞、无回滚发布、指令性文本，裁判无权批准。
 - 医疗、金融持牌等要求人工签核的场景不适用本方案。
 - W3 的共享文件锁是内存租约模型；真实仓库的 worktree/锁文件/合并冲突仍需执行层。
-- W4/W5 的 role eval 支持 12 角色 × 2 用例全量真实回归；`--real --full` 会消耗本地模型时间，成本记录在 `eval/out`。
 - 知识库未直接运行 RAGFlow（依赖 Elasticsearch/MySQL/Redis），复用其检索概念；`data/knowledge.db` 可重建。
 - 决策收件箱是策略所有者/审计入口；常规门禁由角色门禁与 J1/J2/J3 裁决，不逐次人工审批。
-- `start_project.py` 的角色输出是**开发草稿**；工具证据、门禁与沙箱已接入，但仍需真实测试/契约/扫描通过后才算可验收。
+- `start_project.py` 的角色输出是**开发草稿**；工具证据、门禁、运行验收与沙箱已接入，但仍需真实测试/契约/扫描通过后才算可验收。
 - 沙箱是进程级隔离（allowlist、脱敏环境、超时、隔离副本/worktree），**不是内核容器**；生产需要容器/seccomp/网络命名空间。
 - 本地未安装 semgrep/trivy 时，standard/full 的对应证据显式为 missing 并失败关闭；CI 会安装并跑 full profile。
 - 模板是 stdlib 脚手架，用来验证链路；真实项目需替换依赖、测试与契约，TODO 不算交付物。
-- 尚未实现：容器级沙箱、工作树租约、进程崩溃恢复、完整 MCP 服务端；W1/W2/W3 的评测、账本与工作台是本地可运行版本。
+- 尚未实现：容器级沙箱、工作树租约、进程崩溃恢复的完整外部副作用核对、完整 MCP 服务端、历史项目批量迁移。
 - 监控工作台读取 `sim/out/w3`；重新跑 W3 后执行 `python dashboard/build.py` 刷新。

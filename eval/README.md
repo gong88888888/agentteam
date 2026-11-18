@@ -37,6 +37,19 @@ python eval/run_eval.py --real
 
 报告写入 `eval/out/report.md` 与 `eval/out/metrics.json`。
 
+## 故障注入（2026-11-18）
+
+```bash
+python eval/failure_injection.py
+python eval/failure_injection.py --json eval/out/failure-injection.json
+```
+
+20 个确定性反例：无效来源、覆盖污染、blocked 评审、旧门禁、空产物、runner-summary、
+无效 Web 入口、健康过但业务失败、未接入游戏模块、未知后端、伪造/过期证据、零用例、
+缺承诺角色、过期迭代门禁、重复反馈、笼统复盘、过期 worker、工具预算、自我验证。
+
+当前结果：**20/20 失败关闭**。该套件不调用真实模型，只验证“错误不能变成成功”。
+
 ## 当前结果
 
 离线：judge 11/11，canary 7/7，agents 6/6，revalidation 4/4。

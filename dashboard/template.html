@@ -676,7 +676,7 @@ function renderLive() {
   const tasks = (d.project.tasks || []).slice().sort((a, b) =>
     (a.stage_index - b.stage_index) || (a.start_min - b.start_min) || String(a.role).localeCompare(String(b.role)));
   const gateTotal = (m.gates_pass || 0) + (m.gates_fail || 0) + (m.gates_need_evidence || 0) + (m.gates_off || 0);
-  $("live-summary").innerHTML = `<strong>${esc(p.name)}</strong> · ${esc(p.project_type || "project")} · ${p.offline ? "offline stub" : "real model"} · 状态 <strong>${esc(p.status)}</strong> · 更新 ${esc(p.updated_at || "—")}`;
+  $("live-summary").innerHTML = `<strong>${esc(p.name)}</strong> · ${esc(p.project_type || "project")} · ${p.offline ? "offline stub" : "real model"} · 状态 <strong>${esc(p.status)}</strong> · 信任 ${esc(p.trust || "—")} · 模式 ${esc(p.mode || "—")} · 更新 ${esc(p.updated_at || "—")}`;
   $("live-source").textContent = `${LIVE.source === "live" ? "实时" : "快照"} · ${esc(d.generated_at || "—")}`;
   const tiles = [
     ["项目状态", esc(p.status), `${m.roles_done}/${m.roles_total} 角色完成`],

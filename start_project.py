@@ -60,6 +60,12 @@ def main() -> int:
     p.add_argument("--note", default="", help="给角色的调整要求（用于单角色重跑）")
     p.add_argument("--decision-db", default=None,
                    help="门禁升级写入的决策库（默认 data/decisions.db）")
+    p.add_argument("--mode", default="formal", choices=("formal", "rehearsal"),
+                   help="formal：失败阻塞下游且必须运行验收；rehearsal：探索性运行，不算交付")
+    p.add_argument("--judge-gate", action="store_true",
+                   help="高风险角色确定性门禁通过后追加 J1/J2 裁判复核")
+    p.add_argument("--allow-local-judge", action="store_true",
+                   help="裁判无 DeepSeek Key 时显式降级到本地模型（记录 family collision）")
     p.add_argument("--config", default=None)
     args = p.parse_args()
 
@@ -86,7 +92,8 @@ def main() -> int:
         sandbox=args.sandbox, decision_db=args.decision_db,
         stop_on_gate=args.stop_on_gate, quality=not args.no_quality,
         merge_state=args.merge, project_type=project_type,
-        extra_note=args.note)
+        extra_note=args.note, mode=args.mode,
+        judge_gate=args.judge_gate, allow_local_judge=args.allow_local_judge)
     result = runner.run()
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] == "completed" else 1

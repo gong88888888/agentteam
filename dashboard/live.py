@@ -22,6 +22,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from orchestrator.project_runner import ROLE_SPECS  # noqa: E402
+from orchestrator.trust import project_trust  # noqa: E402
 
 ROLE_ORDER = [r.role for r in ROLE_SPECS]
 ROLE_TITLES = {r.role: r.title for r in ROLE_SPECS}
@@ -146,6 +147,8 @@ def project_summary(p: Path) -> dict[str, Any]:
         "elapsed_s": project.get("elapsed_s", progress.get("elapsed_s", 0)),
         "acceptance_status": (project.get("acceptance") or {}).get("status", ""),
         "dod_status": (project.get("dod") or {}).get("status", ""),
+        "trust": project.get("trust") or project_trust(project),
+        "mode": project.get("mode", "legacy"),
         "process_metrics": project.get("process_metrics", {}),
         "stages": project.get("stages", []),
         "updated_ts": _updated_key(p, project),

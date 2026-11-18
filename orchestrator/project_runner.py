@@ -10,26 +10,38 @@ import re
 import shutil
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
-from .config import data_dir, load_config, load_schema
+from .acceptance_web import run_web_acceptance
+from .config import data_dir, load_config, load_schema, signing_key
+from .context import ContextAssembler
 from .decisions import DecisionStore
+from .evidence.resolver import EvidenceResolver
 from .evidence.signing import sha256_hex
+from .evidence.verdict_store import VerdictStore
+from .findings import FindingStore
 from .game_check import detect_project_type, run_game_acceptance
-from .judge.backend import parse_json_object
+from .iterations import build_manifest, write_manifest
+from .judge.backend import (ModelJudgeBackend, StubJudgeBackend,
+                            parse_json_object)
+from .judge.panel import JudgePanel
+from .judge.role_review import review_role
 from .knowledge import HybridRetriever
 from .models.router import ModelRouter
+from .persistence import ProjectLedger
 from .prompts import load_prompt
 from .quality import append_history, score_role
 from .process import definition_of_done, preflight, stage_plan, write_stages
-from .role_gates import ARTIFACT_PATHS, GateResult, evaluate_role
+from .role_gates import ARTIFACT_PATHS, HIGH_RISK_ROLES, GateResult, evaluate_role
 from .sandbox import IsolatedWorkspace
 from .templates import apply_template, get_template
 from .tool_evidence import PROFILES, collect
+from .trust import project_trust
 
 
 @dataclass(frozen=True)
@@ -81,6 +93,7 @@ ROLE_SPECS: list[RoleSpec] = [
 
 ROLE_MAP = {r.role: r for r in ROLE_SPECS}
 CODE_ROLES = {"backend", "frontend"}
+CONTEXT_CONSUMERS = {"backend", "frontend", "ui", "qa", "review", "security", "ops"}
 
 GAME_INSTRUCTIONS: dict[str, str] = {
     "pm": "按产品文档拆出可交付切片：5 层章节、战斗、装备、房间、存档、双人、QA/验收；给出依赖顺序与每项验收命令。",
@@ -105,13 +118,15 @@ GAME_SCOPES: dict[str, tuple[str, ...]] = {
 
 def _acceptance_summary(project_dir: Path) -> dict[str, Any] | None:
     path = project_dir / "acceptance.json"
+    if not path.is_file():
+        path = project_dir / "acceptance.web.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
     return {
         "status": data.get("status"),
-        "engine": data.get("engine"),
+        "engine": data.get("engine") or data.get("profile"),
         "checks": [{"name": c.get("name"), "ok": c.get("ok"),
                     "detail": c.get("detail"), "evidence_id": c.get("evidence_id")}
                    for c in data.get("checks", [])],
@@ -128,10 +143,20 @@ class ProjectRunner:
                  tool_profile: str = "basic", gates: bool = True,
                  sandbox: bool = False, decision_db: str | Path | None = None,
                  stop_on_gate: bool = False, quality: bool = True,
-                 run_id: str = "", project_type: str = "auto") -> None:
+                 run_id: str = "", project_type: str = "auto",
+                 mode: str = "formal", scope_roles: list[str] | None = None,
+                 partial_run: bool = False, judge_gate: bool = False,
+                 allow_local_judge: bool = False) -> None:
         self.requirements_path = Path(requirements)
         if not self.requirements_path.exists():
             raise FileNotFoundError(f"需求文件不存在：{self.requirements_path}")
+        if mode not in ("formal", "rehearsal"):
+            raise ValueError(f"未知运行模式：{mode}（formal|rehearsal）")
+        self.mode = mode
+        self.partial_run = partial_run
+        self.judge_gate = bool(judge_gate)
+        self.allow_local_judge = bool(allow_local_judge)
+        self.judge_panel: JudgePanel | None = None
         self.project_dir = Path(project_dir).resolve()
         self.cfg = cfg or load_config()
         self.offline = offline
@@ -139,6 +164,10 @@ class ProjectRunner:
         unknown = [r for r in self.roles if r not in ROLE_MAP]
         if unknown:
             raise ValueError(f"未知角色：{unknown}")
+        self.scope_roles = scope_roles or list(self.roles)
+        unknown_scope = [r for r in self.scope_roles if r not in ROLE_MAP]
+        if unknown_scope:
+            raise ValueError(f"未知承诺角色：{unknown_scope}")
         if tool_profile not in PROFILES:
             raise ValueError(f"未知工具证据 profile：{tool_profile}")
         if template not in ("none", "") and not get_template(template):
@@ -153,7 +182,8 @@ class ProjectRunner:
         self.sandbox_enabled = sandbox
         self.stop_on_gate = stop_on_gate
         self.quality_enabled = quality
-        self.run_id = run_id or time.strftime("%Y%m%d-%H%M%S")
+        self.run_id = run_id or (f"{time.strftime('%Y%m%d-%H%M%S')}-"
+                                 f"{uuid.uuid4().hex[:6]}")
         self.router = ModelRouter(self.cfg, offline=offline)
         self.schema = load_schema("agent-output.schema.json")
         self.log_path = self.project_dir / "logs" / "events.jsonl"
@@ -167,6 +197,10 @@ class ProjectRunner:
         self.acceptance_runs = 0
         self.stage_failures: list[str] = []
         self.dod_result: dict[str, Any] = {}
+        self.manifest: Any = None
+        self.blocked_stage: int | None = None
+        self.ledger: ProjectLedger | None = None
+        self.finding_store: FindingStore | None = None
         self.baseline_fp = ""
         self.requirement_text = self.requirements_path.read_text(encoding="utf-8")
         self.project_type = (detect_project_type(self.requirement_text)
@@ -189,6 +223,36 @@ class ProjectRunner:
             "template_hash": self.template_record.get("hash", ""),
             "profile": self.tool_profile,
         })
+        self.manifest = build_manifest(
+            project_id=self.project_dir.name, iteration_id=self.run_id,
+            project_type=self.project_type, roles=self.scope_roles,
+            template=self.template, profile=self.tool_profile, mode=self.mode)
+        write_manifest(self.project_dir, self.manifest)
+        self.ledger = ProjectLedger(
+            self.project_dir, project_id=self.project_dir.name,
+            iteration_id=self.run_id, run_id=self.run_id,
+            project_type=self.project_type, mode=self.mode)
+        self.log("persistence.ready", database=str(self.ledger.db.path),
+                 schema_version=self.ledger.db.schema_version())
+        recovered = self.ledger.store.recover_expired()
+        if recovered:
+            self.log("persistence.recovered", tasks=recovered)
+        self.finding_store = FindingStore(self.ledger.db)
+        if self.judge_gate and self.judge_panel is None:
+            verdict_store = VerdictStore(
+                self.project_dir / "evidence" / "verdict-ledger.jsonl",
+                signing_key())
+            backend = (StubJudgeBackend() if self.offline
+                       else ModelJudgeBackend(self.router,
+                                              allow_local=self.allow_local_judge))
+            self.judge_panel = JudgePanel(backend, store=verdict_store)
+            self.log("judge.enabled", offline=self.offline,
+                     allow_local_judge=self.allow_local_judge)
+        self.log("iteration.manifest", iteration_id=self.run_id,
+                 roles=self.manifest.required_roles,
+                 acceptance=self.manifest.required_acceptance,
+                 docs=self.manifest.required_docs,
+                 requires_entry=self.manifest.requires_entry)
         self.preflight_result = preflight(self.project_dir, self.project_type, self.template)
         (self.project_dir / "state" / "preflight.json").write_text(
             json.dumps(self.preflight_result, ensure_ascii=False, indent=2) + "\n",
@@ -205,7 +269,8 @@ class ProjectRunner:
                 previous = json.loads(meta_path.read_text(encoding="utf-8"))
             except Exception:
                 previous = {}
-        project_roles = sorted(set(previous.get("roles") or []) | set(self.roles))
+        project_roles = sorted(set(previous.get("roles") or [])
+                               | set(self.roles) | set(self.scope_roles))
         project = {
             "project_id": self.project_dir.name,
             "created_at": previous.get("created_at") or time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -218,6 +283,10 @@ class ProjectRunner:
             "tool_profile": self.tool_profile,
             "project_type": self.project_type,
             "run_id": self.run_id,
+            "mode": self.mode,
+            "iteration_id": self.run_id,
+            "manifest": self.manifest.to_dict() if self.manifest else None,
+            "database": "state/agentteam.db",
             "current_role": "",
             "current_index": 0,
             "total_roles": len(self.roles),
@@ -259,7 +328,46 @@ class ProjectRunner:
             self.log("kb.error", error=str(exc)[:300])
             return ""
 
-    def user_message(self, spec: RoleSpec, prior: list[str], kb: str) -> str:
+    def build_context(self, role: str, state: dict[str, Any]):
+        """Assemble referenced documents/code instead of only prior summaries."""
+        assembler = ContextAssembler(
+            self.project_dir,
+            budget_chars=16000 if self.project_type == "game" else 12000)
+        prior_roles = [spec.role for spec in ROLE_SPECS
+                       if spec.role in state and spec.role != role
+                       and isinstance(state.get(spec.role), dict)
+                       and state[spec.role].get("status") == "done"]
+        for producer in ("pm", "product", "ui", "arch", "qa"):
+            if producer not in prior_roles:
+                continue
+            files = state[producer].get("files") or []
+            for f in files:
+                path = str(f.get("path", "")).replace("\\", "/")
+                if f.get("source") != "role" or not path.endswith(
+                        (".md", ".yaml", ".yml", ".json")):
+                    continue
+                required = role in CONTEXT_CONSUMERS and producer in ("product", "arch")
+                assembler.add_file(path, kind="artifact",
+                                   importance="required" if required else "local",
+                                   max_chars=7000, required=required)
+        scope = self.role_scope(role)
+        for prefix in scope:
+            if not prefix.startswith(("src/", "game/")):
+                continue
+            base = self.project_dir / prefix.rstrip("/")
+            if not base.is_dir():
+                continue
+            files = sorted(p for p in base.rglob("*")
+                           if p.is_file() and p.suffix in (".py", ".js", ".mjs",
+                                                           ".ts", ".css", ".html"))
+            for path in files[:6]:
+                assembler.add_file(path.relative_to(self.project_dir).as_posix(),
+                                   kind="code", importance="local", max_chars=2200)
+            break
+        return assembler.build()
+
+    def user_message(self, spec: RoleSpec, prior: list[str], kb: str,
+                     context: str = "") -> str:
         scope = ", ".join(self.role_scope(spec.role))
         expected = ARTIFACT_PATHS.get(spec.role, ())
         template = (f"{self.template_record.get('template')} "
@@ -287,7 +395,10 @@ class ProjectRunner:
 {template}
 脚手架不是完成品；必须用本次需求替换 TODO。期望交付物：{', '.join(expected) or '按角色约定'}
 
-# 前置产物摘要
+# 任务上下文包（程序装配，条目带 ID/哈希）
+{context or "（无引用材料）"}
+
+# 前置产物摘要（仅导航，不能替代上面的原文/规范）
 {chr(10).join(prior) if prior else "（首个角色，无前置产物）"}
 
 # 知识库引用
@@ -321,6 +432,60 @@ class ProjectRunner:
 """
 
     # ---------- run ----------
+    def stage_index(self, role: str) -> int | None:
+        for index, stage in enumerate(stage_plan(self.project_type)):
+            if role in stage.get("roles", []):
+                return index
+        return None
+
+    def stage_id(self, role: str) -> str:
+        index = self.stage_index(role)
+        if index is None:
+            return "unassigned"
+        return str(stage_plan(self.project_type)[index]["id"])
+
+    def _block_stage(self, role: str, reason: str) -> None:
+        if self.mode != "formal":
+            return
+        index = self.stage_index(role)
+        if index is None:
+            return
+        if self.blocked_stage is None or index < self.blocked_stage:
+            self.blocked_stage = index
+            self.log("stage.blocked", role=role, stage_index=index, reason=reason)
+
+    def record_gate_finding(self, role: str, gate: GateResult,
+                            obj: dict[str, Any]) -> dict[str, Any] | None:
+        if self.finding_store is None:
+            return None
+        failed = [c.name for c in gate.checks if not c.ok]
+        if not failed:
+            return None
+        category = {
+            "product": "requirement_gap", "pm": "requirement_gap",
+            "ui": "design_gap", "arch": "contract_conflict",
+            "backend": "implementation", "frontend": "implementation",
+            "qa": "verification_gap", "ops": "environment",
+            "retro": "process_gap",
+        }.get(role, "process_gap")
+        if any(name.startswith("evidence") or name.startswith("tool")
+               for name in failed):
+            category = "verification_gap"
+        symptom = f"{role} 门禁 {gate.status}：" + ", ".join(failed[:6])
+        finding = self.finding_store.create(
+            project_id=self.project_dir.name, symptom=symptom,
+            category=category, severity="major",
+            evidence=[{"gate_id": gate.gate_id, "status": gate.status,
+                       "failed": failed,
+                       "evidence_errors": gate.evidence_errors}])
+        if finding.get("created"):
+            self.finding_store.triage(
+                finding["finding_id"], category=category,
+                root_cause=f"gate {gate.gate_id} {gate.status}")
+            self.log("finding.created", role=role,
+                     finding_id=finding["finding_id"], category=category)
+        return finding
+
     def run(self) -> dict[str, Any]:
         self.prepare()
         kb = self.kb_context()
@@ -345,13 +510,49 @@ class ProjectRunner:
 
         for index, role in enumerate(self.roles, 1):
             spec = ROLE_MAP[role]
+            role_stage = self.stage_index(role)
+            if (self.mode == "formal" and self.blocked_stage is not None
+                    and role_stage is not None and role_stage > self.blocked_stage):
+                statuses[role] = "skipped"
+                state[role] = {
+                    "role": role, "title": spec.title, "status": "skipped",
+                    "gate": None, "run_id": self.run_id,
+                    "reason": f"上游阶段（index={self.blocked_stage}）未通过，"
+                              "正式模式阻塞下游阶段",
+                    "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                }
+                self.log("role.skipped", role=role, stage_index=role_stage,
+                         blocked_stage=self.blocked_stage)
+                if self.ledger:
+                    self.ledger.skip_role(
+                        role, f"blocked by upstream stage {self.blocked_stage}")
+                self.live_state(state, "running", None, index)
+                continue
+            input_fp = sha256_hex({
+                "baseline": self.baseline_fp, "role": role,
+                "iteration": self.run_id,
+                "prior": [str(f.get("sha256", ""))
+                          for meta in state.values() if isinstance(meta, dict)
+                          for f in (meta.get("files") or [])][-20:],
+            })
+            role_handle = (self.ledger.start_role(role, stage=self.stage_id(role),
+                                                  input_fingerprint=input_fp)
+                           if self.ledger else None)
             prompt = load_prompt(role)
             system_text = self.system_message(role)
-            user_text = self.user_message(spec, prior, kb)
+            context_pack = self.build_context(role, state)
+            if context_pack.errors:
+                self.log("context.errors", role=role, errors=context_pack.errors,
+                         missing=context_pack.missing)
+            user_text = self.user_message(spec, prior, kb,
+                                          context=context_pack.render())
             messages = [{"role": "system", "content": system_text},
                         {"role": "user", "content": user_text}]
             role_dir = self.project_dir / "artifacts" / role
             role_dir.mkdir(parents=True, exist_ok=True)
+            (role_dir / "context-manifest.json").write_text(
+                json.dumps(context_pack.manifest(), ensure_ascii=False,
+                           indent=2) + "\n", encoding="utf-8")
             (role_dir / "request.md").write_text(
                 f"# system\n\n{system_text}\n\n# user\n\n{user_text}\n", encoding="utf-8")
             role_started_at = time.time()
@@ -408,8 +609,12 @@ class ProjectRunner:
                     encoding="utf-8")
                 self.log("role.failed", role=role, error=str(last_exc)[:500],
                          prompt=prompt.metadata())
+                if self.ledger:
+                    self.ledger.finish_role(role_handle, status="error",
+                                            summary="", error=str(last_exc)[:500])
                 prior.append(f"- {role}: FAILED — {str(last_exc)[:200]}")
                 self.live_state(state, "running", None, index)
+                self._block_stage(role, "role execution failed")
                 if self.stop_on_error:
                     break
                 continue
@@ -433,7 +638,8 @@ class ProjectRunner:
                     files = self.write_files(role, raw_files, root=ws.path)
                     tool_result = (None if self.project_type == "game"
                                    else self.run_tools(ws.path, role, files))
-                    gate = self.run_gate(role, obj, files, tool_result)
+                    gate = self.run_gate(role, obj, files, tool_result,
+                                         files_root=ws.path)
                     if gate is not None and gate.status == "pass":
                         promoted = ws.promote([f["path"] for f in files])
                         for f in files:
@@ -450,6 +656,8 @@ class ProjectRunner:
                 gate = self.run_gate(role, obj, files, tool_result)
                 for f in files:
                     f["promoted"] = True
+            if self.project_type == "game":
+                self.update_extension_manifest(role, files)
             (role_dir / "output.json").write_text(
                 json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             summary = obj.get("summary") or "; ".join(
@@ -459,6 +667,22 @@ class ProjectRunner:
             role_status = obj.get("status", "done")
             if gate is not None and gate.status != "pass":
                 role_status = "blocked"
+            judge_data = None
+            if (self.judge_panel is not None and gate is not None
+                    and gate.status == "pass" and role in HIGH_RISK_ROLES):
+                judged = review_role(
+                    role=role, obj=obj, gate=gate, tool_result=tool_result,
+                    project_id=self.project_dir.name,
+                    baseline_fp=self.baseline_fp, panel=self.judge_panel,
+                    risk="high", files=files)
+                judge_data = judged.to_dict()
+                if not judged.approved:
+                    role_status = "blocked"
+                    self.log("judge.blocked", role=role,
+                             decision=judged.decision, error=judged.error)
+                else:
+                    self.log("judge.approved", role=role,
+                             decision=judged.decision)
             meta = {
                 "role": role, "title": spec.title,
                 "status": role_status,
@@ -471,7 +695,8 @@ class ProjectRunner:
                 "files": files,
                 "code_pass": code_pass,
                 "adjustment": self.extra_note or "",
-                "gate": gate.to_dict() if gate else None,
+                "gate": self._gate_dict(gate) if gate else None,
+                "judge": judge_data,
                 "tools": self.tools_summary(tool_result),
                 "sandbox": ("isolated" if self.sandbox_enabled and role in CODE_ROLES
                             else "direct"),
@@ -480,6 +705,7 @@ class ProjectRunner:
                 "started_at": role_started_at,
                 "started_clock": placeholder["started_clock"],
                 "schema_repairs": repairs,
+                "context": context_pack.manifest(),
                 "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
             if self.quality_enabled and gate is not None:
@@ -496,6 +722,13 @@ class ProjectRunner:
                 json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             statuses[role] = role_status
             state[role] = meta
+            if judge_data and not judge_data.get("approved"):
+                self._block_stage(role, f"judge:{judge_data.get('decision')}")
+            if self.ledger:
+                self.ledger.finish_role(
+                    role_handle, status=role_status, summary=summary, files=files,
+                    gate=self._gate_dict(gate) if gate else None,
+                    model=meta.get("model", ""), backend=meta.get("backend", ""))
             self.live_state(state, "running", None, index)
             if role in CODE_ROLES and (role == "frontend" or "frontend" not in self.roles):
                 self.run_stage_acceptance("implementation", state)
@@ -530,9 +763,34 @@ class ProjectRunner:
                      prompt=prompt.metadata(), latency_ms=meta["latency_ms"],
                      files=[f["path"] for f in files],
                      gate=gate.status if gate else "off")
+            if gate is not None and gate.status != "pass":
+                self.record_gate_finding(role, gate, obj)
+                self._block_stage(role, f"gate {gate.status}: {gate.gate_id}")
             if gate is not None and gate.status != "pass" and self.stop_on_gate:
                 self.log("project.gate_blocked", role=role, gate_id=gate.gate_id)
                 break
+
+        if self.partial_run:
+            elapsed = int(time.time() - started_all)
+            errors = [r for r, v in state.items()
+                      if isinstance(v, dict) and v.get("status") == "error"]
+            blocked = [r for r, v in state.items()
+                       if isinstance(v, dict) and v.get("status") == "blocked"]
+            self.dod_result = {"status": "not_run",
+                               "reason": "partial_rerun: 单角色重跑不构成项目完成",
+                               "checks": []}
+            self._stop_heartbeat()
+            self.write_state(state, "partial_rerun", elapsed)
+            self.write_readme(state, "partial_rerun")
+            if self.ledger:
+                self.ledger.export_domain_events()
+            self.log("project.partial_rerun", statuses=statuses,
+                     scope_roles=self.scope_roles)
+            return {"project_dir": str(self.project_dir), "status": "partial_rerun",
+                    "roles": statuses, "errors": errors, "blocked": blocked,
+                    "elapsed_s": elapsed, "model": self.router.summary(),
+                    "template": self.template, "tool_profile": self.tool_profile,
+                    "partial": True, "scope_roles": self.scope_roles}
 
         elapsed = int(time.time() - started_all)
         acceptance = None
@@ -544,23 +802,44 @@ class ProjectRunner:
                      engine=acceptance["engine"],
                      failed=[c["name"] for c in acceptance["checks"] if not c["ok"]],
                      evidence_ids=acceptance["evidence_ids"])
+        elif self.manifest and self.manifest.requires_entry:
+            acceptance = run_web_acceptance(
+                self.project_dir, ledger_path=self.evidence_ledger,
+                baseline_fp=self.baseline_fp)
+            self.log("web.acceptance", status=acceptance["status"],
+                     entry=acceptance.get("entry"),
+                     failed=[c["name"] for c in acceptance["checks"] if not c["ok"]],
+                     evidence_ids=acceptance["evidence_ids"])
         self.dod_result = definition_of_done(
-            self.project_dir, self.project_type, state, acceptance=acceptance)
+            self.project_dir, self.project_type, state,
+            acceptance=acceptance, manifest=self.manifest)
         errors = [r for r, v in state.items()
                   if isinstance(v, dict) and v.get("status") == "error"]
         blocked = [r for r, v in state.items()
                    if isinstance(v, dict) and v.get("status") == "blocked"]
+        skipped = [r for r, v in state.items()
+                   if isinstance(v, dict) and v.get("status") == "skipped"]
         all_statuses = [v.get("status") for v in state.values() if isinstance(v, dict)]
-        if all_statuses and all(s in ("error", "blocked") for s in all_statuses):
+        if self.mode != "formal":
+            status = "rehearsal"
+        elif all_statuses and all(s in ("error", "blocked", "skipped")
+                                  for s in all_statuses):
             status = "failed"
-        elif errors or blocked:
+        elif errors or blocked or skipped:
             status = "partial"
         else:
             status = "completed"
         if acceptance is not None and acceptance["status"] != "pass":
             status = "failed"
-        if self.dod_result.get("status") != "pass":
-            status = "failed" if acceptance is None or acceptance.get("status") != "pass" else "partial"
+        if self.dod_result.get("status") != "pass" and self.mode == "formal":
+            status = "failed" if acceptance is None or acceptance.get("status") != "pass" \
+                else "partial"
+        if self.ledger:
+            try:
+                self.ledger.finish_iteration(status, dod=self.dod_result,
+                                             acceptance=acceptance)
+            except Exception as exc:
+                self.log("persistence.finish_error", error=str(exc)[:300])
         self._stop_heartbeat()
         self.write_state(state, status, elapsed)
         self.write_readme(state, status)
@@ -782,16 +1061,134 @@ class ProjectRunner:
                  decision_id=decision_id)
         return row
 
+    @staticmethod
+    def parse_extension_metadata(text: str) -> dict[str, Any] | None:
+        """Read the declarative extension export from a generated JS module."""
+        match = re.search(r"export\s+const\s+extension\s*=\s*\{(.*?)\n\}\s*;",
+                          text, re.S)
+        if not match:
+            return None
+        body = match.group(1)
+        id_match = re.search(r"""id\s*:\s*["']([^"']+)["']""", body)
+        if not id_match:
+            return None
+        actions: list[str] = []
+        actions_match = re.search(r"actions\s*:\s*\[([^\]]*)\]", body)
+        if actions_match:
+            actions = re.findall(r"""["']([^"']+)["']""", actions_match.group(1))
+        smoke = None
+        smoke_match = re.search(r"smoke\s*:\s*\{(.*?)\}", body, re.S)
+        if smoke_match:
+            smoke_body = smoke_match.group(1)
+            action_match = re.search(r"""action\s*:\s*["']([^"']+)["']""",
+                                     smoke_body)
+            args: list[Any] = []
+            args_match = re.search(r"args\s*:\s*\[([^\]]*)\]", smoke_body)
+            if args_match:
+                for token in args_match.group(1).split(","):
+                    token = token.strip()
+                    if not token:
+                        continue
+                    if token[0] in "\"'":
+                        args.append(token.strip("\"'"))
+                    elif token in ("true", "false"):
+                        args.append(token == "true")
+                    elif token in ("null", "undefined"):
+                        args.append(None)
+                    else:
+                        try:
+                            args.append(float(token) if "." in token else int(token))
+                        except ValueError:
+                            args.append(token)
+            smoke = {"action": action_match.group(1) if action_match
+                     else (actions[0] if actions else ""), "args": args}
+            type_match = re.search(r"""expectType\s*:\s*["']([^"']+)["']""",
+                                   smoke_body)
+            if type_match:
+                smoke["expectType"] = type_match.group(1)
+        return {"id": id_match.group(1), "actions": actions, "smoke": smoke}
+
+    def update_extension_manifest(self, role: str,
+                                  files: list[dict[str, Any]]) -> None:
+        """Register generated modules through the single extension manifest.
+
+        This is a deterministic integration step: a module only becomes
+        reachable when it declares an extension and is present in the manifest.
+        """
+        manifest_path = (self.project_dir / "game" / "js" / "extensions"
+                         / "manifest.json")
+        data: dict[str, Any] = {"schema_version": "1.0", "extensions": []}
+        if manifest_path.is_file():
+            try:
+                loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    data.update(loaded)
+            except (OSError, json.JSONDecodeError):
+                pass
+        entries = {str(e.get("id")): dict(e) for e in data.get("extensions") or []
+                   if isinstance(e, dict) and e.get("id")}
+        changed = False
+        for f in files:
+            rel = str(f.get("path", "")).replace("\\", "/")
+            if f.get("source") != "role" or not f.get("promoted", True):
+                continue
+            if not rel.endswith(".js") or not rel.startswith(
+                    ("game/js/gameplay/", "game/js/ui/")):
+                continue
+            path = self.project_dir / rel
+            if not path.is_file():
+                continue
+            game_rel = rel[len("game/"):]
+            meta = self.parse_extension_metadata(
+                path.read_text(encoding="utf-8", errors="replace"))
+            for existing in [eid for eid, entry in entries.items()
+                             if entry.get("path") == rel
+                             or entry.get("module") == rel
+                             or entry.get("module") == game_rel]:
+                del entries[existing]
+                changed = True
+            if meta is None:
+                self.log("extension.metadata_missing", role=role, path=rel)
+                continue
+            entry = {"id": meta["id"], "module": game_rel, "path": rel,
+                     "role": role, "version": 1, "actions": meta["actions"]}
+            if meta.get("smoke"):
+                entry["smoke"] = meta["smoke"]
+            entries[meta["id"]] = entry
+            changed = True
+            self.log("extension.registered", role=role, path=rel,
+                     extension=meta["id"], actions=meta["actions"])
+        if changed:
+            manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            data["extensions"] = sorted(entries.values(), key=lambda e: str(e["id"]))
+            manifest_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                                     encoding="utf-8")
+            self.log("extension.manifest", count=len(entries))
+
+    def _gate_dict(self, gate: GateResult) -> dict[str, Any]:
+        data = gate.to_dict()
+        data["run_id"] = self.run_id
+        data["iteration_id"] = self.run_id
+        return data
+
     def run_gate(self, role: str, obj: dict[str, Any], files: list[dict[str, Any]],
-                 tool_result: dict[str, Any] | None) -> GateResult | None:
+                 tool_result: dict[str, Any] | None,
+                 files_root: Path | None = None) -> GateResult | None:
         if not self.gates_enabled:
             return None
+        resolver = None
+        if tool_result and tool_result.get("ledger"):
+            try:
+                resolver = EvidenceResolver(tool_result["ledger"], signing_key())
+            except Exception as exc:
+                self.log("evidence.resolver_error", role=role, error=str(exc)[:300])
         gate = evaluate_role(
             role, obj, project_dir=self.project_dir, files=files,
             tool_result=tool_result, profile=self.tool_profile,
             decision_store=self.decision_store,
             project_name=self.project_dir.name, baseline_fp=self.baseline_fp,
-            project_type=self.project_type)
+            project_type=self.project_type, evidence_resolver=resolver,
+            files_root=files_root)
         return gate
 
     def stash_files(self, role: str, files: list[dict[str, Any]],
@@ -1030,10 +1427,16 @@ class ProjectRunner:
                                 1 for r in self.stage_results if r.get("status") != "pass"),
                         },
                         "run_id": self.run_id,
+                        "iteration_id": self.run_id,
+                        "mode": self.mode,
+                        "manifest": self.manifest.to_dict() if self.manifest else None,
+                        "persistence": (self.ledger.counts() if self.ledger else None),
+                        "model_calls": self.router.calls,
                         "current_role": "",
                         "current_index": self._project_total(state),
                         "total_roles": self._project_total(state),
                         "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")})
+        project["trust"] = project_trust(project)
         (self.project_dir / "project.json").write_text(
             json.dumps(project, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         self.write_progress(state, status, None, self._run_total)

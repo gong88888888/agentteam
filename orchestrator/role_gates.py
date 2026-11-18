@@ -11,7 +11,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .config import signing_key
 from .decisions import DecisionStore
+from .evidence.resolver import EvidenceResolutionError, EvidenceResolver
 
 ROLE_KEYWORDS: dict[str, dict[str, list[str]]] = {
     "pm": {"all": [], "any": ["切片", "模块", "阶段", "计划", "路线"]},
@@ -65,12 +67,16 @@ class GateCheck:
 class GateResult:
     gate_id: str
     role: str
-    status: str                      # pass | fail | need_evidence
+    status: str                      # pass | fail | need_evidence | stale
     checks: list[GateCheck]
     evidence_ids: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     decision_id: str | None = None
     subject_hash: str = ""
+    evidence_verified: list[str] = field(default_factory=list)
+    evidence_errors: list[dict[str, str]] = field(default_factory=list)
+    trust: str = "unverified"        # verified | legacy_unverified | unverified
+    legacy: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -79,6 +85,9 @@ class GateResult:
                        for c in self.checks],
             "evidence_ids": self.evidence_ids, "missing": self.missing,
             "decision_id": self.decision_id, "subject_hash": self.subject_hash,
+            "evidence_verified": self.evidence_verified,
+            "evidence_errors": self.evidence_errors,
+            "trust": self.trust, "legacy": self.legacy,
         }
 
 
@@ -91,31 +100,53 @@ def _text_of(obj: dict[str, Any]) -> str:
 
 def _artifact_present(project: Path, role: str,
                      files: list[dict[str, Any]],
-                     project_type: str = "web") -> tuple[bool, str]:
+                     project_type: str = "web",
+                     files_root: Path | None = None) -> tuple[bool, str]:
     expected = (ARTIFACT_GAME.get(role, ARTIFACT_PATHS.get(role, ()))
                 if project_type == "game" else ARTIFACT_PATHS.get(role, ()))
     if not expected:
         return True, "no required artifact"
+    authored_root = files_root or project
     authored = {str(f.get("path", "")).replace("\\", "/") for f in files
                 if f.get("source", "role") == "role"}
+    summary_paths = {str(f.get("path", "")).replace("\\", "/") for f in files
+                     if f.get("source") == "runner-summary"}
     for exp in expected:
         if exp.endswith("/"):
-            if any(p.startswith(exp) for p in authored) or any(
-                    p.startswith(exp) for p in _disk_files(project, exp)):
+            if any(p.startswith(exp) and _usable_code(authored_root / p) for p in authored):
+                return True, exp
+            disk = [p for p in _disk_files(project, exp) if p not in summary_paths
+                    and _usable_code(project / p)]
+            if disk:
                 return True, exp
         elif exp in authored:
-            return True, exp
-        elif (project / exp).is_file() and _usable_doc(project / exp):
+            if _usable_doc(authored_root / exp):
+                return True, exp
+        elif exp not in summary_paths and (project / exp).is_file() \
+                and _usable_doc(project / exp):
             return True, exp
     return False, ", ".join(expected)
 
 
 def _usable_doc(path: Path) -> bool:
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")[:5000].lower()
+        text = path.read_text(encoding="utf-8", errors="replace").strip()
     except OSError:
         return False
-    return "todo" not in text and "scaffold" not in text
+    lowered = text.lower()
+    if len(text) < 25 or "todo" in lowered or "scaffold" in lowered:
+        return False
+    content_lines = [line.strip() for line in text.splitlines()
+                     if line.strip() and not line.lstrip().startswith("#")]
+    return len(" ".join(content_lines)) >= 25
+
+
+def _usable_code(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return False
+    return len(text) >= 10 and not text.lower().startswith("todo")
 
 
 def _disk_files(project: Path, prefix: str) -> list[str]:
@@ -133,6 +164,94 @@ def _evidence_status(evidence: list[dict[str, Any]], kind: str) -> tuple[str, st
     return last.get("result", "fail"), last.get("evidence_id", "")
 
 
+def _auto_resolver(tool_result: dict[str, Any] | None) -> EvidenceResolver | None:
+    ledger = str((tool_result or {}).get("ledger", "") or "")
+    if not ledger:
+        return None
+    try:
+        if not Path(ledger).is_file():
+            return None
+        return EvidenceResolver(ledger, signing_key())
+    except Exception:
+        return None
+
+
+def _resolve_tool_evidence(role: str, profile: str,
+                           tool_result: dict[str, Any],
+                           resolver: EvidenceResolver | None,
+                           *, baseline_fp: str,
+                           allow_legacy_unverified: bool,
+                           checks: list[GateCheck], missing: list[str],
+                           evidence_ids: list[str], verified: list[str],
+                           errors: list[dict[str, str]]) -> str:
+    required = _required_kinds(profile, role)
+    rows = tool_result.get("evidence") or []
+    subject = str(tool_result.get("subject_hash", "") or "")
+    if not subject:
+        missing.append("subject_hash")
+        checks.append(GateCheck("evidence_subject", False,
+                                "没有对象指纹，证据无法绑定当前对象"))
+    if resolver is None:
+        if allow_legacy_unverified:
+            for kind in sorted(required):
+                status, ev = _evidence_status(rows, kind)
+                if ev:
+                    evidence_ids.append(ev)
+                if status == "missing":
+                    missing.append(kind)
+                checks.append(GateCheck(f"evidence:{kind}", status == "pass",
+                                        "缺少" if status == "missing" else status))
+            checks.append(GateCheck("evidence_trusted", True,
+                                    "legacy_unverified：显式兼容模式，未在账本中复核"))
+            return "legacy_unverified"
+        missing.extend(sorted(required))
+        missing.append("evidence_ledger")
+        checks.append(GateCheck("evidence_trusted", False,
+                                "没有可信 EvidenceResolver / 签名账本；"
+                                "原始 result=pass 字典不能作为门禁证据"))
+        return "unverified"
+    for kind in sorted(required):
+        candidates = [e for e in rows if e.get("kind") == kind
+                      and e.get("result") == "pass" and e.get("evidence_id")]
+        if not candidates:
+            failed_rows = [e for e in rows if e.get("kind") == kind]
+            if failed_rows:
+                checks.append(GateCheck(f"evidence:{kind}", False,
+                                        str(failed_rows[-1].get("result", "fail"))))
+            else:
+                missing.append(kind)
+                checks.append(GateCheck(f"evidence:{kind}", False, "缺少"))
+            continue
+        resolved = None
+        last_error: EvidenceResolutionError | None = None
+        for row in reversed(candidates):
+            try:
+                resolved = resolver.resolve(
+                    str(row["evidence_id"]), kind=kind,
+                    subject_hash=subject or None,
+                    baseline_fp=baseline_fp or None)
+                break
+            except EvidenceResolutionError as exc:
+                last_error = exc
+                errors.append(exc.to_dict())
+        if resolved is not None:
+            evidence_ids.append(resolved.evidence_id)
+            verified.append(resolved.evidence_id)
+            checks.append(GateCheck(f"evidence:{kind}", resolved.result == "pass",
+                                    f"verified {resolved.evidence_id}"))
+        else:
+            code = last_error.code if last_error else "not_found"
+            evidence_ids.append(str(candidates[-1]["evidence_id"]))
+            if code in ("not_found", "expired_or_revoked", "ledger_integrity"):
+                missing.append(kind)
+            checks.append(GateCheck(f"evidence:{kind}", False,
+                                    f"{code}: {last_error}" if last_error else code))
+    if verified:
+        checks.append(GateCheck("evidence_trusted", True,
+                                f"{len(verified)} 条证据已在签名账本中复核"))
+    return "verified"
+
+
 def evaluate_role(role: str, obj: dict[str, Any], *,
                   project_dir: str | Path,
                   files: list[dict[str, Any]],
@@ -141,17 +260,24 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
                   decision_store: DecisionStore | None = None,
                   project_name: str = "",
                   baseline_fp: str = "",
-                  project_type: str = "web") -> GateResult:
+                  project_type: str = "web",
+                  evidence_resolver: EvidenceResolver | None = None,
+                  allow_legacy_unverified: bool = False,
+                  files_root: str | Path | None = None) -> GateResult:
     project = Path(project_dir)
+    file_base = Path(files_root) if files_root else project
     gate_id = f"G-{_slug(project_name or project.name)}-{role}"
     checks: list[GateCheck] = []
     missing: list[str] = []
     evidence_ids: list[str] = []
+    verified: list[str] = []
+    evidence_errors: list[dict[str, str]] = []
+    trust = "not_required"
 
     checks.append(GateCheck("role_matches", obj.get("role") == role,
                             f"{obj.get('role')} != {role}" if obj.get("role") != role else ""))
-    checks.append(GateCheck("status_not_blocked", obj.get("status") != "blocked",
-                            str(obj.get("status"))))
+    checks.append(GateCheck("status_done", obj.get("status") == "done",
+                            f"status={obj.get('status')!r}；非 done 不能作为正式通过"))
     checks.append(GateCheck("summary_present", len(str(obj.get("summary", "")).strip()) >= 12,
                             "summary 过短或缺失"))
 
@@ -167,8 +293,24 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
                                                        for k in any_kw),
                                     "缺少任一预期内容：" + "/".join(any_kw)))
 
-    present, where = _artifact_present(project, role, files, project_type)
+    present, where = _artifact_present(project, role, files, project_type,
+                                        files_root=file_base)
     checks.append(GateCheck("artifact", present, where))
+    if files and all(f.get("source") == "runner-summary" for f in files):
+        checks.append(GateCheck("artifact_provenance", False,
+                                "只有 runner-summary 补写文档，不是模型专业产物"))
+    else:
+        checks.append(GateCheck("artifact_provenance", True, "产物来源可接受"))
+    missing_files = []
+    for f in files:
+        if f.get("source") != "role":
+            continue
+        path = file_base / str(f.get("path", ""))
+        if not path.is_file() or path.stat().st_size == 0:
+            missing_files.append(str(f.get("path", "")))
+    checks.append(GateCheck("files_nonempty", not missing_files,
+                            ("缺失或空文件：" + ", ".join(missing_files))
+                            if missing_files else "作者产物非空"))
 
     if project_type == "game" and role in ("product", "arch"):
         doc_rel = "docs/product/product-baseline.md" if role == "product" else "docs/architecture/architecture.md"
@@ -193,23 +335,25 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
             missing.extend(sorted(_required_kinds(profile, role)))
             missing.append("tool_evidence")
             checks.append(GateCheck("tool_evidence", False, "没有执行工具证据"))
+            trust = "unverified"
         else:
-            required = _required_kinds(profile, role)
-            for kind in sorted(required):
-                status, ev = _evidence_status(tool_result.get("evidence", []), kind)
-                if ev:
-                    evidence_ids.append(ev)
-                if status == "missing":
-                    missing.append(kind)
-                checks.append(GateCheck(f"evidence:{kind}", status == "pass",
-                                        "缺少" if status == "missing" else status))
-            subject = str(tool_result.get("subject_hash", ""))
-            if subject:
-                checks.append(GateCheck("evidence_subject", bool(subject), subject))
+            resolver = evidence_resolver or _auto_resolver(tool_result)
+            trust = _resolve_tool_evidence(
+                role, profile, tool_result, resolver,
+                baseline_fp=baseline_fp,
+                allow_legacy_unverified=allow_legacy_unverified,
+                checks=checks, missing=missing, evidence_ids=evidence_ids,
+                verified=verified, errors=evidence_errors)
 
     failed = [c for c in checks if not c.ok]
+    hard_evidence_fail = any(
+        e.get("code") in ("signature_invalid", "subject_mismatch",
+                          "baseline_mismatch", "kind_mismatch")
+        for e in evidence_errors)
     if not failed:
         status = "pass"
+    elif hard_evidence_fail:
+        status = "fail"
     elif missing or any(c.name.startswith("evidence:") and c.detail == "缺少"
                         for c in failed):
         status = "need_evidence"
@@ -219,7 +363,11 @@ def evaluate_role(role: str, obj: dict[str, Any], *,
     result = GateResult(gate_id=gate_id, role=role, status=status,
                         checks=checks, evidence_ids=evidence_ids,
                         missing=missing,
-                        subject_hash=str((tool_result or {}).get("subject_hash", "")))
+                        subject_hash=str((tool_result or {}).get("subject_hash", "")),
+                        evidence_verified=verified,
+                        evidence_errors=evidence_errors,
+                        trust=trust,
+                        legacy=(trust == "legacy_unverified"))
     if status != "pass" and decision_store is not None:
         result.decision_id = _escalate(result, decision_store, obj, project_name, baseline_fp)
     return result
@@ -254,6 +402,9 @@ def _escalate(result: GateResult, store: DecisionStore, obj: dict[str, Any],
         "missing_evidence": result.missing,
         "role_summary": str(obj.get("summary", ""))[:1000],
         "evidence_ids": result.evidence_ids,
+        "evidence_verified": result.evidence_verified,
+        "evidence_errors": result.evidence_errors,
+        "evidence_trust": result.trust,
     }
     options = [
         {"id": "A", "summary": "补证据/修正后重跑该角色", "cost": "低",

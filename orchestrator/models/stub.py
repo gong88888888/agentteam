@@ -57,9 +57,10 @@ class StubBackend:
     def available(self) -> bool:
         return True
 
-    def chat(self, messages: list[dict[str, str]], *, model: str | None = None,
+    def chat(self, messages: list[dict[str, Any]], *, model: str | None = None,
              response_format: str | None = None, temperature: float = 0.0,
-             seed: int = 0, timeout_s: int | None = None) -> ChatResult:
+             seed: int = 0, timeout_s: int | None = None,
+             tools: list[dict[str, Any]] | None = None) -> ChatResult:
         started = time.time()
         if self.mode == "timeout":
             raise ModelTimeout("stub timeout")
@@ -79,7 +80,7 @@ class StubBackend:
                 "open_questions": [],
                 "summary": summary,
             }
-            if "项目运行器约束" in text and role in ("backend", "frontend"):
+            if "项目运行器约束" in text and role in ROLE_STUB:
                 obj["files"] = [self._project_file(role, "游戏项目约束" in text)]
             if role in PRODUCT_ROLE_STUB:
                 obj = self._product_review(role, text)
@@ -141,18 +142,30 @@ class StubBackend:
             return {
                 "path": "game/js/gameplay/stub_systems.js",
                 "content": (
-                    "export function cooldownMultiplier(level = 1) {\n"
-                    "  return Math.max(0.5, 1 - level * 0.05);\n"
-                    "}\n"
+                    'export const extension = {\n'
+                    '  id: "stub-systems",\n'
+                    '  version: 1,\n'
+                    '  actions: ["cooldownMultiplier"],\n'
+                    '  smoke: { action: "cooldownMultiplier", args: [1], expectType: "number" },\n'
+                    '};\n\n'
+                    'export function cooldownMultiplier(level = 1) {\n'
+                    '  return Math.max(0.5, 1 - level * 0.05);\n'
+                    '}\n'
                 ),
             }
         if game and role == "frontend":
             return {
                 "path": "game/js/ui/stub_hud.js",
                 "content": (
-                    "export function hpPercent(hp, maxHp) {\n"
-                    "  return Math.max(0, Math.min(100, (hp / maxHp) * 100));\n"
-                    "}\n"
+                    'export const extension = {\n'
+                    '  id: "stub-hud",\n'
+                    '  version: 1,\n'
+                    '  actions: ["hpPercent"],\n'
+                    '  smoke: { action: "hpPercent", args: [50, 100], expectType: "number" },\n'
+                    '};\n\n'
+                    'export function hpPercent(hp, maxHp) {\n'
+                    '  return Math.max(0, Math.min(100, (hp / maxHp) * 100));\n'
+                    '}\n'
                 ),
             }
         if role == "backend":
@@ -166,14 +179,159 @@ class StubBackend:
                     "    return {\"count\": len(rows), \"rows\": rows}\n"
                 ),
             }
-        return {
-            "path": "src/frontend/app.js",
-            "content": (
-                "export function exportState(status) {\n"
-                "  return { ready: status === 'ready', loading: status === 'loading' };\n"
-                "}\n"
-            ),
+        if role == "frontend":
+            return {
+                "path": "src/frontend/app.js",
+                "content": (
+                    "export function exportState(status) {\n"
+                    "  return { ready: status === 'ready', loading: status === 'loading' };\n"
+                    "}\n"
+                ),
+            }
+        docs: dict[str, tuple[str, str]] = {
+            "pm": ("docs/plan/project-plan.md", """# 项目计划
+
+## 目标
+按需求交付可运行切片。
+
+## 切片
+1. 需求与验收基线（product）
+2. 架构契约（arch）
+3. 实现（backend/frontend）
+4. 验证（qa/review/security）
+5. 发布与复盘（ops/kb/retro）
+
+## 依赖与门禁
+每个切片必须有通过的角色门禁与工具证据；失败不进入发布阶段。
+"""),
+            "product": ("docs/product/product-baseline.md", """# 产品基准
+
+## 用户与场景
+目标用户完成需求中的核心任务；场景包含正常、失败与恢复路径。
+
+## 范围
+按本轮已批准需求交付最小可运行切片。
+
+## 非目标
+不在本轮引入未批准的新业务范围。
+
+## 验收标准
+- 入口可运行，核心流程可复现。
+- 失败时保留用户数据并给出可理解反馈。
+- 所有验收项可追溯到需求。
+
+## 风险
+模型输出必须经过工具证据与独立验证。
+"""),
+            "ui": ("docs/design/ui-spec.md", """# UI / 交互规范
+
+## 信息架构
+主流程、次级面板与反馈区域。
+
+## 交互状态
+加载、空态、就绪、提交中、成功、错误、超时与恢复；不适用状态需说明理由。
+
+## 可访问性
+键盘可达、焦点可见、错误文案与状态可被辅助技术读取。
+
+## Design Token
+颜色、间距、字体与响应式断点保持一致性。
+"""),
+            "arch": ("docs/architecture/architecture.md", """# 架构
+
+## 分层
+入口适配层、领域服务、持久化与验证层。
+
+## 契约
+接口、错误码、状态机与不变量先于实现冻结；契约变化必须走影响分析。
+
+## 错误模型
+错误码稳定、可观察，失败不吞异常。
+
+## 测试策略
+编译、单元、契约与运行验收分别提供证据。
+
+## 风险
+未验证的假设不得写成已实现能力。
+"""),
+            "review": ("docs/reviews/review.md", """# 代码评审
+
+## Findings
+- finding-1：关键路径需要失败恢复测试。
+- finding-2：契约字段与前端状态需保持一致。
+
+## 证据引用
+评审结论引用实际 diff、测试输出与契约，不引用实现者自评。
+
+## 整改方向
+按严重度排序，阻塞项修复后独立复验。
+"""),
+            "qa": ("tests/test-plan.md", """# 测试计划
+
+## 覆盖范围
+正常、异常、边界、权限、数据持久化与失败恢复。
+
+## 用例
+- QA-1：核心流程成功并验证实际数据。
+- QA-2：依赖失败时返回可诊断错误。
+- QA-3：重复提交不产生重复副作用。
+
+## 证据
+记录实际命令、退出码、环境与观察结果；未执行与失败分开报告。
+"""),
+            "security": ("docs/security/threat-model.md", """# 威胁模型
+
+## 威胁
+- 路径穿越与越权写入。
+- 密钥泄漏到日志或产物。
+- 未签名证据被当作通过。
+
+## 缓解
+allowlist、路径校验、签名账本、脱敏环境与失败关闭。
+
+## 验证
+高风险项必须有可复现的负面测试与证据。
+"""),
+            "ops": ("docs/ops/release-plan.md", """# 发布与回滚
+
+## 发布
+小批次发布，保留上一版本。
+
+## 监控
+入口健康、错误率、关键业务指标与告警。
+
+## 回滚
+预演回滚步骤并保留快照；回滚后验证核心流程。
+
+## 演练
+发布前执行故障演练并记录结果。
+"""),
+            "kb": ("knowledge/project-notes.md", """# 项目知识
+
+## 可复用资产
+模板、契约与验收脚本。
+
+## 决策
+记录原因、适用条件与失效条件。
+
+## 常见坑
+未接入入口的模块、过期证据与摘要冒充交付物。
+"""),
+            "retro": ("docs/retro/retro.md", """# 复盘
+
+## 时间线
+记录需求、实现、验证与发布的关键节点。
+
+## 根因
+区分需求、上下文、工具、流程与环境原因。
+
+## 行动项
+- owner：角色；deadline：下一轮；verification：可观察行为改善。
+"""),
         }
+        path, content = docs.get(role, (f"artifacts/{role}/notes.md",
+                                        f"# {role}\n\nstub notes for offline verification.\n"))
+        return {"path": path, "content": content}
 
     @staticmethod
     def _role(text: str) -> str:
