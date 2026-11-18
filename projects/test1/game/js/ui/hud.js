@@ -353,3 +353,11 @@ export const Hud = {
 };
 
 export default Hud;
+
+// Integration metadata: HUD render is exercised by tests/integration.mjs.
+export const extension = {
+  id: "ui-hud",
+  version: 1,
+  actions: { render: (ctx, snapshot, layout) => Hud.render(ctx, snapshot, layout) },
+  smoke: { action: "render", args: [null, {}], expectType: "undefined" },
+};

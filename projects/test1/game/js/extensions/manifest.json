@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "extensions": [
+    {
+      "id": "gameplay-actors",
+      "module": "js/gameplay/actors.js",
+      "actions": [
+        "stepAI"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-classes",
+      "module": "js/gameplay/classes.js",
+      "actions": [
+        "listClasses"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-combat",
+      "module": "js/gameplay/combat.js",
+      "actions": [
+        "computeDamageBase"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-coop",
+      "module": "js/gameplay/coop.js",
+      "actions": [
+        "assignDropOwner"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-enemies",
+      "module": "js/gameplay/enemies.js",
+      "actions": [
+        "createEnemy"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-events",
+      "module": "js/gameplay/events.js",
+      "actions": [
+        "createBus"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-inventory",
+      "module": "js/gameplay/inventory.js",
+      "actions": [
+        "createInventory"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-items",
+      "module": "js/gameplay/items.js",
+      "actions": [
+        "generateItem"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-loot",
+      "module": "js/gameplay/loot.js",
+      "actions": [
+        "rollDrop"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-mapgen",
+      "module": "js/gameplay/mapgen.js",
+      "actions": [
+        "generateFloor"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-maze",
+      "module": "js/gameplay/maze.js",
+      "actions": [
+        "generateFloor"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-player",
+      "module": "js/gameplay/player.js",
+      "actions": [
+        "createPlayer"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "gameplay-save",
+      "module": "js/gameplay/save.js",
+      "actions": [
+        "crc32"
+      ],
+      "role": "legacy-test1"
+    },
+    {
+      "id": "ui-hud",
+      "module": "js/ui/hud.js",
+      "actions": [
+        "render"
+      ],
+      "role": "legacy-test1"
+    }
+  ]
+}

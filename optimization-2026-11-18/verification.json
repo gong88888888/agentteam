@@ -1,0 +1,130 @@
+{
+  "date": "2026-11-18",
+  "timezone": "Asia/Shanghai",
+  "commit": "afbfaab7e0e290373722b811bbfe536606511411",
+  "body_chapters": 18,
+  "body_han_characters": 50458,
+  "body_non_whitespace_characters": 66747,
+  "body_total_characters": 70107,
+  "implementation_task_cards": [
+    "T00",
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05",
+    "T06",
+    "T07",
+    "T08",
+    "T09",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18",
+    "T19",
+    "T20",
+    "T21",
+    "T22",
+    "T23",
+    "T24",
+    "T25",
+    "T26",
+    "T27",
+    "T28",
+    "T29",
+    "T30",
+    "T31"
+  ],
+  "acceptance_catalog_cases": 24,
+  "existing_unit_test_run": {
+    "command": "py -3.12 -m unittest discover -s tests -v",
+    "tests": 30,
+    "result": "OK",
+    "duration_seconds": 16.081,
+    "scope": "existing repository tests, not implementation of this plan"
+  },
+  "audit_probe_count": 8,
+  "paid_model_calls": 0,
+  "source_implementation_modified": false,
+  "combined_file": "F:\\claude111\\cctest1\\agentteam\\AgentTeam实际审查与五万字优化实施方案-2026-11-18.md",
+  "combined_sha256": "bc00c949b5ff4d7b53472860d2b59b38e99156113db875a8920905d2ccea8dd4",
+  "chapters": [
+    {
+      "file": "01-实际审查与问题证据.md",
+      "sha256": "f6a28727f85fb421dca44b6832372b55c75b811388997137f9fba147adaed31b"
+    },
+    {
+      "file": "02-目标架构与统一数据协议.md",
+      "sha256": "e6ae34fdeda1eebc51c6d18a88af3c6a56258fa890abf8e50ae80aad6a78988d"
+    },
+    {
+      "file": "03-文档解析与需求完整性.md",
+      "sha256": "418408a090849636ff218c874128abf23f05cffd30a1707b5e5235eb2cd34ca6"
+    },
+    {
+      "file": "04-产品设计协作与验收规格.md",
+      "sha256": "a495a05d44691a6739013cfdb93495fb64ac773452c67b22518ed268c6d900db"
+    },
+    {
+      "file": "05-上下文与DeepSeek执行循环.md",
+      "sha256": "03a1d71893bf2173cd4f0e7c8f7216b7904319a2b5537fc650510898b49988c5"
+    },
+    {
+      "file": "06-工具证据门禁与真实运行验收.md",
+      "sha256": "377cf7f6c0212a62c35df6f9edb96c0f2480ab30723e07102fe79afe0df00587"
+    },
+    {
+      "file": "07-持续迭代缺陷回流与团队改进.md",
+      "sha256": "7a6fc22c9fdb905f7759b280b4a293e532d8fe78b99fc5cad7ed663515af5586"
+    },
+    {
+      "file": "08-示例游戏专项改造与集成.md",
+      "sha256": "6932c0045e4a7d69eaf83740f485536cf12beb9b52921c2ec98ea34d222c0d33"
+    },
+    {
+      "file": "09-持久化并发恢复与迁移.md",
+      "sha256": "64c17b61c55568c98131824a8746d5d223d698d50fffa2adb36d6bcae869f541"
+    },
+    {
+      "file": "10-评测指标与失败注入.md",
+      "sha256": "8b4e2457a7384724337aa720540dd8140b4bd078c0a007a2be34f71b73ee6389"
+    },
+    {
+      "file": "11-第一阶段逐项实施任务卡.md",
+      "sha256": "57c17268e24df8be295f287c6232f45044b7472a61885c8d60c351797f4c377c"
+    },
+    {
+      "file": "12-第二阶段逐项实施任务卡.md",
+      "sha256": "135b340d2825d40733c9e5e2dc3ba3387b025f03d4fc5c5b6ff0a982bbc47eed"
+    },
+    {
+      "file": "13-可直接使用的执行与角色提示词.md",
+      "sha256": "9f7594c32567f350a0a7bb3f19b08186199768eed33084a234f84809db38f7d6"
+    },
+    {
+      "file": "14-接口契约字段与逐步接入.md",
+      "sha256": "ea6ba1f4b98bfed85661d70ac8b7a4ad976cafa47034d0fa13925cd1cdbce024"
+    },
+    {
+      "file": "15-故障演练与完整工作样例.md",
+      "sha256": "1b4f25457f6c862aaf39b442f0e95bccb6ed5e48379398acd512816834cd3032"
+    },
+    {
+      "file": "16-落地运营发布与回退手册.md",
+      "sha256": "2b5381f340e5c6e66f8eccd5394495cfd3eaca1467a0943aecac8bf15a7e26df"
+    },
+    {
+      "file": "17-验收用例目录与人工检查表.md",
+      "sha256": "dda9b03447c5ace79a394a91e2ee2444c9360e6c125f79c4b3a6b0de9f52d77e"
+    },
+    {
+      "file": "18-关键取舍与交接说明.md",
+      "sha256": "4913bb80ae4611ca20f6d5f73f6d0cff2cca0e4a7d3dfaaf751abf8d0bedd151"
+    }
+  ]
+}

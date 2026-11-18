@@ -4,10 +4,49 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from .base import BackendUnavailable, ChatResult, ModelBackend, ModelError
+from .base import (BackendUnavailable, ChatResult, ConfigurationError,
+                   ModelBackend, ModelError, ModelFormatError, ModelTruncated)
 from .deepseek import DeepSeekBackend
 from .ollama import OllamaBackend
 from .stub import StubBackend
+
+REAL_BACKENDS = ("local", "deepseek")
+
+
+def validate_routing(cfg: dict[str, Any], *, offline: bool) -> dict[str, dict[str, str]]:
+    """Validate the routing table before any attempt is made.
+
+    Unknown backends and ``stub`` outside an explicit offline run are
+    configuration errors. A real run must never silently degrade to a stub.
+    """
+    models = cfg.get("models") or {}
+    routing = models.get("routing") or {}
+    if not isinstance(routing, dict):
+        raise ConfigurationError("models.routing 必须是映射（role -> {primary, fallback}）")
+    allowed = set(REAL_BACKENDS) | ({"stub"} if offline else set())
+    clean: dict[str, dict[str, str]] = {}
+    for role, route in routing.items():
+        if route is None:
+            continue
+        if not isinstance(route, dict):
+            raise ConfigurationError(
+                f"models.routing.{role} 必须是对象，实际为 {type(route).__name__}")
+        item: dict[str, str] = {}
+        for key in ("primary", "fallback"):
+            name = route.get(key)
+            if name is None:
+                continue
+            name = str(name).strip()
+            if name not in allowed:
+                legal = ", ".join(sorted(REAL_BACKENDS))
+                if offline:
+                    legal += ", stub（仅 offline）"
+                raise ConfigurationError(
+                    f"models.routing.{role}.{key}={name!r} 无效；合法值：{legal}。"
+                    "请修正配置，而不是让真实运行退回 stub。")
+            item[key] = name
+        clean[str(role)] = item
+    return clean
 
 
 class ModelRouter:
@@ -15,9 +54,9 @@ class ModelRouter:
                  stub_mode: str = "good") -> None:
         self.cfg = cfg
         self.offline = offline
-        models = cfg.get("models", {})
-        local = models.get("local", {})
-        ds = models.get("deepseek", {})
+        models = cfg.get("models", {}) or {}
+        local = models.get("local", {}) or {}
+        ds = models.get("deepseek", {}) or {}
         self.local = OllamaBackend(
             local.get("base_url", "http://localhost:11434"),
             local.get("model", "qwen3.6:35b-a3b-mtp-q4_K_M"),
@@ -35,7 +74,7 @@ class ModelRouter:
             float(ds.get("price_in_per_m", 0.5)),
             float(ds.get("price_out_per_m", 1.5)))
         self.stub = StubBackend(stub_mode)
-        self.routing = models.get("routing", {})
+        self.routing = validate_routing(cfg, offline=offline)
         self.calls: list[dict[str, Any]] = []
         self.family_collisions = 0
 
@@ -44,20 +83,32 @@ class ModelRouter:
             return self.local
         if name == "deepseek":
             return self.deepseek
-        return self.stub
+        if name == "stub":
+            if not self.offline:
+                raise ConfigurationError(
+                    "stub 是确定性仿真后端，只能在显式 offline 模式使用；"
+                    "真实运行不能退到 stub。")
+            return self.stub
+        legal = ", ".join(REAL_BACKENDS)
+        raise ConfigurationError(
+            f"未知模型后端 {name!r}；合法值：{legal}。配置错误不会被当作 stub 运行。")
 
     def _record(self, role: str, result: ChatResult, purpose: str) -> None:
         self.calls.append({
             "role": role, "purpose": purpose, "backend": result.backend,
-            "model": result.model, "latency_ms": result.latency_ms,
+            "model": result.model, "model_version": result.model_version,
+            "latency_ms": result.latency_ms,
             "prompt_tokens": result.prompt_tokens,
             "completion_tokens": result.completion_tokens,
             "cost_usd": result.cost_usd,
+            "finish_reason": result.finish_reason,
+            "tool_calls": len(result.tool_calls),
         })
 
-    def _run(self, role: str, messages: list[dict[str, str]], *,
+    def _run(self, role: str, messages: list[dict[str, Any]], *,
              primary: str, fallback: str | None, purpose: str,
-             response_format: str | None, temperature: float, seed: int) -> ChatResult:
+             response_format: str | None, temperature: float, seed: int,
+             tools: list[dict[str, Any]] | None = None) -> ChatResult:
         if self.offline:
             res = self.stub.chat(messages, response_format=response_format,
                                  temperature=temperature, seed=seed)
@@ -70,20 +121,38 @@ class ModelRouter:
                 if not backend.available():
                     raise BackendUnavailable(f"{name} 不可用")
                 res = backend.chat(messages, response_format=response_format,
-                                   temperature=temperature, seed=seed)
+                                   temperature=temperature, seed=seed, tools=tools)
+                if res.finish_reason in ("length", "content_filter"):
+                    raise ModelTruncated(
+                        f"{name} finish_reason={res.finish_reason}；"
+                        "截断或不完整输出不能作为业务完成")
+                if not res.usable():
+                    raise ModelFormatError(
+                        f"{name} 返回既没有文本也没有工具调用")
                 self._record(role, res, purpose)
                 return res
+            except ConfigurationError:
+                raise
             except ModelError as exc:
                 errors.append(f"{name}: {exc}")
         raise BackendUnavailable("；".join(errors) or "无可用模型后端")
 
-    def execution(self, role: str, messages: list[dict[str, str]], *,
+    def execution(self, role: str, messages: list[dict[str, Any]], *,
                   response_format: str | None = "json") -> ChatResult:
         route = self.routing.get(role, {"primary": "local", "fallback": "deepseek"})
         return self._run(role, messages, primary=route.get("primary", "local"),
                          fallback=route.get("fallback", "deepseek"),
                          purpose="execution", response_format=response_format,
                          temperature=0.2, seed=7)
+
+    def tool_chat(self, role: str, messages: list[dict[str, Any]], *,
+                  tools: list[dict[str, Any]],
+                  response_format: str | None = None) -> ChatResult:
+        route = self.routing.get(role, {"primary": "local", "fallback": "deepseek"})
+        return self._run(role, messages, primary=route.get("primary", "local"),
+                         fallback=route.get("fallback", "deepseek"),
+                         purpose="tool_chat", response_format=response_format,
+                         temperature=0.1, seed=7, tools=tools)
 
     def judge(self, tier: str, messages: list[dict[str, str]]) -> ChatResult:
         role = f"judge_{tier.lower()}"

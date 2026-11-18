@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/requirement.schema.json",
+  "title": "Atomic Requirement v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requirement_id", "statement", "source_refs", "kind",
+               "expected_result"],
+  "properties": {
+    "requirement_id": {"type": "string", "minLength": 1},
+    "statement": {"type": "string", "minLength": 1},
+    "source_refs": {"type": "array", "minItems": 1,
+                    "items": {"type": "string"}},
+    "kind": {"type": "string",
+             "enum": ["functional", "rule", "data", "permission",
+                      "compatibility", "performance", "interaction",
+                      "operational"]},
+    "expected_result": {"type": "string", "minLength": 1},
+    "actor": {"type": "string"},
+    "conditions": {"type": "string"},
+    "priority": {"type": "string"},
+    "status": {"type": "string",
+               "enum": ["candidate", "approved", "rejected", "deferred",
+                        "superseded"]},
+    "revision": {"type": "integer", "minimum": 1},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "acceptance_ids": {"type": "array", "items": {"type": "string"}}
+  }
+}

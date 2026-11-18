@@ -6,7 +6,8 @@ from typing import Any
 
 import requests
 
-from .base import BackendUnavailable, ChatResult, ModelTimeout
+from .base import (BackendUnavailable, ChatResult, ModelProtocolError,
+                   ModelTimeout, ModelTransientError)
 
 
 class OllamaBackend:
@@ -54,9 +55,10 @@ class OllamaBackend:
         except BackendUnavailable:
             return False
 
-    def chat(self, messages: list[dict[str, str]], *, model: str | None = None,
+    def chat(self, messages: list[dict[str, Any]], *, model: str | None = None,
              response_format: str | None = None, temperature: float = 0.0,
-             seed: int = 0, timeout_s: int | None = None) -> ChatResult:
+             seed: int = 0, timeout_s: int | None = None,
+             tools: list[dict[str, Any]] | None = None) -> ChatResult:
         chosen = model or self.resolve_model()
         payload: dict[str, Any] = {
             "model": chosen,
@@ -68,6 +70,8 @@ class OllamaBackend:
         }
         if response_format == "json":
             payload["format"] = "json"
+        if tools:
+            payload["tools"] = tools
         started = time.time()
         try:
             r = requests.post(f"{self.base_url}/api/chat", json=payload,
@@ -77,9 +81,15 @@ class OllamaBackend:
         except requests.Timeout as exc:
             raise ModelTimeout(f"本地模型超时：{exc}") from exc
         except requests.RequestException as exc:
+            response = getattr(exc, "response", None)
+            code = getattr(response, "status_code", 0) or 0
+            if 500 <= code < 600:
+                raise ModelTransientError(f"本地模型临时故障（{code}）：{exc}") from exc
             raise BackendUnavailable(f"本地模型调用失败：{exc}") from exc
         message = data.get("message") or {}
         content = message.get("content", "")
+        tool_calls = message.get("tool_calls") or []
+        finish_reason = str(data.get("done_reason") or "stop")
         if not content and message.get("thinking"):
             # Reasoning models may put the final JSON in `thinking`; recover it.
             import re as _re
@@ -94,8 +104,8 @@ class OllamaBackend:
                 if cand.startswith("{"):
                     content = cand
                     break
-        if not content:
-            raise BackendUnavailable("本地模型返回空内容")
+        if not content and not tool_calls:
+            raise ModelProtocolError("本地模型返回空内容且没有工具调用")
         return ChatResult(
             content=content,
             backend=self.name,
@@ -107,4 +117,8 @@ class OllamaBackend:
             cost_usd=0.0,
             response_id=str(data.get("created_at", "")),
             raw=data,
+            tool_calls=list(tool_calls),
+            finish_reason=finish_reason,
+            provider_metadata={"done": data.get("done", True),
+                               "base_url": self.base_url},
         )

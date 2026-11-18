@@ -252,6 +252,9 @@ function renderProject(p, preferredRole = null, selectRole = true) {
     `门禁 通过 ${gates.pass || 0} / 待补证 ${gates.need_evidence || 0} / 失败 ${gates.fail || 0}`,
   ];
   if (p.dod) meta.push(`DoD ${p.dod.status || "—"}`);
+  if (p.trust) meta.push(`信任 ${p.trust}`);
+  if (p.mode) meta.push(`模式 ${p.mode}`);
+  if (p.persistence) meta.push(`任务 ${p.persistence.completed || 0} 完成 / ${(p.persistence.blocked || 0) + (p.persistence.needs_revision || 0)} 阻塞`);
   const play = $("play-game");
   const playable = p.project_type === "game" && p.acceptance?.status === "pass";
   play.classList.toggle("hidden", !playable);

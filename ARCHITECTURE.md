@@ -525,3 +525,78 @@ python -I specs/validate_specs.py
 | Schema | `python -I specs/validate_specs.py` | OK |
 
 > 仓库状态（检查时）：分支 `v4.1-protocol-fixes`；W5 相关改动（项目监控、角色门禁、沙箱、工具证据、质量分、模板）仍在工作树未提交。本轮新增 `ARCHITECTURE.md` 与 `start.bat`。
+
+---
+
+## 13. 2026-11-18 优化实施（8 轮）
+
+在保留原五条链路的前提下，新增了六个可独立测试的约束层：
+
+### 13.1 可信边界
+
+- `models/router.py` 在构造时校验 routing；未知后端、真实模式 `stub` 抛 `ConfigurationError`。
+- `product_review.py` 的 `status` 缺失/blocked 不通过；来源号必须属于当前文档；覆盖只从当前运行注册的产物计算。
+- `evidence/resolver.py` 只从签名账本签发 `VerifiedEvidence`；签名、有效期、撤销、对象、基线、类型全部匹配才可用于门禁。
+- `role_gates.py` 拒绝空文件、只有标题、`runner-summary` 补写；代码角色必须通过 resolver 消费证据。
+
+### 13.2 完成定义与运行验收
+
+- `iterations/manifest.py` 定义已批准迭代的承诺任务、验收、文档与模式。
+- `process.definition_of_done()` 只接受清单集合；无清单为 `legacy_incomplete`；门禁必须属于当前 `run_id`。
+- `acceptance_web.py` 启动真实服务、等待健康、执行业务流并写入签名证据；健康通过不等于业务通过。
+- `project_runner.py` 正式模式按阶段阻塞下游，`rehearsal` 只用于探索。
+- `game_check.py` 新增增量模块可达性与 `tests/integration.mjs` 加载/调用/断言检查。
+
+### 13.3 上下文与来源
+
+- `context/assembler.py` 按任务引用装配原文/规范/代码，预算化、可截断、记录 manifest。
+- `sources/parser.py` 将标题、段落、列表、表格、代码块变为稳定身份单元；版本 diff 输出 added/removed/changed/moved/uncertain。
+- `requirements_ledger.py` 校验原子需求、来源引用、处置完整性和重复处置。
+
+### 13.4 持久化与执行
+
+- `persistence/db.py` 使用 SQLite WAL；表覆盖 projects/iterations/tasks/attempts/artifacts/verifications/findings/actions/knowledge/events/outbox/consumers。
+- `persistence/tasks.py` 任务领取使用版本 CAS + 租约；心跳续租；过期任务进入 `recovering`；旧 worker 提交被拒绝。
+- `persistence/events.py` 状态与事件同事务；消费者按 `(consumer_id,event_id)` 幂等。
+- `execution/tools.py` 提供只读/检索/受控补丁/注册检查/提交；路径 jail、写入范围、哈希、预算。
+- `execution/loop.py` 只有 `submit_result` 才能进入待验证；文本自述为 `needs_submission`。
+
+### 13.5 缺陷与迭代
+
+- `findings.py`：症状指纹去重，按根因路由到产品/设计/架构/开发/运维/QA/复盘，创建真实修复任务。
+- `qa.py`：独立验证者；实现者不能自验；pass 必须有当前对象证据；not_run 不等于通过。
+- `iterations/controller.py`：暂停/恢复、预算停止、验证积压限流、idle/active/awaiting_decision。
+- `actions.py`：复盘行动必须有 owner/交付/验证/任务；笼统建议只保留 candidate。
+- `knowledge/authority.py`：contract/decision/requirement 优先于 experience；候选默认不返回；撤销后不再检索。
+- `impact.py`：类型化影响图，按反向依赖传播；未知节点报告限制。
+
+### 13.6 观测
+
+- `project.json` 增加 `manifest`、`mode`、`trust`、`persistence`、`model_calls`（实际 model/model_version/finish_reason）。
+- `trust.py` + Dashboard 显示 `current_verified / incomplete / rehearsal / legacy_unverified`。
+- `eval/failure_injection.py` 20 例固定反例；CI 与 `start.bat test` 都会运行。
+
+### 13.7 数据流（新增部分）
+
+```mermaid
+flowchart LR
+  S[来源文档] --> SU[source units]
+  SU --> RQ[requirements ledger]
+  RQ --> M[iteration manifest]
+  M --> T[SQLite tasks/attempts]
+  T --> C[ContextAssembler]
+  C --> E[execution loop / role run]
+  E --> EV[EvidenceResolver]
+  EV --> G[role gates]
+  G --> A[web/game runtime acceptance]
+  A --> D[Definition of Done]
+  D --> F[findings / QA / actions]
+  F --> T
+```
+
+### 13.8 兼容与回退
+
+- 旧项目 JSON、旧证据账本、旧 Dashboard 读取路径保留。
+- 新数据库是新增文件；删除它不会删除旧产物。
+- 无 manifest 的历史项目不会自动通过新 DoD，显示 `legacy_unverified`。
+- 游戏扩展可从 manifest 移除单条恢复为未集成状态，不影响基座。

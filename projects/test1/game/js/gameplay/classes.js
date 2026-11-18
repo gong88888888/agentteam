@@ -41,3 +41,6 @@ export function getClass(id) {
 export function listClasses() {
   return Object.values(CLASSES).map(c => ({ id: c.id, name: c.name, role: c.role, soloFriendly: c.soloFriendly }));
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-classes", version: 1, actions: ["listClasses"], smoke: { action: "listClasses", args: [], expectType: "object" } };

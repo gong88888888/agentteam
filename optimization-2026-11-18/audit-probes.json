@@ -1,0 +1,58 @@
+{
+  "commit": "afbfaab7e0e290373722b811bbfe536606511411",
+  "probes": [
+    {
+      "id": "P01-invalid-source-and-blocked-review",
+      "actual": "pass",
+      "expected": "fail",
+      "note": "Fabricated source reference and blocked output."
+    },
+    {
+      "id": "P02-incomplete-web-project-dod",
+      "actual": "pass",
+      "expected": "fail",
+      "note": "One role, invalid Python entry, no runtime acceptance."
+    },
+    {
+      "id": "P03-empty-product-document",
+      "actual": "pass",
+      "expected": "fail",
+      "note": "Empty document plus keyword-bearing summary."
+    },
+    {
+      "id": "P04-gate-consumer-unverified-dictionaries",
+      "actual": "pass",
+      "expected": "reject at trust boundary",
+      "note": "Direct function probe; not proof of an externally reachable exploit."
+    },
+    {
+      "id": "P05-stale-review-gates",
+      "initial": "pass",
+      "actual": "pass",
+      "latest_role_status": "error",
+      "expected": "fail",
+      "note": "Changed source, latest role failed, old complete gate set survives."
+    },
+    {
+      "id": "P06-unknown-backend",
+      "actual": "stub",
+      "expected": "configuration error",
+      "note": "No API calls performed."
+    },
+    {
+      "id": "P07-heading-id-shift",
+      "before": "SRC-002",
+      "after": "SRC-003",
+      "note": "Same heading changes ID after prepending a heading."
+    },
+    {
+      "id": "P08-game-generated-module-reachability",
+      "entry_imports": [
+        "./js/main.js",
+        "./core.js"
+      ],
+      "generated_modules": 13,
+      "note": "Entry/core/main do not reference gameplay or UI increments; static entry graph only."
+    }
+  ]
+}

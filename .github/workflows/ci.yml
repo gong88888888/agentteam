@@ -19,6 +19,10 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Unit tests (sandbox, evidence, gates, quality, rerank)
         run: python -m unittest discover -s tests -v
+      - name: Failure-injection acceptance suite
+        run: python eval/failure_injection.py
+      - name: Model capability contract probe (offline)
+        run: python -m orchestrator.cli model-capabilities --offline
       - name: Orchestrator selfcheck
         run: python -m orchestrator.selfcheck
       - name: Judge / agent / canary / revalidation eval

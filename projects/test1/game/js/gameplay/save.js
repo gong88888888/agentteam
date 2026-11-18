@@ -57,3 +57,6 @@ export function loadWithFallback(corrupted, { backup = null } = {}) {
   if (corrupted?.lastCampfire) return { ...corrupted.lastCampfire, fallback: true };
   return null;
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-save", version: 1, actions: ["crc32"], smoke: { action: "crc32", args: ["abc"], expectType: "number" } };

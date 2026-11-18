@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/iteration-manifest.schema.json",
+  "title": "Approved Iteration Manifest v1",
+  "description": "The committed scope for one iteration. Definition of Done consumes this set instead of deriving scope from existing role state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "iteration_id", "project_type",
+               "profile", "delivery_kind", "requires_entry", "entry",
+               "required_tasks", "required_acceptance", "required_docs", "mode"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "project_id": {"type": "string", "minLength": 1},
+    "iteration_id": {"type": "string", "minLength": 1},
+    "project_type": {"type": "string", "enum": ["web", "game"]},
+    "profile": {"type": "string", "enum": ["basic", "standard", "full"]},
+    "delivery_kind": {"type": "string",
+                      "enum": ["software", "documentation", "game-slice"]},
+    "requires_entry": {"type": "boolean"},
+    "entry": {"type": "string"},
+    "required_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "stage", "required", "acceptance"],
+        "properties": {
+          "id": {"type": "string"},
+          "role": {"type": "string"},
+          "stage": {"type": "string"},
+          "required": {"type": "boolean"},
+          "acceptance": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "required_acceptance": {"type": "array", "items": {"type": "string"}},
+    "required_docs": {"type": "array", "items": {"type": "string"}},
+    "required_reviews": {"type": "array", "items": {"type": "string"}},
+    "required_decisions": {"type": "array", "items": {"type": "string"}},
+    "mode": {"type": "string", "enum": ["formal", "rehearsal"]},
+    "budget": {"type": "object"},
+    "created_at": {"type": "number"}
+  }
+}

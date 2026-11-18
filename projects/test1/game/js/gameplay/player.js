@@ -44,3 +44,6 @@ export function takeDamage(p, dmg, nowMs) {
   p.hp = Math.max(0, p.hp - dmg);
   return { applied: dmg, dead: p.hp <= 0 };
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-player", version: 1, actions: ["createPlayer"], smoke: { action: "createPlayer", args: [{ id: "p1", classId: "warrior" }], expectType: "object" } };

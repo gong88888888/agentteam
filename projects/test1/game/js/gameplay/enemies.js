@@ -52,3 +52,6 @@ export function pickTarget(enemies, players) {
 export function enemyAttack(enemy, target, roll = 1) {
   return computeDamage({ atk: enemy.atk, mult: 1, def: target.def || 0, crit: 0, roll });
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-enemies", version: 1, actions: ["createEnemy"], smoke: { action: "createEnemy", args: [Object.keys(ENEMY_TYPES)[0]], expectType: "object" } };

@@ -15,3 +15,6 @@ export function createBus() {
     },
   };
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-events", version: 1, actions: ["createBus"], smoke: { action: "createBus", args: [], expectType: "object" } };

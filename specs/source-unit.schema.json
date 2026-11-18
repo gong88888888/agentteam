@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentteam.local/schemas/source-unit.schema.json",
+  "title": "Source Unit v1",
+  "description": "A stable addressable unit parsed from a source document. Identity is content+kind; the structural path is version data, not identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["unit_id", "doc_id", "kind", "text", "heading", "path",
+               "line", "line_end", "content_hash", "identity_key"],
+  "properties": {
+    "unit_id": {"type": "string", "minLength": 1},
+    "doc_id": {"type": "string", "minLength": 1},
+    "kind": {"type": "string",
+             "enum": ["heading", "paragraph", "list", "table", "code"]},
+    "text": {"type": "string"},
+    "heading": {"type": "string"},
+    "path": {"type": "array", "items": {"type": "string"}},
+    "line": {"type": "integer", "minimum": 1},
+    "line_end": {"type": "integer", "minimum": 1},
+    "content_hash": {"type": "string", "minLength": 16},
+    "identity_key": {"type": "string", "minLength": 1},
+    "occurrence": {"type": "integer", "minimum": 1}
+  }
+}

@@ -17,3 +17,22 @@ paths:
                 properties:
                   status:
                     type: string
+  /api/v1/exports/csv:
+    get:
+      summary: Export one month of records as CSV
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-02"
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        "400":
+          description: Missing month

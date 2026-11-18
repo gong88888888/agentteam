@@ -32,3 +32,6 @@ export function rollQuality(input = Math.random) {
 export function rollDrop({ boss = false, rng = Math.random } = {}) {
   return boss ? rollBossDrop(rng) : rollQuality(rng);
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-loot", version: 1, actions: ["rollDrop"], smoke: { action: "rollDrop", args: [{ rng: () => 0.5 }], expectType: "string" } };

@@ -43,3 +43,6 @@ export function compare(a, b) {
   const score = it => it.affixes.reduce((s, af) => s + af.value, 0) + it.enhanceLevel * 2;
   return { better: score(b) > score(a), delta: score(b) - score(a) };
 }
+
+// Integration metadata: loaded and exercised by tests/integration.mjs.
+export const extension = { id: "gameplay-inventory", version: 1, actions: ["createInventory"], smoke: { action: "createInventory", args: [], expectType: "object" } };

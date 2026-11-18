@@ -8,7 +8,10 @@
   "properties": {
     "task_id": {"type": "string"},
     "role": {"type": "string"},
-    "status": {"type": "string", "enum": ["done", "need_evidence", "blocked"]},
+    "status": {"type": "string", "enum": ["done", "need_evidence", "blocked", "failed", "error", "draft", "unknown", "invalid"]},
+    "status_missing": {"type": "boolean"},
+    "status_raw": {"type": "string"},
+    "invalid_source_refs": {"type": "array", "items": {"type": "string"}},
     "source_sections": {"type": "array", "items": {"type": "string"}},
     "findings": {
       "type": "array",
@@ -32,7 +35,9 @@
       "properties": {
         "total_sections": {"type": "integer", "minimum": 0},
         "covered_sections": {"type": "integer", "minimum": 0},
-        "percent": {"type": "number", "minimum": 0, "maximum": 100}
+        "percent": {"type": "number", "minimum": 0, "maximum": 100},
+        "computed_by": {"type": "string"},
+        "basis": {"type": "string"}
       }
     },
     "files": {
@@ -48,6 +53,48 @@
       }
     },
     "summary": {"type": "string"},
-    "open_questions": {"type": "array", "items": {"type": "string"}}
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "requirements": {
+      "type": "array",
+      "description": "Optional structured atomic requirements (schema 1.0 extension).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "source_refs", "kind", "expected_result"],
+        "properties": {
+          "id": {"type": "string"},
+          "requirement_id": {"type": "string"},
+          "statement": {"type": "string"},
+          "source_refs": {"type": "array", "items": {"type": "string"}},
+          "kind": {"type": "string"},
+          "expected_result": {"type": "string"},
+          "acceptance": {"type": "string"},
+          "actor": {"type": "string"},
+          "conditions": {"type": "string"},
+          "priority": {"type": "string"},
+          "status": {"type": "string"},
+          "assumptions": {"type": "array", "items": {"type": "string"}},
+          "open_questions": {"type": "array", "items": {"type": "string"}},
+          "acceptance_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "source_dispositions": {
+      "type": "array",
+      "description": "Optional explicit disposition of source units.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "status"],
+        "properties": {
+          "unit_id": {"type": "string"},
+          "source_id": {"type": "string"},
+          "status": {"type": "string"},
+          "requirement_ids": {"type": "array", "items": {"type": "string"}},
+          "requirements": {"type": "array", "items": {"type": "string"}},
+          "reason": {"type": "string"}
+        }
+      }
+    }
   }
 }
