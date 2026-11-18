@@ -26,6 +26,9 @@ RAG-Agent-Toolkit.zip
 .DS_Store
 Thumbs.db
 
+# schemathesis local cache
+.schemathesis/
+
 # generated dashboard data (index.html embeds it)
 dashboard/data.json
 
